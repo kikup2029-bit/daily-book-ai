@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { confirmNewSignup } from "@/lib/auth.functions";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -60,8 +61,22 @@ function AuthPage() {
           options: { emailRedirectTo: window.location.origin },
         });
         if (signUpError) throw signUpError;
-        if (!data.session) {
-          setNotice("Almost there — check your email to confirm your account, then sign in.");
+
+        if (!data.session && data.user) {
+          // Project may still require email confirmation. Try a best-effort
+          // auto-confirm (only works once SUPABASE_SERVICE_ROLE_KEY is set
+          // server-side); if that's not configured, fall back to the normal
+          // "check your email" flow.
+          const result = await confirmNewSignup({ data: { userId: data.user.id } });
+          if (result.confirmed) {
+            const { error: signInError } = await supabase.auth.signInWithPassword({
+              email,
+              password,
+            });
+            if (signInError) throw signInError;
+          } else {
+            setNotice("Almost there — check your email to confirm your account, then sign in.");
+          }
         }
       } else {
         const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
