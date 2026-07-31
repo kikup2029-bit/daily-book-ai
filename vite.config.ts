@@ -39,6 +39,10 @@ export default defineConfig({
       "process.env.BUILD_ANTHROPIC_API_KEY": inlinedEnv("ANTHROPIC_API_KEY"),
       "process.env.BUILD_GEMINI_API_KEY": inlinedEnv("GEMINI_API_KEY"),
       "process.env.BUILD_GEMINI_MODEL": inlinedEnv("GEMINI_MODEL"),
+      "process.env.BUILD_GROQ_API_KEY": inlinedEnv("GROQ_API_KEY"),
+      "process.env.BUILD_GROQ_MODEL": inlinedEnv("GROQ_MODEL"),
+      "process.env.BUILD_CLOUDFLARE_ACCOUNT_ID": inlinedEnv("CLOUDFLARE_ACCOUNT_ID"),
+      "process.env.BUILD_CLOUDFLARE_AI_TOKEN": inlinedEnv("CLOUDFLARE_AI_TOKEN"),
     },
   },
 });

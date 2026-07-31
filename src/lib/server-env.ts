@@ -16,6 +16,10 @@ const BUILD_TIME_VALUES: Record<string, string | undefined> = {
   ANTHROPIC_API_KEY: process.env.BUILD_ANTHROPIC_API_KEY,
   GEMINI_API_KEY: process.env.BUILD_GEMINI_API_KEY,
   GEMINI_MODEL: process.env.BUILD_GEMINI_MODEL,
+  GROQ_API_KEY: process.env.BUILD_GROQ_API_KEY,
+  GROQ_MODEL: process.env.BUILD_GROQ_MODEL,
+  CLOUDFLARE_ACCOUNT_ID: process.env.BUILD_CLOUDFLARE_ACCOUNT_ID,
+  CLOUDFLARE_AI_TOKEN: process.env.BUILD_CLOUDFLARE_AI_TOKEN,
 };
 
 export function readServerEnv(key: string): string | undefined {

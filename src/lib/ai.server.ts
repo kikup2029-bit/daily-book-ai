@@ -1,12 +1,19 @@
-// Server-only AI helpers. Supports Google Gemini (free tier) and Anthropic
-// Claude, picking whichever API key is configured.
+// Server-only AI helpers. Supports several providers and uses whichever one
+// has a key configured, trying the free ones first.
 //
-// Gemini (free, no card required): create a key at https://aistudio.google.com/apikey
-// and set it as a GEMINI_API_KEY build variable.
-// Anthropic (paid, prepaid credits): https://console.anthropic.com/settings/keys
-// set as ANTHROPIC_API_KEY.
+// FREE OPTIONS (no card required):
+//  1. Groq — https://console.groq.com/keys  → GROQ_API_KEY
+//  2. Google Gemini — https://aistudio.google.com/apikey → GEMINI_API_KEY
+//  3. Cloudflare Workers AI — free daily allowance, and you already have a
+//     Cloudflare account. Needs BOTH:
+//       CLOUDFLARE_ACCOUNT_ID (dashboard URL / Workers overview)
+//       CLOUDFLARE_AI_TOKEN   (My Profile → API Tokens → token with Workers AI read)
 //
-// If both are set, Gemini is used first and Claude is the fallback.
+// PAID:
+//  4. Anthropic Claude — https://console.anthropic.com/settings/keys → ANTHROPIC_API_KEY
+//
+// Providers are tried in order; if one fails the next is used, so a suspended
+// key or an outage doesn't take the feature down.
 
 import { readServerEnv } from "./server-env";
 
@@ -15,6 +22,13 @@ const GEMINI_DEFAULT_MODEL = "gemini-2.0-flash";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_DEFAULT_MODEL = "claude-haiku-4-5-20251001";
+
+const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
+const GROQ_DEFAULT_MODEL = "llama-3.3-70b-versatile";
+const GROQ_DEFAULT_VISION_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
+
+const CLOUDFLARE_DEFAULT_MODEL = "@cf/meta/llama-3.1-8b-instruct";
+const CLOUDFLARE_DEFAULT_VISION_MODEL = "@cf/meta/llama-3.2-11b-vision-instruct";
 
 export type AiPart =
   | { kind: "text"; text: string }
@@ -111,43 +125,155 @@ async function callAnthropic(apiKey: string, req: AiRequest): Promise<string> {
   return text;
 }
 
+// --- Groq (free tier, OpenAI-compatible) ----------------------------------
+
+async function callGroq(apiKey: string, req: AiRequest): Promise<string> {
+  const hasImage = req.parts.some((p) => p.kind === "image");
+  const model = hasImage
+    ? (readServerEnv("GROQ_VISION_MODEL") ?? GROQ_DEFAULT_VISION_MODEL)
+    : (readServerEnv("GROQ_MODEL") ?? GROQ_DEFAULT_MODEL);
+
+  const userContent = req.parts.map((part) =>
+    part.kind === "text"
+      ? { type: "text" as const, text: part.text }
+      : {
+          type: "image_url" as const,
+          image_url: { url: `data:${part.mimeType};base64,${part.base64}` },
+        },
+  );
+
+  const response = await fetch(GROQ_API_URL, {
+    method: "POST",
+    headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify({
+      model,
+      max_tokens: req.maxTokens ?? 700,
+      messages: [
+        // Vision models on Groq don't accept a separate system role reliably,
+        // so fold the instructions into the user turn when an image is present.
+        ...(hasImage ? [] : [{ role: "system", content: req.system }]),
+        {
+          role: "user",
+          content: hasImage
+            ? [{ type: "text" as const, text: req.system }, ...userContent]
+            : userContent,
+        },
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    const bodyText = await response.text().catch(() => "");
+    throw new Error(`Groq API error (${response.status}): ${bodyText.slice(0, 300)}`);
+  }
+
+  const data = (await response.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+  };
+  const text = data.choices?.[0]?.message?.content?.trim();
+  if (!text) throw new Error("The AI returned an empty response.");
+  return text;
+}
+
+// --- Cloudflare Workers AI (free daily allowance) -------------------------
+
+async function callCloudflare(
+  accountId: string,
+  token: string,
+  req: AiRequest,
+): Promise<string> {
+  const hasImage = req.parts.some((p) => p.kind === "image");
+  const model = hasImage
+    ? (readServerEnv("CLOUDFLARE_VISION_MODEL") ?? CLOUDFLARE_DEFAULT_VISION_MODEL)
+    : (readServerEnv("CLOUDFLARE_MODEL") ?? CLOUDFLARE_DEFAULT_MODEL);
+
+  const textPrompt = req.parts
+    .filter((p): p is Extract<AiPart, { kind: "text" }> => p.kind === "text")
+    .map((p) => p.text)
+    .join("\n\n");
+
+  const body: Record<string, unknown> = hasImage
+    ? {
+        prompt: `${req.system}\n\n${textPrompt}`,
+        image: [
+          ...Buffer.from(
+            (req.parts.find((p) => p.kind === "image") as Extract<AiPart, { kind: "image" }>)
+              .base64,
+            "base64",
+          ),
+        ],
+        max_tokens: req.maxTokens ?? 700,
+      }
+    : {
+        messages: [
+          { role: "system", content: req.system },
+          { role: "user", content: textPrompt },
+        ],
+        max_tokens: req.maxTokens ?? 700,
+      };
+
+  const response = await fetch(
+    `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${model}`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    },
+  );
+
+  if (!response.ok) {
+    const bodyText = await response.text().catch(() => "");
+    throw new Error(`Cloudflare AI error (${response.status}): ${bodyText.slice(0, 300)}`);
+  }
+
+  const data = (await response.json()) as {
+    result?: { response?: string; description?: string };
+    success?: boolean;
+    errors?: unknown;
+  };
+
+  const text = (data.result?.response ?? data.result?.description ?? "").trim();
+  if (!text) throw new Error("The AI returned an empty response.");
+  return text;
+}
+
 // --- Provider selection ---------------------------------------------------
 
 async function callAi(req: AiRequest): Promise<string> {
+  const groqKey = readServerEnv("GROQ_API_KEY");
   const geminiKey = readServerEnv("GEMINI_API_KEY");
+  const cfAccount = readServerEnv("CLOUDFLARE_ACCOUNT_ID");
+  const cfToken = readServerEnv("CLOUDFLARE_AI_TOKEN");
   const anthropicKey = readServerEnv("ANTHROPIC_API_KEY");
 
-  if (!geminiKey && !anthropicKey) {
+  // Free providers first, paid last.
+  const providers: Array<{ name: string; run: () => Promise<string> }> = [];
+  if (groqKey) providers.push({ name: "Groq", run: () => callGroq(groqKey, req) });
+  if (geminiKey) providers.push({ name: "Gemini", run: () => callGemini(geminiKey, req) });
+  if (cfAccount && cfToken)
+    providers.push({
+      name: "Cloudflare AI",
+      run: () => callCloudflare(cfAccount, cfToken, req),
+    });
+  if (anthropicKey)
+    providers.push({ name: "Claude", run: () => callAnthropic(anthropicKey, req) });
+
+  if (providers.length === 0) {
     throw new Error(
-      "AI is not set up yet — add a GEMINI_API_KEY (free) or ANTHROPIC_API_KEY environment variable.",
+      "AI is not set up yet — add a free GROQ_API_KEY or GEMINI_API_KEY environment variable.",
     );
   }
 
-  let geminiError: unknown;
-
-  if (geminiKey) {
+  const failures: string[] = [];
+  for (const provider of providers) {
     try {
-      return await callGemini(geminiKey, req);
+      return await provider.run();
     } catch (error) {
-      // Fall back to Claude if it's configured; otherwise surface the error.
-      if (!anthropicKey) throw error;
-      geminiError = error;
+      failures.push(`${provider.name}: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
-  try {
-    return await callAnthropic(anthropicKey!, req);
-  } catch (anthropicError) {
-    // Don't hide why the preferred provider failed.
-    if (geminiError) {
-      const geminiMessage =
-        geminiError instanceof Error ? geminiError.message : String(geminiError);
-      const anthropicMessage =
-        anthropicError instanceof Error ? anthropicError.message : String(anthropicError);
-      throw new Error(`Gemini failed: ${geminiMessage} | Claude fallback failed: ${anthropicMessage}`);
-    }
-    throw anthropicError;
-  }
+  throw new Error(`All AI providers failed — ${failures.join(" | ")}`);
 }
 
 /** Plain-language Q&A over the shop's bookkeeping data, plus general money questions. */
