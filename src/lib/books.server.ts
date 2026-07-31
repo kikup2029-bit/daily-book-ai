@@ -1,7 +1,6 @@
-import { generateText } from "ai";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { createLovableAiGatewayProvider } from "./ai-gateway.server";
+import { chatWithClaude, extractReceiptData, type ReceiptExtraction } from "./anthropic.server";
 import type { Database } from "@/integrations/supabase/types";
 
 type Client = SupabaseClient<Database>;
@@ -93,22 +92,24 @@ export async function answerQuestion(
   userId: string,
   question: string,
 ): Promise<string> {
-  const apiKey = process.env.LOVABLE_API_KEY;
-  if (!apiKey) throw new Error("AI is not configured yet.");
-
   const entries = await fetchEntries(supabase, userId);
-  const gateway = createLovableAiGatewayProvider(apiKey);
 
-  const { text } = await generateText({
-    model: gateway("google/gemini-3.6-flash"),
-    system: `You are a warm, down-to-earth bookkeeping helper for a small shop owner.
+  const text = await chatWithClaude(
+    `You are a warm, down-to-earth bookkeeping helper for a small shop owner.
 Answer using ONLY the bookkeeping data provided. Use plain everyday language, never accounting jargon.
 Keep answers to 2-4 short sentences. Use the numbers you were given, and say so plainly if the data is not enough to answer.
 Today's date is ${new Date().toISOString().slice(0, 10)}.`,
-    prompt: `Here is the shop's bookkeeping data:\n\n${summarize(entries)}\n\nOwner's question: ${question}`,
-  });
+    `Here is the shop's bookkeeping data:\n\n${summarize(entries)}\n\nOwner's question: ${question}`,
+  );
 
-  return text.trim();
+  return text;
+}
+
+export async function analyzeReceiptPhoto(
+  base64Image: string,
+  mimeType: string,
+): Promise<ReceiptExtraction> {
+  return extractReceiptData(base64Image, mimeType);
 }
 
 export async function setEntryReceipt(

@@ -35,6 +35,21 @@ export const askBookkeeper = createServerFn({ method: "POST" })
     return { answer: await answerQuestion(context.supabase, context.userId, data.question) };
   });
 
+export const analyzeReceipt = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        base64Image: z.string().min(1).max(15_000_000),
+        mimeType: z.string().min(1).max(60),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data }) => {
+    const { analyzeReceiptPhoto } = await import("./books.server");
+    return analyzeReceiptPhoto(data.base64Image, data.mimeType);
+  });
+
 export const attachReceipt = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>

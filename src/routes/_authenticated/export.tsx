@@ -139,6 +139,57 @@ function ExportPage() {
           )}
         </div>
 
+        {!isLoading && filtered.length > 0 ? (
+          <div className="mt-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Preview — this is what you&apos;ll get
+            </p>
+            <div className="mt-2 max-h-64 overflow-y-auto rounded-2xl border">
+              <table className="w-full text-left text-sm">
+                <thead className="sticky top-0 bg-muted text-xs uppercase text-muted-foreground">
+                  <tr>
+                    <th className="px-3 py-2 font-semibold">Date</th>
+                    <th className="px-3 py-2 font-semibold">Category</th>
+                    <th className="px-3 py-2 text-right font-semibold">In</th>
+                    <th className="px-3 py-2 text-right font-semibold">Out</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {filtered.map((entry) => (
+                    <tr key={entry.id}>
+                      <td className="whitespace-nowrap px-3 py-2">{entry.entry_date}</td>
+                      <td className="px-3 py-2 text-muted-foreground">{entry.spent_on ?? "—"}</td>
+                      <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums">
+                        {entry.amount_in > 0 ? money(entry.amount_in) : "—"}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums">
+                        {entry.amount_out > 0 ? money(entry.amount_out) : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot className="sticky bottom-0 border-t bg-muted font-semibold">
+                  <tr>
+                    <td className="px-3 py-2" colSpan={2}>
+                      Totals ({money(totalIn - totalOut)} net)
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums">
+                      {money(totalIn)}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums">
+                      {money(totalOut)}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              This is exactly what goes into the CSV and PDF below — the PDF also adds your business
+              name and the date range as a header.
+            </p>
+          </div>
+        ) : null}
+
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <Button
             size="lg"

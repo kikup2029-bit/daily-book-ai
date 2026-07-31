@@ -2,12 +2,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
-import { ArrowDownCircle, ArrowUpCircle, Send } from "lucide-react";
+import { ArrowDownCircle, ArrowUpCircle, Loader2, Send, Sparkles } from "lucide-react";
 
 import { AppHeader } from "@/components/app-header";
 import { ReceiptAttachButton, ReceiptThumb } from "@/components/receipt-controls";
 import { uploadReceipt } from "@/lib/receipts";
-import { attachReceipt } from "@/lib/books.functions";
+import { attachReceipt, analyzeReceipt } from "@/lib/books.functions";
 
 import { askBookkeeper, createEntry, getEntries } from "@/lib/books.functions";
 import { Button } from "@/components/ui/button";
@@ -41,6 +41,19 @@ const money = (value: number) =>
 
 const todayISO = () => new Date().toLocaleDateString("en-CA");
 
+function fileToBase64(file: File): Promise<{ base64: string; mimeType: string }> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Could not read that photo."));
+    reader.onload = () => {
+      const result = reader.result as string;
+      const base64 = result.split(",")[1] ?? "";
+      resolve({ base64, mimeType: file.type || "image/jpeg" });
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 function Dashboard() {
   const queryClient = useQueryClient();
   const fetchEntries = useServerFn(getEntries);
@@ -59,7 +72,39 @@ function Dashboard() {
   const [receiptKey, setReceiptKey] = useState(0);
   const [formError, setFormError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [receiptNotice, setReceiptNotice] = useState<string | null>(null);
   const linkReceipt = useServerFn(attachReceipt);
+  const runAnalyzeReceipt = useServerFn(analyzeReceipt);
+
+  const analyze = useMutation({
+    mutationFn: async (file: File) => {
+      const { base64, mimeType } = await fileToBase64(file);
+      return runAnalyzeReceipt({ data: { base64Image: base64, mimeType } });
+    },
+    onSuccess: (result) => {
+      let filledSomething = false;
+      if (result.amount != null && !amountOut) {
+        setAmountOut(String(result.amount));
+        filledSomething = true;
+      }
+      if (result.category && !spentOn.trim()) {
+        setSpentOn(result.category);
+        filledSomething = true;
+      }
+      if (result.entry_date) {
+        setDate(result.entry_date);
+        filledSomething = true;
+      }
+      setReceiptNotice(
+        filledSomething
+          ? "Filled in from your receipt — please double check before saving."
+          : "Couldn't read details off that receipt — no worries, just fill it in yourself.",
+      );
+    },
+    onError: () => {
+      setReceiptNotice("Couldn't read that receipt automatically — just fill in the details yourself.");
+    },
+  });
 
   const save = useMutation({
     mutationFn: async (input: {
@@ -82,6 +127,7 @@ function Dashboard() {
       setSpentOn("");
       setReceiptFile(null);
       setReceiptKey((value) => value + 1);
+      setReceiptNotice(null);
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     },
@@ -188,11 +234,25 @@ function Dashboard() {
               accept="image/*"
               capture="environment"
               className="file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-2 file:py-1 file:text-sm"
-              onChange={(event) => setReceiptFile(event.target.files?.[0] ?? null)}
+              onChange={(event) => {
+                const file = event.target.files?.[0] ?? null;
+                setReceiptFile(file);
+                setReceiptNotice(null);
+                if (file) analyze.mutate(file);
+              }}
             />
             {receiptFile ? (
               <p className="text-xs text-muted-foreground">
                 Attaching “{receiptFile.name}” — only you can see it.
+              </p>
+            ) : null}
+            {analyze.isPending ? (
+              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Loader2 className="size-3 animate-spin" /> Reading your receipt…
+              </p>
+            ) : receiptNotice ? (
+              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Sparkles className="size-3" /> {receiptNotice}
               </p>
             ) : null}
           </div>
