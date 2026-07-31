@@ -371,11 +371,10 @@ function Dashboard() {
 
 const SUGGESTIONS = [
   "What did I spend the most on?",
-  "Can I afford to buy more supplies?",
   "How am I doing this week?",
-  "What's a good profit margin for a small shop?",
-  "How should I price my products?",
-  "Which expenses are usually tax deductible?",
+  "Am I making money?",
+  "Can I afford $200?",
+  "How much have I spent?",
 ];
 
 function AskSection() {
@@ -416,8 +415,7 @@ function AskSection() {
     <section className="mt-5 rounded-3xl border bg-card p-5 shadow-sm">
       <h2 className="text-lg font-bold">Ask about your money</h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        Ask about your own numbers, or any general money question — plain answers, no accounting
-        talk.
+        Ask about your numbers in plain English — no accounting talk.
       </p>
 
       <div className="mt-4 space-y-3">

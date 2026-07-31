@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { chatWithAI, extractReceiptData, type ReceiptExtraction } from "./ai.server";
+import { answerFromEntries } from "./bookkeeping-answers";
 import type { Database } from "@/integrations/supabase/types";
 
 type Client = SupabaseClient<Database>;
@@ -94,7 +95,28 @@ export async function answerQuestion(
 ): Promise<string> {
   const entries = await fetchEntries(supabase, userId);
 
-  const text = await chatWithAI(
+  // Budgets and recurring bills let the local answers cover budget status and
+  // upcoming bills too. If either lookup fails, carry on without it.
+  const { fetchBudgets, fetchRecurring } = await import("./planning.server");
+  const [budgets, recurring] = await Promise.all([
+    fetchBudgets(supabase, userId).catch(() => []),
+    fetchRecurring(supabase, userId).catch(() => []),
+  ]);
+
+  // Answer from the owner's own data. This always works — no API key, no cost,
+  // no outage — and it can't invent numbers about the business.
+  const localAnswer = answerFromEntries(entries, question, { budgets, recurring });
+
+  // If an AI provider is configured and working, use it for a richer answer
+  // (including general money questions). Otherwise fall back to the local one.
+  const hasAiKey = Boolean(
+    (await import("./server-env")).readServerEnv("GEMINI_API_KEY") ??
+      (await import("./server-env")).readServerEnv("ANTHROPIC_API_KEY"),
+  );
+  if (!hasAiKey) return localAnswer;
+
+  try {
+    const text = await chatWithAI(
     `You are a warm, down-to-earth money helper for a small shop owner. Today's date is ${new Date()
       .toISOString()
       .slice(0, 10)}.
@@ -108,10 +130,14 @@ Style rules:
 - Keep answers to 2-5 short sentences. Be concrete and practical.
 - Never invent numbers about their business. Only cite figures that appear in the data below.
 - For tax, legal, or investment questions, give the general picture and remind them briefly to confirm with a qualified accountant or advisor for their situation — you are not one.`,
-    `Here is the shop's bookkeeping data:\n\n${summarize(entries)}\n\nOwner's question: ${question}`,
-  );
-
-  return text;
+      `Here is the shop's bookkeeping data:\n\n${summarize(entries)}\n\nOwner's question: ${question}`,
+    );
+    return text;
+  } catch {
+    // AI provider is down, out of credit, or misconfigured — the owner still
+    // gets a useful answer about their own numbers.
+    return localAnswer;
+  }
 }
 
 export async function deleteEntry(
