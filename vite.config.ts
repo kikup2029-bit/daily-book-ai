@@ -17,6 +17,13 @@ import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 //
 // The Supabase URL and publishable key are designed to be public (the
 // publishable key is protected by Row Level Security), so inlining them is safe.
+//
+// NOTE: ANTHROPIC_API_KEY is a real secret and is also inlined here, because
+// this host provides no way to set runtime-only variables for this Worker. The
+// built Worker bundle is not publicly downloadable, but if you later move to a
+// host with proper runtime secrets (or Cloudflare's Secrets Store), read it
+// from there instead and drop it from this list. Rotate the key if the built
+// artifact is ever exposed.
 const inlinedEnv = (key: string) => JSON.stringify(process.env[key] ?? "");
 
 export default defineConfig({
@@ -29,6 +36,7 @@ export default defineConfig({
     define: {
       "process.env.BUILD_SUPABASE_URL": inlinedEnv("SUPABASE_URL"),
       "process.env.BUILD_SUPABASE_PUBLISHABLE_KEY": inlinedEnv("SUPABASE_PUBLISHABLE_KEY"),
+      "process.env.BUILD_ANTHROPIC_API_KEY": inlinedEnv("ANTHROPIC_API_KEY"),
     },
   },
 });

@@ -59,10 +59,11 @@ async function callClaude(params: {
   return text;
 }
 
-/** Plain-language Q&A over the shop's bookkeeping data. */
+/** Plain-language Q&A over the shop's bookkeeping data, plus general money questions. */
 export async function chatWithClaude(system: string, prompt: string): Promise<string> {
   const text = await callClaude({
     system,
+    maxTokens: 700,
     content: [{ type: "text", text: prompt }],
   });
   return text.trim();

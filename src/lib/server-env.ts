@@ -13,6 +13,7 @@
 const BUILD_TIME_VALUES: Record<string, string | undefined> = {
   SUPABASE_URL: process.env.BUILD_SUPABASE_URL,
   SUPABASE_PUBLISHABLE_KEY: process.env.BUILD_SUPABASE_PUBLISHABLE_KEY,
+  ANTHROPIC_API_KEY: process.env.BUILD_ANTHROPIC_API_KEY,
 };
 
 export function readServerEnv(key: string): string | undefined {
