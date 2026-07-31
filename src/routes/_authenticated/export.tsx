@@ -4,6 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { FileSpreadsheet, FileText } from "lucide-react";
 
+import type { ExportEntry } from "@/lib/export";
+
 import { AppHeader } from "@/components/app-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,6 +41,64 @@ const monthStart = () => {
   const now = new Date();
   return new Date(now.getFullYear(), now.getMonth(), 1).toLocaleDateString("en-CA");
 };
+
+// Obviously-fake rows shown to brand-new users so they can see what the
+// export feature produces before they've logged any real entries.
+const SAMPLE_ROWS: ExportEntry[] = [
+  { entry_date: "2026-07-01", amount_in: 150, amount_out: 0, spent_on: null },
+  { entry_date: "2026-07-03", amount_in: 0, amount_out: 42.5, spent_on: "Supplies" },
+  { entry_date: "2026-07-10", amount_in: 200, amount_out: 0, spent_on: null },
+  { entry_date: "2026-07-15", amount_in: 0, amount_out: 500, spent_on: "Rent" },
+];
+
+function PreviewTable({
+  rows,
+  money,
+}: {
+  rows: ExportEntry[];
+  money: (value: number) => string;
+}) {
+  const totalIn = rows.reduce((sum, entry) => sum + entry.amount_in, 0);
+  const totalOut = rows.reduce((sum, entry) => sum + entry.amount_out, 0);
+
+  return (
+    <div className="max-h-64 overflow-y-auto rounded-2xl border">
+      <table className="w-full text-left text-sm">
+        <thead className="sticky top-0 bg-muted text-xs uppercase text-muted-foreground">
+          <tr>
+            <th className="px-3 py-2 font-semibold">Date</th>
+            <th className="px-3 py-2 font-semibold">Category</th>
+            <th className="px-3 py-2 text-right font-semibold">In</th>
+            <th className="px-3 py-2 text-right font-semibold">Out</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y">
+          {rows.map((entry, index) => (
+            <tr key={index}>
+              <td className="whitespace-nowrap px-3 py-2">{entry.entry_date}</td>
+              <td className="px-3 py-2 text-muted-foreground">{entry.spent_on ?? "—"}</td>
+              <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums">
+                {entry.amount_in > 0 ? money(entry.amount_in) : "—"}
+              </td>
+              <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums">
+                {entry.amount_out > 0 ? money(entry.amount_out) : "—"}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot className="sticky bottom-0 border-t bg-muted font-semibold">
+          <tr>
+            <td className="px-3 py-2" colSpan={2}>
+              Totals ({money(totalIn - totalOut)} net)
+            </td>
+            <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums">{money(totalIn)}</td>
+            <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums">{money(totalOut)}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  );
+}
 
 function ExportPage() {
   const fetchEntries = useServerFn(getEntries);
@@ -144,48 +204,38 @@ function ExportPage() {
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Preview — this is what you&apos;ll get
             </p>
-            <div className="mt-2 max-h-64 overflow-y-auto rounded-2xl border">
-              <table className="w-full text-left text-sm">
-                <thead className="sticky top-0 bg-muted text-xs uppercase text-muted-foreground">
-                  <tr>
-                    <th className="px-3 py-2 font-semibold">Date</th>
-                    <th className="px-3 py-2 font-semibold">Category</th>
-                    <th className="px-3 py-2 text-right font-semibold">In</th>
-                    <th className="px-3 py-2 text-right font-semibold">Out</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {filtered.map((entry) => (
-                    <tr key={entry.id}>
-                      <td className="whitespace-nowrap px-3 py-2">{entry.entry_date}</td>
-                      <td className="px-3 py-2 text-muted-foreground">{entry.spent_on ?? "—"}</td>
-                      <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums">
-                        {entry.amount_in > 0 ? money(entry.amount_in) : "—"}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums">
-                        {entry.amount_out > 0 ? money(entry.amount_out) : "—"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot className="sticky bottom-0 border-t bg-muted font-semibold">
-                  <tr>
-                    <td className="px-3 py-2" colSpan={2}>
-                      Totals ({money(totalIn - totalOut)} net)
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums">
-                      {money(totalIn)}
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums">
-                      {money(totalOut)}
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
+            <div className="mt-2">
+              <PreviewTable rows={filtered} money={money} />
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
               This is exactly what goes into the CSV and PDF below — the PDF also adds your business
               name and the date range as a header.
+            </p>
+          </div>
+        ) : null}
+
+        {!isLoading && filtered.length === 0 ? (
+          <div className="mt-4 rounded-2xl border border-dashed p-4">
+            <div className="flex items-center gap-2">
+              <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-secondary-foreground">
+                Sample
+              </span>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                What your export will look like
+              </p>
+            </div>
+            <p className="mt-2 text-sm text-muted-foreground">
+              You don&apos;t have entries in this date range yet, so here&apos;s a made-up example
+              with fake numbers — just to show you what the CSV and PDF export will include once you
+              start logging your daily money in and out.
+            </p>
+            <div className="mt-3">
+              <PreviewTable rows={SAMPLE_ROWS} money={money} />
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Every entry becomes a row with its date, category, and amounts, plus a totals row at
+              the bottom. The real download buttons below only turn on once you have actual entries
+              in range.
             </p>
           </div>
         ) : null}
@@ -207,12 +257,6 @@ function ExportPage() {
             <FileText className="size-4" /> Download PDF
           </Button>
         </div>
-
-        {filtered.length === 0 && !isLoading ? (
-          <p className="mt-3 text-sm text-muted-foreground">
-            No entries in those dates yet — try a wider range.
-          </p>
-        ) : null}
       </section>
     </main>
   );
