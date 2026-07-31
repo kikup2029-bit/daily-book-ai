@@ -66,3 +66,36 @@ export const removeBudget = createServerFn({ method: "POST" })
     const { deleteBudget } = await import("./planning.server");
     return deleteBudget(context.supabase, context.userId, data.id);
   });
+
+export const getGoals = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { fetchGoals } = await import("./planning.server");
+    return fetchGoals(context.supabase, context.userId);
+  });
+
+export const saveGoal = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        id: z.string().uuid().nullable().optional(),
+        name: z.string().min(1).max(120),
+        target_amount: z.number().min(0),
+        saved_amount: z.number().min(0),
+        target_date: z.string().nullable(),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const { upsertGoal } = await import("./planning.server");
+    return upsertGoal(context.supabase, context.userId, data);
+  });
+
+export const removeGoal = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) => {
+    const { deleteGoal } = await import("./planning.server");
+    return deleteGoal(context.supabase, context.userId, data.id);
+  });

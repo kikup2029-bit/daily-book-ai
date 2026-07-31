@@ -19,6 +19,7 @@ export const createEntry = createServerFn({ method: "POST" })
         amount_in: z.number().min(0),
         amount_out: z.number().min(0),
         spent_on: z.string().max(120).nullable(),
+        merchant: z.string().max(120).nullable().optional(),
       })
       .parse(data),
   )

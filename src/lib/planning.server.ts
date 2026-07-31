@@ -179,6 +179,91 @@ export async function generateRecurringEntries(supabase: Client, userId: string)
   return { created };
 }
 
+export type SavingsGoal = {
+  id: string;
+  name: string;
+  target_amount: number;
+  saved_amount: number;
+  target_date: string | null;
+};
+
+const GOAL_COLUMNS = "id, name, target_amount, saved_amount, target_date";
+
+function toGoal(row: {
+  id: string;
+  name: string;
+  target_amount: number | string;
+  saved_amount: number | string;
+  target_date: string | null;
+}): SavingsGoal {
+  return {
+    id: row.id,
+    name: row.name,
+    target_amount: Number(row.target_amount),
+    saved_amount: Number(row.saved_amount),
+    target_date: row.target_date,
+  };
+}
+
+export async function fetchGoals(supabase: Client, userId: string): Promise<SavingsGoal[]> {
+  const { data, error } = await supabase
+    .from("savings_goals")
+    .select(GOAL_COLUMNS)
+    .eq("user_id", userId)
+    .order("created_at", { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(toGoal);
+}
+
+export async function upsertGoal(
+  supabase: Client,
+  userId: string,
+  input: {
+    id?: string | null;
+    name: string;
+    target_amount: number;
+    saved_amount: number;
+    target_date: string | null;
+  },
+): Promise<SavingsGoal> {
+  const payload = {
+    name: input.name,
+    target_amount: input.target_amount,
+    saved_amount: input.saved_amount,
+    target_date: input.target_date,
+  };
+
+  if (input.id) {
+    const { data, error } = await supabase
+      .from("savings_goals")
+      .update(payload)
+      .eq("id", input.id)
+      .eq("user_id", userId)
+      .select(GOAL_COLUMNS)
+      .single();
+    if (error) throw new Error(error.message);
+    return toGoal(data);
+  }
+
+  const { data, error } = await supabase
+    .from("savings_goals")
+    .insert({ ...payload, user_id: userId })
+    .select(GOAL_COLUMNS)
+    .single();
+  if (error) throw new Error(error.message);
+  return toGoal(data);
+}
+
+export async function deleteGoal(supabase: Client, userId: string, id: string) {
+  const { error } = await supabase
+    .from("savings_goals")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", userId);
+  if (error) throw new Error(error.message);
+  return { ok: true };
+}
+
 export async function fetchBudgets(supabase: Client, userId: string): Promise<Budget[]> {
   const { data, error } = await supabase
     .from("category_budgets")

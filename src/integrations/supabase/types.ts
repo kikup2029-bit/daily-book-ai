@@ -48,6 +48,7 @@ export type Database = {
           created_at: string
           entry_date: string
           id: string
+          merchant: string | null
           receipt_path: string | null
           spent_on: string | null
           user_id: string
@@ -58,6 +59,7 @@ export type Database = {
           created_at?: string
           entry_date?: string
           id?: string
+          merchant?: string | null
           receipt_path?: string | null
           spent_on?: string | null
           user_id: string
@@ -68,8 +70,42 @@ export type Database = {
           created_at?: string
           entry_date?: string
           id?: string
+          merchant?: string | null
           receipt_path?: string | null
           spent_on?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      savings_goals: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          saved_amount: number
+          target_amount: number
+          target_date: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          saved_amount?: number
+          target_amount?: number
+          target_date?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          saved_amount?: number
+          target_amount?: number
+          target_date?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []

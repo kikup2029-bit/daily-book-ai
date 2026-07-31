@@ -68,6 +68,7 @@ function Dashboard() {
   const [amountIn, setAmountIn] = useState("");
   const [amountOut, setAmountOut] = useState("");
   const [spentOn, setSpentOn] = useState("");
+  const [merchant, setMerchant] = useState("");
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [receiptKey, setReceiptKey] = useState(0);
   const [formError, setFormError] = useState<string | null>(null);
@@ -101,6 +102,10 @@ function Dashboard() {
         setDate(result.entry_date);
         filledSomething = true;
       }
+      if (result.merchant && !merchant.trim()) {
+        setMerchant(result.merchant);
+        filledSomething = true;
+      }
       setReceiptNotice(
         filledSomething
           ? "Filled in from your receipt — please double check before saving."
@@ -118,6 +123,7 @@ function Dashboard() {
       amount_in: number;
       amount_out: number;
       spent_on: string | null;
+      merchant: string | null;
     }) => {
       const entry = await addEntry({ data: input });
       if (receiptFile) {
@@ -131,6 +137,7 @@ function Dashboard() {
       setAmountIn("");
       setAmountOut("");
       setSpentOn("");
+      setMerchant("");
       setReceiptFile(null);
       setReceiptKey((value) => value + 1);
       setReceiptNotice(null);
@@ -158,6 +165,7 @@ function Dashboard() {
       amount_in: inAmount,
       amount_out: outAmount,
       spent_on: spentOn.trim() ? spentOn.trim() : null,
+      merchant: merchant.trim() ? merchant.trim() : null,
     });
   };
 
@@ -228,6 +236,16 @@ function Dashboard() {
               placeholder="Supplies, Rent, Inventory…"
               value={spentOn}
               onChange={(event) => setSpentOn(event.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="merchant">Where? (optional)</Label>
+            <Input
+              id="merchant"
+              placeholder="Costco, Shell, Home Depot…"
+              value={merchant}
+              onChange={(event) => setMerchant(event.target.value)}
             />
           </div>
 
@@ -331,6 +349,9 @@ function Dashboard() {
                     <span className="font-semibold whitespace-nowrap">{entry.entry_date}</span>
                     {entry.spent_on ? (
                       <span className="ml-2 text-muted-foreground">{entry.spent_on}</span>
+                    ) : null}
+                    {entry.merchant ? (
+                      <span className="ml-2 text-muted-foreground">· {entry.merchant}</span>
                     ) : null}
                   </span>
                 </span>

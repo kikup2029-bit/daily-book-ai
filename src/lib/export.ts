@@ -6,6 +6,7 @@ export type ExportEntry = {
   amount_in: number;
   amount_out: number;
   spent_on: string | null;
+  merchant?: string | null;
 };
 
 const money = (value: number) => value.toFixed(2);
@@ -32,22 +33,30 @@ function csvCell(value: string) {
   return /[",\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
 }
 
-function rowsFor(entries: ExportEntry[], emptyCategory: string) {
+function rowsFor(entries: ExportEntry[], empty: string) {
   return entries.map((entry) => [
     entry.entry_date,
     money(entry.amount_in),
     money(entry.amount_out),
-    entry.spent_on ?? emptyCategory,
+    entry.spent_on ?? empty,
+    entry.merchant ?? empty,
     noteFor(entry),
   ]);
 }
 
 export function exportCsv(entries: ExportEntry[], filename: string) {
-  const header = ["Date", "Money in", "Money out", "Category", "Note"];
+  const header = ["Date", "Money in", "Money out", "Category", "Where", "Note"];
   const rows = rowsFor(entries, "");
   const totalIn = entries.reduce((sum, e) => sum + e.amount_in, 0);
   const totalOut = entries.reduce((sum, e) => sum + e.amount_out, 0);
-  rows.push(["Totals", money(totalIn), money(totalOut), "", `Net ${money(totalIn - totalOut)}`]);
+  rows.push([
+    "Totals",
+    money(totalIn),
+    money(totalOut),
+    "",
+    "",
+    `Net ${money(totalIn - totalOut)}`,
+  ]);
 
   const csv = [header, ...rows].map((row) => row.map(csvCell).join(",")).join("\r\n");
   download(new Blob([`﻿${csv}`], { type: "text/csv;charset=utf-8" }), `${filename}.csv`);
@@ -67,9 +76,11 @@ export function exportPdf(entries: ExportEntry[], filename: string, rangeLabel: 
 
   autoTable(doc, {
     startY: 104,
-    head: [["Date", "Money in", "Money out", "Category", "Note"]],
+    head: [["Date", "Money in", "Money out", "Category", "Where", "Note"]],
     body: rowsFor(entries, "-"),
-    foot: [["Totals", money(totalIn), money(totalOut), "", `Net ${money(totalIn - totalOut)}`]],
+    foot: [
+      ["Totals", money(totalIn), money(totalOut), "", "", `Net ${money(totalIn - totalOut)}`],
+    ],
     styles: { fontSize: 10, cellPadding: 6, textColor: 30 },
     headStyles: { fillColor: [38, 38, 38], textColor: 255 },
     footStyles: { fillColor: [240, 240, 240], textColor: 20, fontStyle: "bold" },

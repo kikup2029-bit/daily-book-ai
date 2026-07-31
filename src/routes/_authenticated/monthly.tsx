@@ -23,10 +23,13 @@ import { Progress } from "@/components/ui/progress";
 import { getEntries } from "@/lib/books.functions";
 import {
   getBudgets,
+  getGoals,
   getRecurring,
   removeBudget,
+  removeGoal,
   removeRecurring,
   saveBudget,
+  saveGoal,
   saveRecurring,
 } from "@/lib/planning.functions";
 
@@ -288,8 +291,161 @@ function MonthlyPage() {
       </section>
 
       <BudgetsSection rows={budgetRows} categories={byCategory.map((row) => row.name)} />
+      <GoalsSection />
       <RecurringSection rules={recurring} />
     </main>
+  );
+}
+
+function GoalsSection() {
+  const queryClient = useQueryClient();
+  const fetchGoals = useServerFn(getGoals);
+  const upsert = useServerFn(saveGoal);
+  const drop = useServerFn(removeGoal);
+
+  const { data: goals = [] } = useQuery({ queryKey: ["goals"], queryFn: () => fetchGoals() });
+
+  const [name, setName] = useState("");
+  const [target, setTarget] = useState("");
+  const [saved, setSaved] = useState("");
+  const [targetDate, setTargetDate] = useState("");
+
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ["goals"] });
+
+  const save = useMutation({
+    mutationFn: (input: {
+      id?: string | null;
+      name: string;
+      target_amount: number;
+      saved_amount: number;
+      target_date: string | null;
+    }) => upsert({ data: input }),
+    onSuccess: () => {
+      setName("");
+      setTarget("");
+      setSaved("");
+      setTargetDate("");
+      invalidate();
+    },
+  });
+
+  const remove = useMutation({
+    mutationFn: (id: string) => drop({ data: { id } }),
+    onSuccess: invalidate,
+  });
+
+  return (
+    <section className="mt-5 rounded-3xl border bg-card p-5 shadow-sm">
+      <h2 className="text-lg font-bold">Savings goals</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Something you're putting money aside for — track how close you are.
+      </p>
+
+      {goals.length > 0 ? (
+        <ul className="mt-4 space-y-4">
+          {goals.map((goal) => {
+            const share =
+              goal.target_amount > 0 ? (goal.saved_amount / goal.target_amount) * 100 : 0;
+            const remaining = Math.max(0, goal.target_amount - goal.saved_amount);
+            return (
+              <li key={goal.id}>
+                <div className="flex items-center justify-between gap-2 text-sm">
+                  <span className="font-semibold">{goal.name}</span>
+                  <span className="flex items-center gap-2 tabular-nums">
+                    {money(goal.saved_amount)} / {money(goal.target_amount)}
+                    {share >= 100 ? (
+                      <span className="rounded-full bg-success px-2 py-0.5 text-xs font-semibold text-success-foreground">
+                        Reached
+                      </span>
+                    ) : null}
+                    <button
+                      type="button"
+                      aria-label={`Remove ${goal.name} goal`}
+                      onClick={() => remove.mutate(goal.id)}
+                      className="text-muted-foreground hover:text-danger"
+                    >
+                      <X className="size-4" />
+                    </button>
+                  </span>
+                </div>
+                <Progress value={Math.min(share, 100)} className="mt-2 h-2" />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {remaining > 0 ? `${money(remaining)} to go` : "Goal reached"}
+                  {goal.target_date ? ` · by ${goal.target_date}` : ""}
+                </p>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <p className="mt-3 text-sm text-muted-foreground">No goals yet.</p>
+      )}
+
+      <form
+        className="mt-5 space-y-3 border-t pt-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          const targetAmount = Number(target || 0);
+          if (!name.trim() || !(targetAmount > 0)) return;
+          save.mutate({
+            name: name.trim(),
+            target_amount: targetAmount,
+            saved_amount: Number(saved || 0),
+            target_date: targetDate || null,
+          });
+        }}
+      >
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="goal-name">What for?</Label>
+            <Input
+              id="goal-name"
+              placeholder="New oven"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="goal-target">Target amount</Label>
+            <Input
+              id="goal-target"
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="0.01"
+              placeholder="2000"
+              value={target}
+              onChange={(event) => setTarget(event.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="goal-saved">Saved so far</Label>
+            <Input
+              id="goal-saved"
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="0.01"
+              placeholder="0"
+              value={saved}
+              onChange={(event) => setSaved(event.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="goal-date">Target date (optional)</Label>
+            <Input
+              id="goal-date"
+              type="date"
+              value={targetDate}
+              onChange={(event) => setTargetDate(event.target.value)}
+            />
+          </div>
+        </div>
+        <Button type="submit" className="w-full" disabled={save.isPending}>
+          {save.isPending ? "Saving…" : "Save goal"}
+        </Button>
+      </form>
+    </section>
   );
 }
 

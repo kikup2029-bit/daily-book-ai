@@ -10,6 +10,14 @@ export type AnswerEntry = {
   amount_in: number;
   amount_out: number;
   spent_on: string | null;
+  merchant?: string | null;
+};
+
+export type AnswerGoal = {
+  name: string;
+  target_amount: number;
+  saved_amount: number;
+  target_date: string | null;
 };
 
 export type AnswerBudget = { category: string; monthly_limit: number };
@@ -26,6 +34,7 @@ export type AnswerRecurring = {
 export type AnswerContext = {
   budgets?: AnswerBudget[];
   recurring?: AnswerRecurring[];
+  goals?: AnswerGoal[];
 };
 
 // --- formatting -----------------------------------------------------------
@@ -181,6 +190,8 @@ const CAPABILITIES = `Here's what I can answer from your logged entries:
 • Comparisons — "how does this month compare with last month?"
 • Budgets — "am I on track?", "which budgets have I exceeded?", "how much is left in supplies?"
 • Bills — "what's due soon?", "how much do my recurring bills cost?"
+• Stores — "which stores did I spend the most at?"
+• Goals — "how close am I to my savings goal?"
 • Affordability — "can I afford $200?"
 • Summaries — "give me a monthly summary", "show my largest transactions"`;
 
@@ -233,15 +244,56 @@ export function answerFromEntries(
         : "You haven't logged any money coming in yet.",
     );
   }
-  if (/\bsavings goal\b|\bsave.*goal\b|\bgoal\b/.test(q)) {
-    return NOT_TRACKED(
-      "savings goals",
-      `This month you've kept ${
+  // === Savings goals =======================================================
+
+  if (/\bgoal\b|\bsavings goal\b|\bsaving.*for\b|\bon pace\b/.test(q)) {
+    const goals = ctx.goals ?? [];
+    if (goals.length === 0) {
+      return `You haven't set any savings goals yet — you can add one on the "This month" tab. This month you've kept ${
         totals(thisMonth).net >= 0
           ? money(totals(thisMonth).net)
-          : `nothing — you're down ${money(totals(thisMonth).net)}`
-      }. Want me to add savings goals as a feature?`,
+          : `nothing (you're down ${money(totals(thisMonth).net)})`
+      }.`;
+    }
+
+    // Monthly saving pace, based on the last 3 months of net.
+    const paceMonths = [0, 1, 2].map((back) =>
+      totals(inRange(entries, monthStart(back), monthEnd(back))).net,
     );
+    const positivePace = paceMonths.filter((n) => n > 0);
+    const monthlyPace =
+      positivePace.length > 0
+        ? positivePace.reduce((s, n) => s + n, 0) / positivePace.length
+        : 0;
+
+    const lines = goals.map((g) => {
+      const remaining = Math.max(0, g.target_amount - g.saved_amount);
+      const share = g.target_amount > 0 ? (g.saved_amount / g.target_amount) * 100 : 0;
+
+      if (remaining <= 0) return `${g.name}: reached! ${money(g.saved_amount)} saved.`;
+
+      let pacing = "";
+      if (g.target_date) {
+        const daysLeft = daysBetween(todayISO(), g.target_date);
+        if (daysLeft > 0) {
+          const perWeek = remaining / (daysLeft / 7);
+          pacing = ` To hit it by ${g.target_date}, save about ${money(perWeek)} a week.`;
+        } else {
+          pacing = ` The ${g.target_date} target date has passed.`;
+        }
+      } else if (monthlyPace > 0) {
+        const monthsNeeded = Math.ceil(remaining / monthlyPace);
+        pacing = ` At your recent pace of ${money(
+          monthlyPace,
+        )} a month, that's about ${plural(monthsNeeded, "month", "months")} away.`;
+      }
+
+      return `${g.name}: ${money(g.saved_amount)} of ${money(g.target_amount)} (${pct(
+        share,
+      )}), ${money(remaining)} to go.${pacing}`;
+    });
+
+    return lines.join("\n");
   }
   if (/\bpending\b/.test(q)) {
     return NOT_TRACKED(
@@ -249,14 +301,42 @@ export function answerFromEntries(
       "Everything here is what you've entered yourself, so nothing is ever 'pending'.",
     );
   }
-  if (/\bmerchant\b|\bstore.*spend\b|\bwhich (shops|stores)\b/.test(q)) {
-    return `I don't track merchants yet — expenses are grouped by category instead. ${
-      categoryTotals(entries)[0]
-        ? `Your top category is ${categoryTotals(entries)[0][0]} at ${money(
-            categoryTotals(entries)[0][1],
-          )}.`
-        : ""
-    } I can add merchant tracking if you'd like.`;
+  // === Merchants ===========================================================
+
+  if (
+    /\bmerchants?\b|\bstores?\b|\bshops?\b|\bvendors?\b|\bwhere did i (shop|buy)\b|\bwho did i pay\b/.test(
+      q,
+    )
+  ) {
+    const period = detectPeriod(q);
+    const scoped = period ? inRange(entries, period.from, period.to) : entries;
+    const label = period ? period.label : "overall";
+
+    const map = new Map<string, number>();
+    for (const e of scoped) {
+      if (e.amount_out <= 0) continue;
+      const name = (e.merchant ?? "").trim();
+      if (!name) continue;
+      map.set(name, (map.get(name) ?? 0) + e.amount_out);
+    }
+    const list = [...map.entries()].sort((a, b) => b[1] - a[1]);
+
+    if (list.length === 0) {
+      return `You haven't recorded where you shopped ${label}. Fill in the "Where?" field when you log an expense (or snap a receipt photo and I'll read the store name off it) and I can break it down by store.`;
+    }
+
+    const [topName, topAmount] = list[0];
+    const rest = list
+      .slice(1, 4)
+      .map(([name, amount]) => `${name} ${money(amount)}`)
+      .join(", ");
+    return `${label === "overall" ? "Overall" : label[0].toUpperCase() + label.slice(1)}, you've spent the most at ${topName}: ${money(
+      topAmount,
+    )} across ${plural(
+      scoped.filter((e) => (e.merchant ?? "").trim() === topName).length,
+      "visit",
+      "visits",
+    )}.${rest ? ` Then: ${rest}.` : ""}`;
   }
 
   // === Duplicates ==========================================================
