@@ -8,6 +8,13 @@
  * the app works either way instead of failing with "missing environment
  * variable" when the value is actually configured.
  */
+// Values inlined at build time by vite.config.ts. These are only non-empty if
+// the corresponding build variable was set when the bundle was built.
+const BUILD_TIME_VALUES: Record<string, string | undefined> = {
+  SUPABASE_URL: process.env.BUILD_SUPABASE_URL,
+  SUPABASE_PUBLISHABLE_KEY: process.env.BUILD_SUPABASE_PUBLISHABLE_KEY,
+};
+
 export function readServerEnv(key: string): string | undefined {
   // 1. Standard Node-style access (works locally, and on Workers when
   //    process.env is populated from bindings).
@@ -28,6 +35,11 @@ export function readServerEnv(key: string): string | undefined {
     const value = (cfEnv as Record<string, unknown>)[key];
     if (typeof value === "string" && value) return value;
   }
+
+  // 3. Last resort: a value inlined at build time (see vite.config.ts). Covers
+  //    hosts where variables are set for the build but not for the runtime.
+  const fromBuild = BUILD_TIME_VALUES[key];
+  if (fromBuild) return fromBuild;
 
   return undefined;
 }
