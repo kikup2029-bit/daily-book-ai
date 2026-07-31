@@ -69,6 +69,7 @@ function Dashboard() {
   const [amountOut, setAmountOut] = useState("");
   const [spentOn, setSpentOn] = useState("");
   const [merchant, setMerchant] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "card" | "other">("cash");
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [receiptKey, setReceiptKey] = useState(0);
   const [formError, setFormError] = useState<string | null>(null);
@@ -124,6 +125,7 @@ function Dashboard() {
       amount_out: number;
       spent_on: string | null;
       merchant: string | null;
+      payment_method: string | null;
     }) => {
       const entry = await addEntry({ data: input });
       if (receiptFile) {
@@ -166,6 +168,7 @@ function Dashboard() {
       amount_out: outAmount,
       spent_on: spentOn.trim() ? spentOn.trim() : null,
       merchant: merchant.trim() ? merchant.trim() : null,
+      payment_method: paymentMethod,
     });
   };
 
@@ -237,6 +240,26 @@ function Dashboard() {
               value={spentOn}
               onChange={(event) => setSpentOn(event.target.value)}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Cash or card?</Label>
+            <div className="flex gap-2">
+              {(["cash", "card", "other"] as const).map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => setPaymentMethod(option)}
+                  className={`flex-1 rounded-xl border px-3 py-2 text-sm font-semibold capitalize transition-colors ${
+                    paymentMethod === option
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-accent"
+                  }`}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="space-y-2">

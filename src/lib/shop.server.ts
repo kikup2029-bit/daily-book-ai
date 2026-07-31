@@ -1,0 +1,222 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+import type { Database } from "@/integrations/supabase/types";
+
+type Client = SupabaseClient<Database>;
+
+// --- products -------------------------------------------------------------
+
+export type Product = {
+  id: string;
+  name: string;
+  unit_cost: number;
+  sale_price: number;
+};
+
+const PRODUCT_COLUMNS = "id, name, unit_cost, sale_price";
+
+function toProduct(row: {
+  id: string;
+  name: string;
+  unit_cost: number | string;
+  sale_price: number | string;
+}): Product {
+  return {
+    id: row.id,
+    name: row.name,
+    unit_cost: Number(row.unit_cost),
+    sale_price: Number(row.sale_price),
+  };
+}
+
+export async function fetchProducts(supabase: Client, userId: string): Promise<Product[]> {
+  const { data, error } = await supabase
+    .from("products")
+    .select(PRODUCT_COLUMNS)
+    .eq("user_id", userId)
+    .order("created_at", { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(toProduct);
+}
+
+export async function upsertProduct(
+  supabase: Client,
+  userId: string,
+  input: { id?: string | null; name: string; unit_cost: number; sale_price: number },
+): Promise<Product> {
+  const payload = {
+    name: input.name,
+    unit_cost: input.unit_cost,
+    sale_price: input.sale_price,
+  };
+
+  if (input.id) {
+    const { data, error } = await supabase
+      .from("products")
+      .update(payload)
+      .eq("id", input.id)
+      .eq("user_id", userId)
+      .select(PRODUCT_COLUMNS)
+      .single();
+    if (error) throw new Error(error.message);
+    return toProduct(data);
+  }
+
+  const { data, error } = await supabase
+    .from("products")
+    .insert({ ...payload, user_id: userId })
+    .select(PRODUCT_COLUMNS)
+    .single();
+  if (error) throw new Error(error.message);
+  return toProduct(data);
+}
+
+export async function deleteProduct(supabase: Client, userId: string, id: string) {
+  const { error } = await supabase
+    .from("products")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", userId);
+  if (error) throw new Error(error.message);
+  return { ok: true };
+}
+
+// --- settings -------------------------------------------------------------
+
+export type Settings = {
+  tax_rate_percent: number;
+  opening_float: number;
+};
+
+export async function fetchSettings(supabase: Client, userId: string): Promise<Settings> {
+  const { data, error } = await supabase
+    .from("user_settings")
+    .select("tax_rate_percent, opening_float")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return {
+    tax_rate_percent: Number(data?.tax_rate_percent ?? 0),
+    opening_float: Number(data?.opening_float ?? 0),
+  };
+}
+
+export async function saveSettings(
+  supabase: Client,
+  userId: string,
+  input: Settings,
+): Promise<Settings> {
+  const { data, error } = await supabase
+    .from("user_settings")
+    .upsert(
+      {
+        user_id: userId,
+        tax_rate_percent: input.tax_rate_percent,
+        opening_float: input.opening_float,
+      },
+      { onConflict: "user_id" },
+    )
+    .select("tax_rate_percent, opening_float")
+    .single();
+  if (error) throw new Error(error.message);
+  return {
+    tax_rate_percent: Number(data.tax_rate_percent),
+    opening_float: Number(data.opening_float),
+  };
+}
+
+// --- cash drawer counts ---------------------------------------------------
+
+export type CashCount = {
+  id: string;
+  count_date: string;
+  counted_amount: number;
+  opening_float: number;
+  expected_amount: number;
+  difference: number;
+  note: string | null;
+};
+
+const COUNT_COLUMNS =
+  "id, count_date, counted_amount, opening_float, expected_amount, difference, note";
+
+function toCount(row: {
+  id: string;
+  count_date: string;
+  counted_amount: number | string;
+  opening_float: number | string;
+  expected_amount: number | string;
+  difference: number | string;
+  note: string | null;
+}): CashCount {
+  return {
+    id: row.id,
+    count_date: row.count_date,
+    counted_amount: Number(row.counted_amount),
+    opening_float: Number(row.opening_float),
+    expected_amount: Number(row.expected_amount),
+    difference: Number(row.difference),
+    note: row.note,
+  };
+}
+
+export async function fetchCashCounts(supabase: Client, userId: string): Promise<CashCount[]> {
+  const { data, error } = await supabase
+    .from("cash_counts")
+    .select(COUNT_COLUMNS)
+    .eq("user_id", userId)
+    .order("count_date", { ascending: false })
+    .limit(60);
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(toCount);
+}
+
+/**
+ * Records an end-of-day drawer count. The expected figure is worked out
+ * server-side from the entries themselves, so it can't be fudged from the
+ * client.
+ */
+export async function recordCashCount(
+  supabase: Client,
+  userId: string,
+  input: { count_date: string; counted_amount: number; opening_float: number; note: string | null },
+): Promise<CashCount> {
+  const { fetchEntries } = await import("./books.server");
+  const { reconcileDrawer } = await import("./insights");
+
+  const entries = await fetchEntries(supabase, userId);
+  const check = reconcileDrawer(entries, {
+    date: input.count_date,
+    counted: input.counted_amount,
+    openingFloat: input.opening_float,
+  });
+
+  const { data, error } = await supabase
+    .from("cash_counts")
+    .upsert(
+      {
+        user_id: userId,
+        count_date: input.count_date,
+        counted_amount: input.counted_amount,
+        opening_float: input.opening_float,
+        expected_amount: check.expected,
+        difference: check.difference,
+        note: input.note,
+      },
+      { onConflict: "user_id,count_date" },
+    )
+    .select(COUNT_COLUMNS)
+    .single();
+  if (error) throw new Error(error.message);
+  return toCount(data);
+}
+
+export async function deleteCashCount(supabase: Client, userId: string, id: string) {
+  const { error } = await supabase
+    .from("cash_counts")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", userId);
+  if (error) throw new Error(error.message);
+  return { ok: true };
+}

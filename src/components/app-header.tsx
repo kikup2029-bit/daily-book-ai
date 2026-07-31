@@ -35,12 +35,13 @@ export function AppHeader() {
         {[
           { to: "/dashboard", label: "Today" },
           { to: "/monthly", label: "This month" },
+          { to: "/tools", label: "Tools" },
           { to: "/export", label: "Export" },
         ].map((tab) => (
           <Link
             key={tab.to}
             to={tab.to}
-            className="flex-1 rounded-xl px-3 py-2 text-center text-sm font-semibold text-muted-foreground transition-colors hover:bg-accent"
+            className="flex-1 rounded-xl px-2 py-2 text-center text-sm font-semibold text-muted-foreground transition-colors hover:bg-accent"
             activeProps={{ className: "bg-primary text-primary-foreground hover:bg-primary" }}
           >
             {tab.label}

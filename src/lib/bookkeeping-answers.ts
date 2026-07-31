@@ -5,12 +5,21 @@
  * Pure functions over entries, budgets, and recurring rules.
  */
 
+import {
+  averageMonthlyOverhead,
+  dayOfWeekPatterns,
+  forecastCash,
+  productMargin,
+  taxSetAside,
+} from "./insights";
+
 export type AnswerEntry = {
   entry_date: string; // YYYY-MM-DD
   amount_in: number;
   amount_out: number;
   spent_on: string | null;
   merchant?: string | null;
+  payment_method?: string | null;
 };
 
 export type AnswerGoal = {
@@ -31,10 +40,14 @@ export type AnswerRecurring = {
   last_generated_date: string | null;
 };
 
+export type AnswerProduct = { name: string; unit_cost: number; sale_price: number };
+
 export type AnswerContext = {
   budgets?: AnswerBudget[];
   recurring?: AnswerRecurring[];
   goals?: AnswerGoal[];
+  products?: AnswerProduct[];
+  taxRatePercent?: number;
 };
 
 // --- formatting -----------------------------------------------------------
@@ -193,6 +206,10 @@ const CAPABILITIES = `Here's what I can answer from your logged entries:
 • Stores — "which stores did I spend the most at?"
 • Goals — "how close am I to my savings goal?"
 • Affordability — "can I afford $200?"
+• Outlook — "can I cover next month?", "will I make rent?"
+• Tax — "how much should I set aside for tax?"
+• Busy days — "what's my slowest day?"
+• Pricing — "what's my margin on candles?"
 • Summaries — "give me a monthly summary", "show my largest transactions"`;
 
 const NOT_TRACKED = (topic: string, alternative: string) =>
@@ -217,6 +234,128 @@ export function answerFromEntries(
   const cats = knownCategories(entries, ctx);
   const thisMonth = inRange(entries, monthStart(0), monthEnd(0));
   const lastMonth = inRange(entries, monthStart(1), monthEnd(1));
+
+  // === Runway forecast ("can I make rent?") ===============================
+
+  if (
+    /\brunway\b|\bmake rent\b|\bafford rent\b|\bcover (my |the )?(bills|rent|costs|expenses)\b|\bnext (month|30 days)\b|\bforecast\b|\brun (out|short)\b|\bwill i be (ok|okay|alright|fine)\b|\bam i going to be (ok|okay)\b/.test(
+      q,
+    )
+  ) {
+    const f = forecastCash(entries, recurring, { horizonDays: 30 });
+
+    const billsText =
+      f.upcomingBills.length > 0
+        ? ` Bills due: ${f.upcomingBills
+            .slice(0, 4)
+            .map((b) => `${b.category} ${money(b.amount)} on ${b.due}`)
+            .join(", ")}.`
+        : " You haven't set up any recurring bills for me to count.";
+
+    const confidence = f.lowConfidence
+      ? ` This is rough — only ${plural(f.basedOnDays, "day", "days")} of history so far.`
+      : "";
+
+    if (f.shortfallDate) {
+      return `It'll be tight. On your recent pace (${money(f.dailyIn)} in and ${money(
+        f.dailyOut,
+      )} out on a typical day) you could run short around ${f.shortfallDate}, dipping to ${money(
+        f.lowestPoint.balance,
+      )}.${billsText}${confidence}`;
+    }
+
+    return `You should be fine. Starting from ${money(f.currentNet)} and on your recent pace (${money(
+      f.dailyIn,
+    )} in, ${money(f.dailyOut)} out a day), you'd be around ${money(
+      f.projectedNet,
+    )} in 30 days, never dropping below ${money(f.lowestPoint.balance)}.${billsText}${confidence}`;
+  }
+
+  // === Tax set-aside =======================================================
+
+  if (/\btax\b|\btaxes\b|\bset aside\b|\bhold back\b|\bowe.*tax\b/.test(q)) {
+    const rate = ctx.taxRatePercent ?? 0;
+    if (rate <= 0) {
+      return `You haven't set a tax percentage yet — add one on the Tools tab and I'll track how much to hold back from what you earn.`;
+    }
+    const jar = taxSetAside(entries, rate);
+    if (jar.incomeInPeriod <= 0) {
+      return `No income logged ${jar.periodLabel} yet, so nothing to set aside.`;
+    }
+    return `At ${rate}% of the ${money(jar.incomeInPeriod)} you've taken in ${
+      jar.periodLabel
+    }, you should be holding back ${money(jar.shouldHaveSetAside)}.${
+      jar.alreadyPaid > 0 ? ` You've already paid ${money(jar.alreadyPaid)}.` : ""
+    } Still to put aside: ${money(
+      jar.stillToSetAside,
+    )}. (Not tax advice — check the rate with an accountant.)`;
+  }
+
+  // === Slow / busy days ====================================================
+
+  if (/\bslow(est)? day\b|\bbusiest day\b|\bbest day\b|\bquiet(est)? day\b|\bday of the week\b|\bwhich day\b/.test(q)) {
+    const p = dayOfWeekPatterns(entries);
+    if (!p.enoughData || !p.best || !p.worst) {
+      return `I need a few more weeks of entries before day-of-the-week patterns mean anything. Keep logging and ask me again.`;
+    }
+    return `${p.best.label} is your best day, averaging ${money(p.best.averageIn)} in${
+      p.best.vsAverage > 5 ? ` (${Math.round(p.best.vsAverage)}% above your average)` : ""
+    }. ${p.worst.label} is quietest at ${money(p.worst.averageIn)}${
+      p.worst.vsAverage < -5 ? ` (${Math.round(Math.abs(p.worst.vsAverage))}% below)` : ""
+    }.`;
+  }
+
+  // === Product margins =====================================================
+
+  if (/\bmargin\b|\bmarkup\b|\bprofit per\b|\bper (item|unit|sale)\b|\bhow much.*keep\b|\bpricing\b|\bprice.*right\b/.test(q)) {
+    const products = ctx.products ?? [];
+    if (products.length === 0) {
+      return `You haven't added any items yet — put your cost and selling price into the Tools tab and I'll work out what you keep on each sale.`;
+    }
+    const overhead = averageMonthlyOverhead(entries);
+
+    const named = products.find((p) => q.includes(p.name.toLowerCase()));
+    const chosen = named ? [named] : products;
+
+    const lines = chosen.slice(0, 5).map((p) => {
+      const m = productMargin(p, overhead > 0 ? overhead : null);
+      if (m.grossPerUnit <= 0) {
+        return `${p.name}: you're losing ${money(m.grossPerUnit)} on every one — it costs ${money(
+          p.unit_cost,
+        )} and sells for ${money(p.sale_price)}.`;
+      }
+      return `${p.name}: you keep ${money(m.grossPerUnit)} per sale (${Math.round(
+        m.grossMarginPercent,
+      )}% margin)${
+        m.unitsToCoverOverhead != null
+          ? `, so about ${m.unitsToCoverOverhead} a month covers your usual ${money(
+              overhead,
+            )} of costs`
+          : ""
+      }.`;
+    });
+
+    return lines.join("\n");
+  }
+
+  // === Cash drawer =========================================================
+
+  if (/\bdrawer\b|\btill\b|\bcash count\b|\bcount(ed)? the cash\b|\bcash match\b/.test(q)) {
+    const cashEntries = entries.filter(
+      (e) => (e.payment_method ?? "").toLowerCase() === "cash",
+    );
+    const anyMarked = entries.some((e) => e.payment_method);
+    const todayCash = (anyMarked ? cashEntries : entries).filter(
+      (e) => e.entry_date === todayISO(),
+    );
+    const cashIn = todayCash.reduce((s, e) => s + e.amount_in, 0);
+    const cashOut = todayCash.reduce((s, e) => s + e.amount_out, 0);
+    return `Going by what you've logged today, the drawer should be up ${money(
+      cashIn - cashOut,
+    )} (${money(cashIn)} in, ${money(cashOut)} out)${
+      anyMarked ? " counting cash entries only" : ""
+    }. Use the Tools tab to enter what you actually counted and I'll show the gap.`;
+  }
 
   // === Things this app genuinely doesn't track =============================
 

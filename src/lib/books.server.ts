@@ -13,6 +13,7 @@ export type Entry = {
   amount_out: number;
   spent_on: string | null;
   merchant: string | null;
+  payment_method: string | null;
   receipt_path: string | null;
   created_at: string;
 };
@@ -20,7 +21,7 @@ export type Entry = {
 export async function fetchEntries(supabase: Client, userId: string): Promise<Entry[]> {
   const { data, error } = await supabase
     .from("entries")
-    .select("id, entry_date, amount_in, amount_out, spent_on, merchant, receipt_path, created_at")
+    .select("id, entry_date, amount_in, amount_out, spent_on, merchant, payment_method, receipt_path, created_at")
     .eq("user_id", userId)
     .order("entry_date", { ascending: false })
     .order("created_at", { ascending: false })
@@ -43,12 +44,13 @@ export async function insertEntry(
     amount_out: number;
     spent_on: string | null;
     merchant?: string | null;
+    payment_method?: string | null;
   },
 ): Promise<Entry> {
   const { data, error } = await supabase
     .from("entries")
     .insert({ ...input, user_id: userId })
-    .select("id, entry_date, amount_in, amount_out, spent_on, merchant, receipt_path, created_at")
+    .select("id, entry_date, amount_in, amount_out, spent_on, merchant, payment_method, receipt_path, created_at")
     .single();
   if (error) throw new Error(error.message);
   return { ...data, amount_in: Number(data.amount_in), amount_out: Number(data.amount_out) };
@@ -100,15 +102,24 @@ export async function answerQuestion(
   // Budgets and recurring bills let the local answers cover budget status and
   // upcoming bills too. If either lookup fails, carry on without it.
   const { fetchBudgets, fetchRecurring, fetchGoals } = await import("./planning.server");
-  const [budgets, recurring, goals] = await Promise.all([
+  const { fetchProducts, fetchSettings } = await import("./shop.server");
+  const [budgets, recurring, goals, products, settings] = await Promise.all([
     fetchBudgets(supabase, userId).catch(() => []),
     fetchRecurring(supabase, userId).catch(() => []),
     fetchGoals(supabase, userId).catch(() => []),
+    fetchProducts(supabase, userId).catch(() => []),
+    fetchSettings(supabase, userId).catch(() => ({ tax_rate_percent: 0, opening_float: 0 })),
   ]);
 
   // Answer from the owner's own data. This always works — no API key, no cost,
   // no outage — and it can't invent numbers about the business.
-  const localAnswer = answerFromEntries(entries, question, { budgets, recurring, goals });
+  const localAnswer = answerFromEntries(entries, question, {
+    budgets,
+    recurring,
+    goals,
+    products,
+    taxRatePercent: settings.tax_rate_percent,
+  });
 
   // If an AI provider is configured and working, use it for a richer answer
   // (including general money questions). Otherwise fall back to the local one.
@@ -175,7 +186,7 @@ export async function setEntryReceipt(
     .update({ receipt_path: receiptPath })
     .eq("id", entryId)
     .eq("user_id", userId)
-    .select("id, entry_date, amount_in, amount_out, spent_on, merchant, receipt_path, created_at")
+    .select("id, entry_date, amount_in, amount_out, spent_on, merchant, payment_method, receipt_path, created_at")
     .single();
   if (error) throw new Error(error.message);
   return { ...data, amount_in: Number(data.amount_in), amount_out: Number(data.amount_out) };

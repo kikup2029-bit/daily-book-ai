@@ -49,6 +49,7 @@ export type Database = {
           entry_date: string
           id: string
           merchant: string | null
+          payment_method: string | null
           receipt_path: string | null
           spent_on: string | null
           user_id: string
@@ -60,6 +61,7 @@ export type Database = {
           entry_date?: string
           id?: string
           merchant?: string | null
+          payment_method?: string | null
           receipt_path?: string | null
           spent_on?: string | null
           user_id: string
@@ -71,8 +73,96 @@ export type Database = {
           entry_date?: string
           id?: string
           merchant?: string | null
+          payment_method?: string | null
           receipt_path?: string | null
           spent_on?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      products: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          sale_price: number
+          unit_cost: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          sale_price?: number
+          unit_cost?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          sale_price?: number
+          unit_cost?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      cash_counts: {
+        Row: {
+          count_date: string
+          counted_amount: number
+          created_at: string
+          difference: number
+          expected_amount: number
+          id: string
+          note: string | null
+          opening_float: number
+          user_id: string
+        }
+        Insert: {
+          count_date?: string
+          counted_amount?: number
+          created_at?: string
+          difference?: number
+          expected_amount?: number
+          id?: string
+          note?: string | null
+          opening_float?: number
+          user_id: string
+        }
+        Update: {
+          count_date?: string
+          counted_amount?: number
+          created_at?: string
+          difference?: number
+          expected_amount?: number
+          id?: string
+          note?: string | null
+          opening_float?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_settings: {
+        Row: {
+          opening_float: number
+          tax_rate_percent: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          opening_float?: number
+          tax_rate_percent?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          opening_float?: number
+          tax_rate_percent?: number
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
