@@ -11,6 +11,8 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { getPublicConfig } from "../lib/public-config.functions";
+import { setSupabaseRuntimeConfig } from "../integrations/supabase/client";
 
 function NotFoundComponent() {
   return (
@@ -73,6 +75,13 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  // Hand the public Supabase config from the server to the browser, so the app
+  // doesn't depend on VITE_* values being present at build time.
+  loader: async () => {
+    const config = await getPublicConfig();
+    setSupabaseRuntimeConfig(config.supabaseUrl, config.supabaseKey);
+    return config;
+  },
   head: () => ({
     meta: [
       { charSet: "utf-8" },
@@ -122,6 +131,12 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const config = Route.useLoaderData();
+
+  // Apply synchronously during render (before any child route can touch
+  // Supabase). On client hydration the loader may not re-run, so this covers
+  // the case where the config arrives as serialized loader data.
+  setSupabaseRuntimeConfig(config.supabaseUrl, config.supabaseKey);
 
   return (
     <QueryClientProvider client={queryClient}>
