@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { X } from "lucide-react";
+import { Users, X } from "lucide-react";
 
 import { AppHeader } from "@/components/app-header";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,14 @@ import {
   saveProduct,
 } from "@/lib/shop.functions";
 import { averageMonthlyOverhead, productMargin, reconcileDrawer } from "@/lib/insights";
+import {
+  enterHousehold,
+  exitHousehold,
+  getHousehold,
+  getSettlement,
+  setMemberName,
+  startHousehold,
+} from "@/lib/household.functions";
 
 export const Route = createFileRoute("/_authenticated/tools")({
   head: () => ({
@@ -52,10 +60,313 @@ function ToolsPage() {
   return (
     <main className="mx-auto w-full max-w-xl px-4 pb-16 pt-8 sm:pt-12">
       <AppHeader />
+      <HouseholdSection />
       <MarginsSection />
       <DrawerSection />
       <SettingsSection />
     </main>
+  );
+}
+
+// =========================================================================
+// Household sharing
+// =========================================================================
+
+function HouseholdSection() {
+  const queryClient = useQueryClient();
+  const fetchHousehold = useServerFn(getHousehold);
+  const fetchSettlement = useServerFn(getSettlement);
+  const create = useServerFn(startHousehold);
+  const join = useServerFn(enterHousehold);
+  const leave = useServerFn(exitHousehold);
+  const rename = useServerFn(setMemberName);
+
+  const { data: state } = useQuery({ queryKey: ["household"], queryFn: () => fetchHousehold() });
+  const { data: settleData } = useQuery({
+    queryKey: ["settlement"],
+    queryFn: () => fetchSettlement(),
+    enabled: Boolean(state?.household),
+  });
+
+  const [name, setName] = useState("");
+  const [yourName, setYourName] = useState("");
+  const [code, setCode] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const refresh = () => {
+    queryClient.invalidateQueries({ queryKey: ["household"] });
+    queryClient.invalidateQueries({ queryKey: ["settlement"] });
+    queryClient.invalidateQueries({ queryKey: ["entries"] });
+    queryClient.invalidateQueries({ queryKey: ["insights"] });
+  };
+
+  const onError = (err: Error) => setError(err.message);
+
+  const createMutation = useMutation({
+    mutationFn: () =>
+      create({ data: { name: name.trim(), display_name: yourName.trim() || null } }),
+    onSuccess: () => {
+      setName("");
+      setYourName("");
+      setError(null);
+      refresh();
+    },
+    onError,
+  });
+
+  const joinMutation = useMutation({
+    mutationFn: () =>
+      join({ data: { join_code: code.trim(), display_name: yourName.trim() || null } }),
+    onSuccess: () => {
+      setCode("");
+      setYourName("");
+      setError(null);
+      refresh();
+    },
+    onError,
+  });
+
+  const leaveMutation = useMutation({
+    mutationFn: () => leave({}),
+    onSuccess: () => {
+      setError(null);
+      refresh();
+    },
+    onError,
+  });
+
+  const renameMutation = useMutation({
+    mutationFn: (value: string) => rename({ data: { display_name: value || null } }),
+    onSuccess: refresh,
+    onError,
+  });
+
+  // --- not in a household yet ---
+  if (!state?.household) {
+    return (
+      <section className="rounded-3xl border bg-card p-5 shadow-sm">
+        <h2 className="flex items-center gap-2 text-lg font-bold">
+          <Users className="size-4 text-primary" /> Share with someone
+        </h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Share chosen entries with a partner or housemate and split costs fairly. Anything you
+          don&apos;t share stays private to you.
+        </p>
+
+        <div className="mt-4 space-y-2">
+          <Label htmlFor="your-name">Your name (so they know who&apos;s who)</Label>
+          <Input
+            id="your-name"
+            placeholder="Alex"
+            value={yourName}
+            onChange={(event) => setYourName(event.target.value)}
+          />
+        </div>
+
+        <form
+          className="mt-4 space-y-3 border-t pt-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (name.trim()) createMutation.mutate();
+          }}
+        >
+          <div className="space-y-2">
+            <Label htmlFor="household-name">Start a new one</Label>
+            <Input
+              id="household-name"
+              placeholder="Our place"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+            />
+          </div>
+          <Button type="submit" className="w-full" disabled={createMutation.isPending}>
+            {createMutation.isPending ? "Creating…" : "Create household"}
+          </Button>
+        </form>
+
+        <form
+          className="mt-4 space-y-3 border-t pt-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (code.trim()) joinMutation.mutate();
+          }}
+        >
+          <div className="space-y-2">
+            <Label htmlFor="join-code">Or join with a code</Label>
+            <Input
+              id="join-code"
+              placeholder="ABC123"
+              value={code}
+              onChange={(event) => setCode(event.target.value.toUpperCase())}
+              className="uppercase"
+            />
+          </div>
+          <Button
+            type="submit"
+            variant="outline"
+            className="w-full"
+            disabled={joinMutation.isPending}
+          >
+            {joinMutation.isPending ? "Joining…" : "Join household"}
+          </Button>
+        </form>
+
+        {error ? <p className="mt-3 text-sm text-danger">{error}</p> : null}
+      </section>
+    );
+  }
+
+  // --- in a household ---
+  const settlement = settleData?.settlement ?? null;
+  const me = state.members.find((m) => m.role === "owner" && state.isOwner);
+
+  return (
+    <section className="rounded-3xl border bg-card p-5 shadow-sm">
+      <h2 className="flex items-center gap-2 text-lg font-bold">
+        <Users className="size-4 text-primary" /> {state.household.name}
+      </h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        {state.members.length === 1
+          ? "Just you so far — share the code below to add someone."
+          : `${state.members.length} people sharing.`}
+      </p>
+
+      {/* join code */}
+      <div className="mt-4 rounded-2xl bg-muted p-3">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Invite code
+        </p>
+        <div className="mt-1 flex items-center gap-2">
+          <p className="font-mono text-2xl font-bold tracking-widest">
+            {state.household.join_code}
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              navigator.clipboard?.writeText(state.household!.join_code);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+            }}
+          >
+            {copied ? "Copied" : "Copy"}
+          </Button>
+        </div>
+        <p className="mt-1 text-xs text-muted-foreground">
+          They sign up, then enter this code under Tools.
+        </p>
+      </div>
+
+      {/* members */}
+      <ul className="mt-4 divide-y">
+        {state.members.map((member) => (
+          <li key={member.user_id} className="flex items-center justify-between gap-2 py-2 text-sm">
+            <span>
+              {member.display_name?.trim() || `Member ${member.user_id.slice(0, 4)}`}
+              {member.role === "owner" ? (
+                <span className="ml-2 text-xs text-muted-foreground">owner</span>
+              ) : null}
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      {/* your display name */}
+      <div className="mt-4 space-y-2 border-t pt-4">
+        <Label htmlFor="rename">Your name in this household</Label>
+        <div className="flex gap-2">
+          <Input
+            id="rename"
+            placeholder={me?.display_name ?? "Your name"}
+            value={yourName}
+            onChange={(event) => setYourName(event.target.value)}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            className="shrink-0"
+            disabled={renameMutation.isPending || !yourName.trim()}
+            onClick={() => renameMutation.mutate(yourName.trim())}
+          >
+            Save
+          </Button>
+        </div>
+      </div>
+
+      {/* settlement */}
+      {settlement && settlement.totalShared > 0 ? (
+        <div className="mt-5 border-t pt-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Splitting shared costs
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {money(settlement.totalShared)} shared so far — {money(settlement.perPerson)} each.
+          </p>
+
+          <ul className="mt-3 space-y-1.5 text-sm">
+            {settlement.balances.map((balance) => (
+              <li key={balance.user_id} className="flex justify-between gap-2">
+                <span>{balance.name}</span>
+                <span className="tabular-nums">
+                  paid {money(balance.paid)}
+                  {Math.abs(balance.balance) < 0.005 ? (
+                    <span className="ml-2 text-success">square</span>
+                  ) : balance.balance > 0 ? (
+                    <span className="ml-2 text-success">owed {money(balance.balance)}</span>
+                  ) : (
+                    <span className="ml-2 text-danger">owes {money(balance.balance)}</span>
+                  )}
+                </span>
+              </li>
+            ))}
+          </ul>
+
+          {settlement.transfers.length > 0 ? (
+            <div className="mt-3 rounded-2xl bg-primary p-3 text-primary-foreground">
+              <p className="text-xs font-semibold uppercase tracking-wide opacity-80">
+                To square up
+              </p>
+              <ul className="mt-1 space-y-0.5 text-sm font-semibold">
+                {settlement.transfers.map((transfer, index) => (
+                  <li key={index}>
+                    {transfer.fromName} pays {transfer.toName} {money(transfer.amount)}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <p className="mt-3 text-sm text-success">Everyone&apos;s square — nothing owed.</p>
+          )}
+        </div>
+      ) : settlement ? (
+        <p className="mt-5 border-t pt-4 text-sm text-muted-foreground">
+          Nothing shared yet. Tick &ldquo;share with household&rdquo; when you log something, or
+          share an existing entry from the Today tab.
+        </p>
+      ) : null}
+
+      {error ? <p className="mt-3 text-sm text-danger">{error}</p> : null}
+
+      <Button
+        type="button"
+        variant="outline"
+        className="mt-5 w-full"
+        disabled={leaveMutation.isPending}
+        onClick={() => {
+          if (
+            window.confirm(
+              "Leave this household? Anything you shared becomes private to you again.",
+            )
+          ) {
+            leaveMutation.mutate();
+          }
+        }}
+      >
+        {leaveMutation.isPending ? "Leaving…" : "Leave household"}
+      </Button>
+    </section>
   );
 }
 

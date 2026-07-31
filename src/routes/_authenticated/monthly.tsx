@@ -456,6 +456,9 @@ function InsightsSection() {
         )}
       </section>
 
+      {/* ---------- Bill calendar ---------- */}
+      <BillCalendarSection calendar={data.calendar} />
+
       {/* ---------- Detected subscriptions ---------- */}
       <DetectedRecurringSection detected={data.detectedRecurring} />
 
@@ -504,6 +507,69 @@ function InsightsSection() {
         </section>
       ) : null}
     </>
+  );
+}
+
+/** What's due and when, grouped so it reads like a calendar. */
+function BillCalendarSection({
+  calendar,
+}: {
+  calendar: Array<{ category: string; amount: number; due: string; daysAway: number }>;
+}) {
+  if (calendar.length === 0) return null;
+
+  const groups: Array<{ heading: string; bills: typeof calendar }> = [
+    { heading: "This week", bills: calendar.filter((b) => b.daysAway <= 7) },
+    {
+      heading: "Next 3 weeks",
+      bills: calendar.filter((b) => b.daysAway > 7 && b.daysAway <= 28),
+    },
+    { heading: "Later", bills: calendar.filter((b) => b.daysAway > 28) },
+  ].filter((group) => group.bills.length > 0);
+
+  const total = calendar.reduce((sum, b) => sum + b.amount, 0);
+
+  return (
+    <section className="mt-5 rounded-3xl border bg-card p-5 shadow-sm">
+      <h2 className="text-lg font-bold">What&apos;s due</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        {money(total)} of bills over the next 45 days.
+      </p>
+
+      <div className="mt-4 space-y-4">
+        {groups.map((group) => (
+          <div key={group.heading}>
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              {group.heading} · {money(group.bills.reduce((s, b) => s + b.amount, 0))}
+            </p>
+            <ul className="mt-2 divide-y">
+              {group.bills.map((bill, index) => (
+                <li key={index} className="flex items-center justify-between gap-2 py-2 text-sm">
+                  <span className="min-w-0">
+                    <span className="font-semibold">{bill.category}</span>
+                    <span className="ml-2 text-muted-foreground">
+                      {bill.due}
+                      {bill.daysAway === 0
+                        ? " · today"
+                        : bill.daysAway === 1
+                          ? " · tomorrow"
+                          : ` · in ${bill.daysAway} days`}
+                    </span>
+                  </span>
+                  <span
+                    className={`shrink-0 tabular-nums ${
+                      bill.daysAway <= 5 ? "font-semibold text-danger" : ""
+                    }`}
+                  >
+                    {money(bill.amount)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 

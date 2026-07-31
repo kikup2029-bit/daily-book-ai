@@ -21,6 +21,7 @@ export const createEntry = createServerFn({ method: "POST" })
         spent_on: z.string().max(120).nullable(),
         merchant: z.string().max(120).nullable().optional(),
         payment_method: z.string().max(20).nullable().optional(),
+        shared: z.boolean().optional(),
       })
       .parse(data),
   )

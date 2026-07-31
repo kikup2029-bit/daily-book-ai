@@ -2,10 +2,22 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowDownCircle, ArrowUpCircle, Loader2, Send, Sparkles, Trash2, Zap } from "lucide-react";
+import {
+  ArrowDownCircle,
+  ArrowUpCircle,
+  CalendarClock,
+  Flame,
+  Loader2,
+  Send,
+  Sparkles,
+  Trash2,
+  Users,
+  Zap,
+} from "lucide-react";
 
 import { parseQuickEntry } from "@/lib/quick-entry";
 import { getInsights } from "@/lib/shop.functions";
+import { getHousehold, setEntryShared } from "@/lib/household.functions";
 
 import { AppHeader } from "@/components/app-header";
 import { ReceiptAttachButton, ReceiptThumb } from "@/components/receipt-controls";
@@ -73,6 +85,12 @@ function Dashboard() {
   const [spentOn, setSpentOn] = useState("");
   const [merchant, setMerchant] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "card" | "other">("cash");
+  const [shareWithHousehold, setShareWithHousehold] = useState(false);
+  const fetchHousehold = useServerFn(getHousehold);
+  const { data: household } = useQuery({
+    queryKey: ["household"],
+    queryFn: () => fetchHousehold(),
+  });
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [receiptKey, setReceiptKey] = useState(0);
   const [formError, setFormError] = useState<string | null>(null);
@@ -85,6 +103,15 @@ function Dashboard() {
   const remove = useMutation({
     mutationFn: (entryId: string) => runRemoveEntry({ data: { entry_id: entryId } }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["entries"] }),
+  });
+
+  const runSetShared = useServerFn(setEntryShared);
+  const toggleShare = useMutation({
+    mutationFn: (input: { entry_id: string; shared: boolean }) => runSetShared({ data: input }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["entries"] });
+      queryClient.invalidateQueries({ queryKey: ["settlement"] });
+    },
   });
 
   const analyze = useMutation({
@@ -129,6 +156,7 @@ function Dashboard() {
       spent_on: string | null;
       merchant: string | null;
       payment_method: string | null;
+      shared: boolean;
     }) => {
       const entry = await addEntry({ data: input });
       if (receiptFile) {
@@ -172,6 +200,7 @@ function Dashboard() {
       spent_on: spentOn.trim() ? spentOn.trim() : null,
       merchant: merchant.trim() ? merchant.trim() : null,
       payment_method: paymentMethod,
+      shared: shareWithHousehold,
     });
   };
 
@@ -188,6 +217,7 @@ function Dashboard() {
     <main className="mx-auto w-full max-w-xl px-4 pb-16 pt-8 sm:pt-12">
       <AppHeader />
 
+      <DueSoonBanner />
       <SafeToSpendCard />
       <QuickAdd entries={entries} />
 
@@ -311,6 +341,24 @@ function Dashboard() {
           </div>
 
 
+          {household?.household ? (
+            <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border p-3">
+              <input
+                type="checkbox"
+                checked={shareWithHousehold}
+                onChange={(event) => setShareWithHousehold(event.target.checked)}
+                className="mt-0.5 size-4 shrink-0 accent-current"
+              />
+              <span className="text-sm">
+                <span className="font-semibold">Share with {household.household.name}</span>
+                <span className="block text-xs text-muted-foreground">
+                  Everyone in the household sees it, and it counts toward splitting costs. Leave
+                  unticked to keep it private.
+                </span>
+              </span>
+            </label>
+          ) : null}
+
           {formError ? <p className="text-sm text-danger">{formError}</p> : null}
           {saved ? <p className="text-sm text-success">Saved! Nice work.</p> : null}
 
@@ -382,6 +430,11 @@ function Dashboard() {
                     {entry.merchant ? (
                       <span className="ml-2 text-muted-foreground">· {entry.merchant}</span>
                     ) : null}
+                    {entry.household_id ? (
+                      <span className="ml-2 inline-flex items-center gap-0.5 text-xs text-primary">
+                        <Users className="size-3" /> shared
+                      </span>
+                    ) : null}
                   </span>
                 </span>
                 <span className="flex shrink-0 items-center gap-1 tabular-nums">
@@ -392,6 +445,29 @@ function Dashboard() {
                     <span className="text-danger">−{money(entry.amount_out)}</span>
                   ) : null}
                   <ReceiptAttachButton entryId={entry.id} currentPath={entry.receipt_path} />
+                  {household?.household ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className={`h-8 px-2 ${
+                        entry.household_id ? "text-primary" : "text-muted-foreground"
+                      }`}
+                      disabled={toggleShare.isPending}
+                      onClick={() =>
+                        toggleShare.mutate({
+                          entry_id: entry.id,
+                          shared: !entry.household_id,
+                        })
+                      }
+                      aria-label={
+                        entry.household_id ? "Make private again" : "Share with household"
+                      }
+                      title={entry.household_id ? "Make private again" : "Share with household"}
+                    >
+                      <Users className="size-4" />
+                    </Button>
+                  ) : null}
                   <Button
                     type="button"
                     variant="ghost"
@@ -414,8 +490,121 @@ function Dashboard() {
         )}
       </section>
 
+      <StreaksCard />
       <AskSection />
     </main>
+  );
+}
+
+/** Warns about bills due in the next few days, before they bite. */
+function DueSoonBanner() {
+  const fetchInsights = useServerFn(getInsights);
+  const { data } = useQuery({ queryKey: ["insights"], queryFn: () => fetchInsights() });
+
+  const soon = (data?.calendar ?? []).filter((bill) => bill.daysAway <= 5);
+  if (soon.length === 0) return null;
+
+  const total = soon.reduce((sum, bill) => sum + bill.amount, 0);
+
+  return (
+    <section className="mb-5 rounded-3xl border border-danger bg-danger-soft p-4">
+      <p className="flex items-center gap-2 text-sm font-bold text-danger">
+        <CalendarClock className="size-4" />
+        {soon.length === 1 ? "A bill is due soon" : `${soon.length} bills due soon`} ·{" "}
+        {money(total)}
+      </p>
+      <ul className="mt-2 space-y-1 text-sm">
+        {soon.slice(0, 4).map((bill, index) => (
+          <li key={index} className="flex justify-between gap-2">
+            <span>
+              {bill.category}{" "}
+              <span className="text-muted-foreground">
+                {bill.daysAway === 0
+                  ? "· today"
+                  : bill.daysAway === 1
+                    ? "· tomorrow"
+                    : `· in ${bill.daysAway} days`}
+              </span>
+            </span>
+            <span className="tabular-nums">{money(bill.amount)}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/** Habit and progress streaks — a nudge to keep logging. */
+function StreaksCard() {
+  const fetchInsights = useServerFn(getInsights);
+  const { data } = useQuery({ queryKey: ["insights"], queryFn: () => fetchInsights() });
+
+  const s = data?.streaks;
+  if (!s || s.totalDaysLogged === 0) return null;
+
+  const tiles = [
+    {
+      label: "Logging streak",
+      value: s.loggingStreak,
+      suffix: s.loggingStreak === 1 ? "day" : "days",
+      best: s.longestLoggingStreak,
+      show: true,
+    },
+    {
+      label: "Profitable run",
+      value: s.profitableStreak,
+      suffix: s.profitableStreak === 1 ? "day" : "days",
+      best: s.longestProfitableStreak,
+      show: s.longestProfitableStreak > 0,
+    },
+    {
+      label: "No-spend run",
+      value: s.noSpendStreak,
+      suffix: s.noSpendStreak === 1 ? "day" : "days",
+      best: s.longestNoSpendStreak,
+      show: s.longestNoSpendStreak > 0,
+    },
+  ].filter((tile) => tile.show);
+
+  return (
+    <section className="mt-5 rounded-3xl border bg-card p-5 shadow-sm">
+      <h2 className="flex items-center gap-2 text-lg font-bold">
+        <Flame className="size-4 text-primary" /> Your streaks
+      </h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        {s.loggingStreak >= 3
+          ? `Nice — ${s.loggingStreak} days in a row of keeping your books up to date.`
+          : "Log something every day and your streak starts building."}
+      </p>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+        {tiles.map((tile) => (
+          <div key={tile.label} className="rounded-2xl bg-muted p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              {tile.label}
+            </p>
+            <p className="mt-0.5 text-xl font-bold">
+              {tile.value} <span className="text-sm font-normal">{tile.suffix}</span>
+            </p>
+            {tile.best > tile.value ? (
+              <p className="text-xs text-muted-foreground">Best: {tile.best}</p>
+            ) : tile.value > 0 && tile.value === tile.best ? (
+              <p className="text-xs text-success">Your best yet</p>
+            ) : null}
+          </div>
+        ))}
+      </div>
+
+      {s.activeDaysThisMonth > 0 ? (
+        <p className="mt-3 text-sm text-muted-foreground">
+          This month you came out ahead on{" "}
+          <span className="font-semibold text-foreground">
+            {s.profitableDaysThisMonth} of {s.activeDaysThisMonth}
+          </span>{" "}
+          days you logged.
+        </p>
+      ) : null}
+    </section>
   );
 }
 

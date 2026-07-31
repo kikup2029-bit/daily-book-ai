@@ -727,6 +727,168 @@ export function detectRecurring(
 }
 
 // =========================================================================
+// 5c. Streaks and wins
+// =========================================================================
+
+export type Streaks = {
+  /** Days in a row (ending today or yesterday) with at least one entry. */
+  loggingStreak: number;
+  longestLoggingStreak: number;
+  /** Days in a row with entries logged but nothing spent. */
+  noSpendStreak: number;
+  longestNoSpendStreak: number;
+  /** Days in a row where money in beat money out. */
+  profitableStreak: number;
+  longestProfitableStreak: number;
+  /** Profitable days this month, and how many days had any activity. */
+  profitableDaysThisMonth: number;
+  activeDaysThisMonth: number;
+  /** Total days with at least one entry, ever. */
+  totalDaysLogged: number;
+};
+
+/**
+ * Habit and progress streaks.
+ *
+ * A "no-spend day" only counts on days something was actually logged — a day
+ * with no entries at all is treated as "didn't record", not "didn't spend", so
+ * the streak can't be inflated by forgetting to use the app.
+ */
+export function computeStreaks(
+  entries: InsightEntry[],
+  options: { today?: string } = {},
+): Streaks {
+  const today = options.today ?? isoToday();
+
+  // Roll entries up per day.
+  type DayTotals = { in: number; out: number };
+  const byDay = new Map<string, DayTotals>();
+  for (const entry of entries) {
+    const day = byDay.get(entry.entry_date) ?? { in: 0, out: 0 };
+    day.in += entry.amount_in;
+    day.out += entry.amount_out;
+    byDay.set(entry.entry_date, day);
+  }
+
+  const days = [...byDay.keys()].sort(); // oldest first
+  if (days.length === 0) {
+    return {
+      loggingStreak: 0,
+      longestLoggingStreak: 0,
+      noSpendStreak: 0,
+      longestNoSpendStreak: 0,
+      profitableStreak: 0,
+      longestProfitableStreak: 0,
+      profitableDaysThisMonth: 0,
+      activeDaysThisMonth: 0,
+      totalDaysLogged: 0,
+    };
+  }
+
+  // Longest runs over the days that were actually logged, requiring the days
+  // to be consecutive on the calendar.
+  let longestLogging = 0;
+  let longestNoSpend = 0;
+  let longestProfitable = 0;
+
+  let runLogging = 0;
+  let runNoSpend = 0;
+  let runProfitable = 0;
+
+  for (let i = 0; i < days.length; i += 1) {
+    const day = days[i];
+    const totals = byDay.get(day)!;
+    const consecutive = i > 0 && daysBetween(days[i - 1], day) === 1;
+
+    runLogging = consecutive ? runLogging + 1 : 1;
+    longestLogging = Math.max(longestLogging, runLogging);
+
+    if (totals.out === 0) {
+      runNoSpend = consecutive && runNoSpend > 0 ? runNoSpend + 1 : 1;
+    } else {
+      runNoSpend = 0;
+    }
+    longestNoSpend = Math.max(longestNoSpend, runNoSpend);
+
+    if (totals.in > totals.out) {
+      runProfitable = consecutive && runProfitable > 0 ? runProfitable + 1 : 1;
+    } else {
+      runProfitable = 0;
+    }
+    longestProfitable = Math.max(longestProfitable, runProfitable);
+  }
+
+  // Current streaks: walk backwards from today. Allow the run to start
+  // yesterday, so the streak doesn't appear broken before today's first entry.
+  const countBack = (test: (totals: DayTotals) => boolean) => {
+    let streak = 0;
+    let cursor = byDay.has(today) ? today : addDays(today, -1);
+    // If neither today nor yesterday has entries, the streak is over.
+    if (!byDay.has(cursor)) return 0;
+    while (byDay.has(cursor)) {
+      const totals = byDay.get(cursor)!;
+      if (!test(totals)) break;
+      streak += 1;
+      cursor = addDays(cursor, -1);
+    }
+    return streak;
+  };
+
+  const monthStart = `${today.slice(0, 7)}-01`;
+  let profitableDaysThisMonth = 0;
+  let activeDaysThisMonth = 0;
+  for (const [day, totals] of byDay) {
+    if (day < monthStart || day > today) continue;
+    activeDaysThisMonth += 1;
+    if (totals.in > totals.out) profitableDaysThisMonth += 1;
+  }
+
+  return {
+    loggingStreak: countBack(() => true),
+    longestLoggingStreak: longestLogging,
+    noSpendStreak: countBack((t) => t.out === 0),
+    longestNoSpendStreak: longestNoSpend,
+    profitableStreak: countBack((t) => t.in > t.out),
+    longestProfitableStreak: longestProfitable,
+    profitableDaysThisMonth,
+    activeDaysThisMonth,
+    totalDaysLogged: days.length,
+  };
+}
+
+// =========================================================================
+// 5d. Bill calendar
+// =========================================================================
+
+export type CalendarBill = {
+  category: string;
+  amount: number;
+  due: string;
+  /** Negative once overdue, 0 today, positive for future. */
+  daysAway: number;
+};
+
+/**
+ * Every recurring bill falling due within the window, nearest first.
+ * Reuses the same expansion logic the forecast uses, so the two always agree.
+ */
+export function billCalendar(
+  recurring: InsightRecurring[],
+  options: { days?: number; today?: string } = {},
+): CalendarBill[] {
+  const days = options.days ?? 60;
+  const today = options.today ?? isoToday();
+  const forecast = forecastCash([], recurring, { horizonDays: days, today });
+
+  return forecast.upcomingBills.map((bill) => ({
+    category: bill.category,
+    amount: bill.amount,
+    due: bill.due,
+    daysAway: daysBetween(today, bill.due),
+  }));
+}
+
+// =========================================================================
 // 6. Cash drawer reconciliation
 // =========================================================================
 

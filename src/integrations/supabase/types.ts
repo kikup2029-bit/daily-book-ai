@@ -47,6 +47,7 @@ export type Database = {
           amount_out: number
           created_at: string
           entry_date: string
+          household_id: string | null
           id: string
           merchant: string | null
           payment_method: string | null
@@ -59,6 +60,7 @@ export type Database = {
           amount_out?: number
           created_at?: string
           entry_date?: string
+          household_id?: string | null
           id?: string
           merchant?: string | null
           payment_method?: string | null
@@ -71,6 +73,7 @@ export type Database = {
           amount_out?: number
           created_at?: string
           entry_date?: string
+          household_id?: string | null
           id?: string
           merchant?: string | null
           payment_method?: string | null
@@ -142,6 +145,54 @@ export type Database = {
           id?: string
           note?: string | null
           opening_float?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      households: {
+        Row: {
+          created_at: string
+          id: string
+          join_code: string
+          name: string
+          owner_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          join_code: string
+          name: string
+          owner_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          join_code?: string
+          name?: string
+          owner_id?: string
+        }
+        Relationships: []
+      }
+      household_members: {
+        Row: {
+          display_name: string | null
+          household_id: string
+          joined_at: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          display_name?: string | null
+          household_id: string
+          joined_at?: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          display_name?: string | null
+          household_id?: string
+          joined_at?: string
+          role?: string
           user_id?: string
         }
         Relationships: []
@@ -244,7 +295,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      join_household_by_code: {
+        Args: { code: string; display_name?: string | null }
+        Returns: string
+      }
+      is_household_member: {
+        Args: { hid: string }
+        Returns: boolean
+      }
+      my_household_id: {
+        Args: Record<string, never>
+        Returns: string | null
+      }
     }
     Enums: {
       [_ in never]: never

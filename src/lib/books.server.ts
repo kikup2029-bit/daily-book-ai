@@ -15,14 +15,32 @@ export type Entry = {
   merchant: string | null;
   payment_method: string | null;
   receipt_path: string | null;
+  household_id: string | null;
+  user_id: string;
   created_at: string;
 };
 
+const ENTRY_COLUMNS =
+  "id, entry_date, amount_in, amount_out, spent_on, merchant, payment_method, receipt_path, household_id, user_id, created_at";
+
+/**
+ * Your own entries, plus anything shared with a household you belong to.
+ * Row level security enforces the same rule server-side.
+ */
 export async function fetchEntries(supabase: Client, userId: string): Promise<Entry[]> {
-  const { data, error } = await supabase
-    .from("entries")
-    .select("id, entry_date, amount_in, amount_out, spent_on, merchant, payment_method, receipt_path, created_at")
+  const { data: membership } = await supabase
+    .from("household_members")
+    .select("household_id")
     .eq("user_id", userId)
+    .maybeSingle();
+
+  let query = supabase.from("entries").select(ENTRY_COLUMNS);
+
+  query = membership?.household_id
+    ? query.or(`user_id.eq.${userId},household_id.eq.${membership.household_id}`)
+    : query.eq("user_id", userId);
+
+  const { data, error } = await query
     .order("entry_date", { ascending: false })
     .order("created_at", { ascending: false })
     .limit(500);
@@ -45,12 +63,26 @@ export async function insertEntry(
     spent_on: string | null;
     merchant?: string | null;
     payment_method?: string | null;
+    /** When true, share this entry with the household the user belongs to. */
+    shared?: boolean;
   },
 ): Promise<Entry> {
+  const { shared, ...fields } = input;
+
+  let householdId: string | null = null;
+  if (shared) {
+    const { data: membership } = await supabase
+      .from("household_members")
+      .select("household_id")
+      .eq("user_id", userId)
+      .maybeSingle();
+    householdId = membership?.household_id ?? null;
+  }
+
   const { data, error } = await supabase
     .from("entries")
-    .insert({ ...input, user_id: userId })
-    .select("id, entry_date, amount_in, amount_out, spent_on, merchant, payment_method, receipt_path, created_at")
+    .insert({ ...fields, user_id: userId, household_id: householdId })
+    .select("id, entry_date, amount_in, amount_out, spent_on, merchant, payment_method, receipt_path, household_id, user_id, created_at")
     .single();
   if (error) throw new Error(error.message);
   return { ...data, amount_in: Number(data.amount_in), amount_out: Number(data.amount_out) };
@@ -186,7 +218,7 @@ export async function setEntryReceipt(
     .update({ receipt_path: receiptPath })
     .eq("id", entryId)
     .eq("user_id", userId)
-    .select("id, entry_date, amount_in, amount_out, spent_on, merchant, payment_method, receipt_path, created_at")
+    .select("id, entry_date, amount_in, amount_out, spent_on, merchant, payment_method, receipt_path, household_id, user_id, created_at")
     .single();
   if (error) throw new Error(error.message);
   return { ...data, amount_in: Number(data.amount_in), amount_out: Number(data.amount_out) };

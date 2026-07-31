@@ -111,6 +111,8 @@ export const getInsights = createServerFn({ method: "GET" })
       averageMonthlyOverhead,
       safeToSpendToday,
       detectRecurring,
+      computeStreaks,
+      billCalendar,
     } = await import("./insights");
 
     const [entries, recurring, budgets, settings] = await Promise.all([
@@ -133,6 +135,8 @@ export const getInsights = createServerFn({ method: "GET" })
       dayPatterns: dayOfWeekPatterns(entries),
       digest: weeklyDigest(entries),
       detectedRecurring: detectRecurring(entries, { alreadyTracked }),
+      streaks: computeStreaks(entries),
+      calendar: billCalendar(recurring, { days: 45 }),
       monthlyOverhead: averageMonthlyOverhead(entries),
       settings,
     };
