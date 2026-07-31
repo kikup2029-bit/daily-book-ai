@@ -123,16 +123,31 @@ async function callAi(req: AiRequest): Promise<string> {
     );
   }
 
+  let geminiError: unknown;
+
   if (geminiKey) {
     try {
       return await callGemini(geminiKey, req);
     } catch (error) {
       // Fall back to Claude if it's configured; otherwise surface the error.
       if (!anthropicKey) throw error;
+      geminiError = error;
     }
   }
 
-  return callAnthropic(anthropicKey!, req);
+  try {
+    return await callAnthropic(anthropicKey!, req);
+  } catch (anthropicError) {
+    // Don't hide why the preferred provider failed.
+    if (geminiError) {
+      const geminiMessage =
+        geminiError instanceof Error ? geminiError.message : String(geminiError);
+      const anthropicMessage =
+        anthropicError instanceof Error ? anthropicError.message : String(anthropicError);
+      throw new Error(`Gemini failed: ${geminiMessage} | Claude fallback failed: ${anthropicMessage}`);
+    }
+    throw anthropicError;
+  }
 }
 
 /** Plain-language Q&A over the shop's bookkeeping data, plus general money questions. */
