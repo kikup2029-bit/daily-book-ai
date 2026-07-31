@@ -35,6 +35,14 @@ export const askBookkeeper = createServerFn({ method: "POST" })
     return { answer: await answerQuestion(context.supabase, context.userId, data.question) };
   });
 
+export const removeEntry = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ entry_id: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) => {
+    const { deleteEntry } = await import("./books.server");
+    return deleteEntry(context.supabase, context.userId, data.entry_id);
+  });
+
 export const analyzeReceipt = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>

@@ -2,12 +2,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
-import { ArrowDownCircle, ArrowUpCircle, Loader2, Send, Sparkles } from "lucide-react";
+import { ArrowDownCircle, ArrowUpCircle, Loader2, Send, Sparkles, Trash2 } from "lucide-react";
 
 import { AppHeader } from "@/components/app-header";
 import { ReceiptAttachButton, ReceiptThumb } from "@/components/receipt-controls";
 import { uploadReceipt } from "@/lib/receipts";
-import { attachReceipt, analyzeReceipt } from "@/lib/books.functions";
+import { attachReceipt, analyzeReceipt, removeEntry } from "@/lib/books.functions";
 
 import { askBookkeeper, createEntry, getEntries } from "@/lib/books.functions";
 import { Button } from "@/components/ui/button";
@@ -75,6 +75,12 @@ function Dashboard() {
   const [receiptNotice, setReceiptNotice] = useState<string | null>(null);
   const linkReceipt = useServerFn(attachReceipt);
   const runAnalyzeReceipt = useServerFn(analyzeReceipt);
+  const runRemoveEntry = useServerFn(removeEntry);
+
+  const remove = useMutation({
+    mutationFn: (entryId: string) => runRemoveEntry({ data: { entry_id: entryId } }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["entries"] }),
+  });
 
   const analyze = useMutation({
     mutationFn: async (file: File) => {
@@ -336,6 +342,21 @@ function Dashboard() {
                     <span className="text-danger">−{money(entry.amount_out)}</span>
                   ) : null}
                   <ReceiptAttachButton entryId={entry.id} currentPath={entry.receipt_path} />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2 text-muted-foreground"
+                    disabled={remove.isPending}
+                    onClick={() => {
+                      if (window.confirm("Delete this entry? This can't be undone.")) {
+                        remove.mutate(entry.id);
+                      }
+                    }}
+                    aria-label="Delete entry"
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
                 </span>
               </li>
             ))}
@@ -368,12 +389,12 @@ function AskSection() {
     onSuccess: (result) => {
       setMessages((prev) => [...prev, { role: "assistant", text: result.answer }]);
     },
-    onError: () => {
+    onError: (error: Error) => {
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          text: "Sorry, I couldn't get to your numbers just now. Please try again in a moment.",
+          text: `Sorry, something went wrong: ${error?.message ?? "unknown error"}`,
         },
       ]);
     },

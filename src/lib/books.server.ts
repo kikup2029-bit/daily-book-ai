@@ -114,6 +114,20 @@ Style rules:
   return text;
 }
 
+export async function deleteEntry(
+  supabase: Client,
+  userId: string,
+  entryId: string,
+): Promise<{ id: string }> {
+  const { error } = await supabase
+    .from("entries")
+    .delete()
+    .eq("id", entryId)
+    .eq("user_id", userId);
+  if (error) throw new Error(error.message);
+  return { id: entryId };
+}
+
 export async function analyzeReceiptPhoto(
   base64Image: string,
   mimeType: string,
