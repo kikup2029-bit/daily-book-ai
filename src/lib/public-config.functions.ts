@@ -22,10 +22,13 @@ export type PublicConfig = {
  */
 export const getPublicConfig = createServerFn({ method: "GET" }).handler(
   async (): Promise<PublicConfig> => {
+    const { readServerEnv } = await import("./server-env");
     return {
-      supabaseUrl: process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? "",
+      supabaseUrl: readServerEnv("SUPABASE_URL") ?? readServerEnv("VITE_SUPABASE_URL") ?? "",
       supabaseKey:
-        process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? "",
+        readServerEnv("SUPABASE_PUBLISHABLE_KEY") ??
+        readServerEnv("VITE_SUPABASE_PUBLISHABLE_KEY") ??
+        "",
     };
   },
 );

@@ -4,11 +4,13 @@
 // secret in Cloudflare (Settings -> Variables and Secrets). Never commit it
 // or share it in chat.
 
+import { readServerEnv } from "./server-env";
+
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-haiku-4-5-20251001";
 
 function getApiKey(): string {
-  const key = process.env.ANTHROPIC_API_KEY;
+  const key = readServerEnv("ANTHROPIC_API_KEY");
   if (!key) {
     throw new Error(
       "AI is not configured yet — add an ANTHROPIC_API_KEY environment variable to enable it.",
