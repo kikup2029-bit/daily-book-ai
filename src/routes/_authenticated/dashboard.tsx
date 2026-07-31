@@ -1,8 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useRef, useState } from "react";
-import { ArrowDownCircle, ArrowUpCircle, Loader2, Send, Sparkles, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowDownCircle, ArrowUpCircle, Loader2, Send, Sparkles, Trash2, Zap } from "lucide-react";
+
+import { parseQuickEntry } from "@/lib/quick-entry";
+import { getInsights } from "@/lib/shop.functions";
 
 import { AppHeader } from "@/components/app-header";
 import { ReceiptAttachButton, ReceiptThumb } from "@/components/receipt-controls";
@@ -185,7 +188,10 @@ function Dashboard() {
     <main className="mx-auto w-full max-w-xl px-4 pb-16 pt-8 sm:pt-12">
       <AppHeader />
 
-      <section className="rounded-3xl border bg-card p-5 shadow-sm">
+      <SafeToSpendCard />
+      <QuickAdd entries={entries} />
+
+      <section className="mt-5 rounded-3xl border bg-card p-5 shadow-sm">
         <h2 className="text-lg font-bold">Today&apos;s entry</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Jot down what came in and what went out.
@@ -410,6 +416,153 @@ function Dashboard() {
 
       <AskSection />
     </main>
+  );
+}
+
+/** One number: what's safe to spend today without causing trouble later. */
+function SafeToSpendCard() {
+  const fetchInsights = useServerFn(getInsights);
+  const { data } = useQuery({ queryKey: ["insights"], queryFn: () => fetchInsights() });
+
+  if (!data) return null;
+  const safe = data.safeToSpend;
+
+  const none = safe.amount <= 0;
+
+  return (
+    <section
+      className={`rounded-3xl border p-5 shadow-sm ${
+        none ? "bg-danger-soft" : "bg-primary text-primary-foreground"
+      }`}
+    >
+      <p
+        className={`text-xs font-semibold uppercase tracking-wide ${
+          none ? "text-danger" : "text-primary-foreground/80"
+        }`}
+      >
+        Safe to spend today
+      </p>
+      <p className={`mt-1 text-4xl font-bold ${none ? "text-danger" : ""}`}>
+        {money(safe.amount)}
+      </p>
+      <p className={`mt-2 text-sm ${none ? "text-danger" : "text-primary-foreground/90"}`}>
+        {safe.explanation}
+      </p>
+    </section>
+  );
+}
+
+type EntryRow = {
+  entry_date: string;
+  amount_in: number;
+  amount_out: number;
+  spent_on: string | null;
+  merchant: string | null;
+};
+
+/**
+ * One box: type "spent 20 at costco on groceries" and it fills everything in.
+ * Parsing happens locally, so it's instant and costs nothing.
+ */
+function QuickAdd({ entries }: { entries: EntryRow[] }) {
+  const queryClient = useQueryClient();
+  const addEntry = useServerFn(createEntry);
+  const [text, setText] = useState("");
+  const [saved, setSaved] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // Learn categories and merchants from what's already been logged.
+  const history = useMemo(
+    () => entries.map((e) => ({ spent_on: e.spent_on, merchant: e.merchant })),
+    [entries],
+  );
+  const knownCategories = useMemo(() => {
+    const set = new Set<string>();
+    for (const e of entries) if (e.spent_on?.trim()) set.add(e.spent_on.trim());
+    return [...set];
+  }, [entries]);
+
+  const parsed = useMemo(
+    () => parseQuickEntry(text, { history, knownCategories }),
+    [text, history, knownCategories],
+  );
+
+  const save = useMutation({
+    mutationFn: () =>
+      addEntry({
+        data: {
+          entry_date: parsed.date,
+          amount_in: parsed.amountIn,
+          amount_out: parsed.amountOut,
+          spent_on: parsed.category,
+          merchant: parsed.merchant,
+          payment_method: "cash",
+        },
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["entries"] });
+      queryClient.invalidateQueries({ queryKey: ["insights"] });
+      setSaved(parsed.summary);
+      setText("");
+      setTimeout(() => setSaved(null), 3000);
+    },
+    onError: (err: Error) => setError(err.message),
+  });
+
+  return (
+    <section className="rounded-3xl border bg-card p-5 shadow-sm">
+      <h2 className="flex items-center gap-2 text-lg font-bold">
+        <Zap className="size-4 text-primary" /> Quick add
+      </h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Just type it — &ldquo;spent 20 at costco on groceries&rdquo; or &ldquo;made 300&rdquo;.
+      </p>
+
+      <form
+        className="mt-3 flex gap-2"
+        onSubmit={(event) => {
+          event.preventDefault();
+          setError(null);
+          if (parsed.ok && !save.isPending) save.mutate();
+        }}
+      >
+        <Input
+          value={text}
+          onChange={(event) => {
+            setText(event.target.value);
+            setError(null);
+          }}
+          placeholder="spent 20 on supplies"
+          aria-label="Quick add entry"
+        />
+        <Button type="submit" disabled={!parsed.ok || save.isPending} className="shrink-0">
+          {save.isPending ? "Saving…" : "Add"}
+        </Button>
+      </form>
+
+      {text.trim() ? (
+        <p
+          className={`mt-2 text-sm ${
+            parsed.ok ? "text-foreground" : "text-muted-foreground"
+          }`}
+        >
+          {parsed.ok ? (
+            <>
+              <span className="text-muted-foreground">Reading that as:</span>{" "}
+              <span className="font-semibold">{parsed.summary}</span>
+              {!parsed.category ? (
+                <span className="text-muted-foreground"> · no category</span>
+              ) : null}
+            </>
+          ) : (
+            parsed.summary
+          )}
+        </p>
+      ) : null}
+
+      {saved ? <p className="mt-2 text-sm text-success">Saved: {saved}</p> : null}
+      {error ? <p className="mt-2 text-sm text-danger">{error}</p> : null}
+    </section>
   );
 }
 

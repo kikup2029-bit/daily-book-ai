@@ -183,6 +183,132 @@ export function forecastCash(
 }
 
 // =========================================================================
+// 1b. "Safe to spend today"
+// =========================================================================
+
+export type SafeToSpend = {
+  amount: number;
+  daysLeftInMonth: number;
+  /** What's left of the month's budgets, if any are set. */
+  budgetRemaining: number | null;
+  /** Bills falling due before the end of the month. */
+  billsDue: number;
+  /** Money currently in hand, per the log. */
+  currentNet: number;
+  /** Which rule produced the number, so the UI can explain it. */
+  basis: "budgets" | "cash" | "none";
+  explanation: string;
+};
+
+/**
+ * A single number: what can be spent today without causing a problem later
+ * this month.
+ *
+ * Prefers budgets when they exist (what's left of your own limits, spread over
+ * the days remaining). Otherwise falls back to cash in hand minus bills still
+ * due this month, spread over the remaining days.
+ */
+export function safeToSpendToday(
+  entries: InsightEntry[],
+  recurring: InsightRecurring[],
+  budgets: Array<{ category: string; monthly_limit: number }>,
+  options: { today?: string } = {},
+): SafeToSpend {
+  const today = options.today ?? isoToday();
+  const monthStart = `${today.slice(0, 7)}-01`;
+  const endOfMonth = (() => {
+    const d = new Date(`${today}T00:00:00`);
+    return new Date(d.getFullYear(), d.getMonth() + 1, 0).toLocaleDateString("en-CA");
+  })();
+  const daysLeftInMonth = Math.max(1, daysBetween(today, endOfMonth) + 1);
+
+  const currentNet = entries.reduce((sum, e) => sum + e.amount_in - e.amount_out, 0);
+  const monthEntries = inRange(entries, monthStart, today);
+
+  // Bills still due between today and month end.
+  const forecast = forecastCash(entries, recurring, {
+    horizonDays: daysLeftInMonth,
+    today,
+  });
+  const billsDue = forecast.upcomingBills
+    .filter((b) => b.due >= today && b.due <= endOfMonth)
+    .reduce((sum, b) => sum + b.amount, 0);
+
+  if (budgets.length > 0) {
+    const totalLimit = budgets.reduce((s, b) => s + b.monthly_limit, 0);
+    const spentByCat = new Map<string, number>();
+    for (const e of monthEntries) {
+      if (e.amount_out <= 0) continue;
+      const key = (e.spent_on ?? "").trim();
+      if (!key) continue;
+      spentByCat.set(key, (spentByCat.get(key) ?? 0) + e.amount_out);
+    }
+    const spentAgainstBudgets = budgets.reduce(
+      (sum, b) => sum + (spentByCat.get(b.category) ?? 0),
+      0,
+    );
+    const budgetRemaining = totalLimit - spentAgainstBudgets;
+    const amount = Math.max(0, budgetRemaining / daysLeftInMonth);
+
+    return {
+      amount,
+      daysLeftInMonth,
+      budgetRemaining,
+      billsDue,
+      currentNet,
+      basis: "budgets",
+      explanation:
+        budgetRemaining > 0
+          ? `${fmtMoney(budgetRemaining)} left in your budgets, spread over ${daysLeftInMonth} ${
+              daysLeftInMonth === 1 ? "day" : "days"
+            } left this month.`
+          : `You've already used up your budgets for this month.`,
+    };
+  }
+
+  // No budgets — work from cash in hand less bills still to pay.
+  const spendable = currentNet - billsDue;
+  if (currentNet <= 0) {
+    return {
+      amount: 0,
+      daysLeftInMonth,
+      budgetRemaining: null,
+      billsDue,
+      currentNet,
+      basis: "none",
+      explanation: `You're behind by ${fmtMoney(
+        currentNet,
+      )} overall, so there's nothing spare to spend today.`,
+    };
+  }
+
+  return {
+    amount: Math.max(0, spendable / daysLeftInMonth),
+    daysLeftInMonth,
+    budgetRemaining: null,
+    billsDue,
+    currentNet,
+    basis: "cash",
+    explanation:
+      billsDue > 0
+        ? `${fmtMoney(currentNet)} in hand, less ${fmtMoney(
+            billsDue,
+          )} of bills still due, over ${daysLeftInMonth} ${
+            daysLeftInMonth === 1 ? "day" : "days"
+          } left this month.`
+        : `${fmtMoney(currentNet)} in hand over ${daysLeftInMonth} ${
+            daysLeftInMonth === 1 ? "day" : "days"
+          } left this month.`,
+  };
+}
+
+const fmtMoney = (value: number) =>
+  `$${Math.abs(value).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+
+// =========================================================================
 // 2. Tax set-aside jar
 // =========================================================================
 
@@ -481,6 +607,123 @@ export function averageMonthlyOverhead(
   const days = Math.max(1, daysBetween(dates[0], today) + 1);
   const totalOut = entries.reduce((s, e) => s + e.amount_out, 0);
   return (totalOut / days) * 30;
+}
+
+// =========================================================================
+// 5b. Subscription / recurring charge detection
+// =========================================================================
+
+export type DetectedRecurring = {
+  /** Merchant if we have one, otherwise the category. */
+  label: string;
+  category: string;
+  merchant: string | null;
+  /** Typical amount (the median, so one odd charge doesn't skew it). */
+  amount: number;
+  frequency: "weekly" | "monthly";
+  /** How many times we saw it. */
+  occurrences: number;
+  /** Dates we saw it, oldest first. */
+  dates: string[];
+  /** Our best guess at the next one. */
+  nextExpected: string;
+  /** Higher means a more regular, more confident pattern. */
+  confidence: "high" | "medium";
+};
+
+function median(values: number[]) {
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+}
+
+/**
+ * Finds charges that look like subscriptions or regular bills: the same
+ * merchant (or category) hit repeatedly at a steady interval for a similar
+ * amount.
+ *
+ * Deliberately conservative — it only reports patterns with at least three
+ * sightings and consistent gaps, so it suggests rather than guesses wildly.
+ */
+export function detectRecurring(
+  entries: InsightEntry[],
+  options: { today?: string; alreadyTracked?: string[] } = {},
+): DetectedRecurring[] {
+  const today = options.today ?? isoToday();
+  const tracked = new Set(
+    (options.alreadyTracked ?? []).map((value) => value.trim().toLowerCase()),
+  );
+
+  // Group expenses by merchant when present, else by category.
+  const groups = new Map<string, InsightEntry[]>();
+  for (const entry of entries) {
+    if (entry.amount_out <= 0) continue;
+    const merchant = (entry.merchant ?? "").trim();
+    const category = (entry.spent_on ?? "").trim();
+    const key = (merchant || category).toLowerCase();
+    if (!key) continue;
+    const list = groups.get(key) ?? [];
+    list.push(entry);
+    groups.set(key, list);
+  }
+
+  const found: DetectedRecurring[] = [];
+
+  for (const [key, group] of groups) {
+    if (group.length < 3) continue;
+    if (tracked.has(key)) continue;
+
+    const sorted = [...group].sort((a, b) => a.entry_date.localeCompare(b.entry_date));
+    const dates = sorted.map((e) => e.entry_date);
+    const amounts = sorted.map((e) => e.amount_out);
+
+    // Amounts must be similar — within 15% of the median.
+    const typical = median(amounts);
+    if (typical <= 0) continue;
+    const consistentAmounts = amounts.every(
+      (amount) => Math.abs(amount - typical) / typical <= 0.15,
+    );
+    if (!consistentAmounts) continue;
+
+    // Gaps between sightings must be steady.
+    const gaps: number[] = [];
+    for (let i = 1; i < dates.length; i += 1) {
+      gaps.push(daysBetween(dates[i - 1], dates[i]));
+    }
+    if (gaps.length < 2) continue;
+
+    const typicalGap = median(gaps);
+    if (typicalGap < 5) continue; // too frequent to be a subscription
+
+    const steady = gaps.every((gap) => Math.abs(gap - typicalGap) <= Math.max(3, typicalGap * 0.25));
+    if (!steady) continue;
+
+    const frequency: "weekly" | "monthly" = typicalGap <= 10 ? "weekly" : "monthly";
+    if (frequency === "monthly" && (typicalGap < 25 || typicalGap > 35)) continue;
+
+    const last = dates[dates.length - 1];
+    const nextExpected =
+      frequency === "weekly" ? addDays(last, 7) : addMonths(last, 1);
+
+    // Only suggest things that look live (seen within roughly two cycles).
+    const daysSinceLast = daysBetween(last, today);
+    if (daysSinceLast > typicalGap * 2 + 7) continue;
+
+    const first = sorted[0];
+    found.push({
+      label: (first.merchant ?? "").trim() || (first.spent_on ?? "").trim() || key,
+      category: (first.spent_on ?? "").trim() || "Subscriptions",
+      merchant: (first.merchant ?? "").trim() || null,
+      amount: typical,
+      frequency,
+      occurrences: group.length,
+      dates,
+      nextExpected,
+      confidence: group.length >= 4 && gaps.every((g) => Math.abs(g - typicalGap) <= 2) ? "high" : "medium",
+    });
+  }
+
+  return found.sort((a, b) => b.amount - a.amount);
 }
 
 // =========================================================================

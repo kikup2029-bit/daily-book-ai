@@ -456,6 +456,9 @@ function InsightsSection() {
         )}
       </section>
 
+      {/* ---------- Detected subscriptions ---------- */}
+      <DetectedRecurringSection detected={data.detectedRecurring} />
+
       {/* ---------- Day patterns ---------- */}
       {dayPatterns.enoughData && dayPatterns.best && dayPatterns.worst ? (
         <section className="mt-5 rounded-3xl border bg-card p-5 shadow-sm">
@@ -501,6 +504,101 @@ function InsightsSection() {
         </section>
       ) : null}
     </>
+  );
+}
+
+/**
+ * Charges that look like subscriptions or regular bills, spotted from the
+ * owner's own history. One tap turns a suggestion into a tracked bill.
+ */
+function DetectedRecurringSection({
+  detected,
+}: {
+  detected: Array<{
+    label: string;
+    category: string;
+    amount: number;
+    frequency: "weekly" | "monthly";
+    occurrences: number;
+    nextExpected: string;
+    confidence: "high" | "medium";
+  }>;
+}) {
+  const queryClient = useQueryClient();
+  const upsert = useServerFn(saveRecurring);
+  const [dismissed, setDismissed] = useState<string[]>([]);
+
+  const accept = useMutation({
+    mutationFn: (item: (typeof detected)[number]) =>
+      upsert({
+        data: {
+          amount: item.amount,
+          category: item.category,
+          frequency: item.frequency,
+          start_date: item.nextExpected,
+          active: true,
+        },
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["recurring"] });
+      queryClient.invalidateQueries({ queryKey: ["insights"] });
+      queryClient.invalidateQueries({ queryKey: ["entries"] });
+    },
+  });
+
+  // All hooks are above this point — safe to bail out now.
+  const visible = detected.filter((item) => !dismissed.includes(item.label));
+  if (visible.length === 0) return null;
+
+  return (
+    <section className="mt-5 rounded-3xl border bg-card p-5 shadow-sm">
+      <h2 className="text-lg font-bold">Looks like a regular bill</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        I spotted these repeating in your entries. Track them and they&apos;ll show up in your
+        outlook and bill reminders.
+      </p>
+
+      <ul className="mt-4 space-y-3">
+        {visible.map((item) => (
+          <li key={item.label} className="rounded-2xl border p-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="font-semibold">
+                  {item.label}{" "}
+                  {item.confidence === "medium" ? (
+                    <span className="text-xs font-normal text-muted-foreground">(maybe)</span>
+                  ) : null}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {money(item.amount)} {item.frequency} · seen {item.occurrences} times · next
+                  around {item.nextExpected}
+                </p>
+              </div>
+              <button
+                type="button"
+                aria-label={`Dismiss ${item.label}`}
+                onClick={() => setDismissed((prev) => [...prev, item.label])}
+                className="text-muted-foreground hover:text-danger"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              className="mt-3 w-full"
+              disabled={accept.isPending}
+              onClick={() => {
+                accept.mutate(item);
+                setDismissed((prev) => [...prev, item.label]);
+              }}
+            >
+              Track this bill
+            </Button>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

@@ -101,25 +101,38 @@ export const getInsights = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { fetchEntries } = await import("./books.server");
-    const { fetchRecurring } = await import("./planning.server");
+    const { fetchRecurring, fetchBudgets } = await import("./planning.server");
     const { fetchSettings } = await import("./shop.server");
-    const { forecastCash, taxSetAside, dayOfWeekPatterns, weeklyDigest, averageMonthlyOverhead } =
-      await import("./insights");
+    const {
+      forecastCash,
+      taxSetAside,
+      dayOfWeekPatterns,
+      weeklyDigest,
+      averageMonthlyOverhead,
+      safeToSpendToday,
+      detectRecurring,
+    } = await import("./insights");
 
-    const [entries, recurring, settings] = await Promise.all([
+    const [entries, recurring, budgets, settings] = await Promise.all([
       fetchEntries(context.supabase, context.userId),
       fetchRecurring(context.supabase, context.userId).catch(() => []),
+      fetchBudgets(context.supabase, context.userId).catch(() => []),
       fetchSettings(context.supabase, context.userId).catch(() => ({
         tax_rate_percent: 0,
         opening_float: 0,
       })),
     ]);
 
+    // Don't suggest things the owner already set up as a recurring bill.
+    const alreadyTracked = recurring.flatMap((rule) => [rule.category]);
+
     return {
       forecast: forecastCash(entries, recurring, { horizonDays: 30 }),
+      safeToSpend: safeToSpendToday(entries, recurring, budgets),
       tax: taxSetAside(entries, settings.tax_rate_percent),
       dayPatterns: dayOfWeekPatterns(entries),
       digest: weeklyDigest(entries),
+      detectedRecurring: detectRecurring(entries, { alreadyTracked }),
       monthlyOverhead: averageMonthlyOverhead(entries),
       settings,
     };
