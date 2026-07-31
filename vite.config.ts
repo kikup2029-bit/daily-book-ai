@@ -37,6 +37,8 @@ export default defineConfig({
       "process.env.BUILD_SUPABASE_URL": inlinedEnv("SUPABASE_URL"),
       "process.env.BUILD_SUPABASE_PUBLISHABLE_KEY": inlinedEnv("SUPABASE_PUBLISHABLE_KEY"),
       "process.env.BUILD_ANTHROPIC_API_KEY": inlinedEnv("ANTHROPIC_API_KEY"),
+      "process.env.BUILD_GEMINI_API_KEY": inlinedEnv("GEMINI_API_KEY"),
+      "process.env.BUILD_GEMINI_MODEL": inlinedEnv("GEMINI_MODEL"),
     },
   },
 });

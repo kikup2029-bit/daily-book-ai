@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { chatWithClaude, extractReceiptData, type ReceiptExtraction } from "./anthropic.server";
+import { chatWithAI, extractReceiptData, type ReceiptExtraction } from "./ai.server";
 import type { Database } from "@/integrations/supabase/types";
 
 type Client = SupabaseClient<Database>;
@@ -94,7 +94,7 @@ export async function answerQuestion(
 ): Promise<string> {
   const entries = await fetchEntries(supabase, userId);
 
-  const text = await chatWithClaude(
+  const text = await chatWithAI(
     `You are a warm, down-to-earth money helper for a small shop owner. Today's date is ${new Date()
       .toISOString()
       .slice(0, 10)}.
