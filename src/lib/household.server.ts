@@ -23,16 +23,6 @@ export type HouseholdState = {
   isOwner: boolean;
 };
 
-/** Short, unambiguous join code (no 0/O/1/I to avoid confusion when read aloud). */
-function makeJoinCode() {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let code = "";
-  for (let i = 0; i < 6; i += 1) {
-    code += alphabet[Math.floor(Math.random() * alphabet.length)];
-  }
-  return code;
-}
-
 export async function fetchHousehold(supabase: Client, userId: string): Promise<HouseholdState> {
   const { data: membership, error: memberError } = await supabase
     .from("household_members")
@@ -69,35 +59,23 @@ export async function createHousehold(
   userId: string,
   input: { name: string; display_name: string | null },
 ): Promise<HouseholdState> {
-  const existing = await fetchHousehold(supabase, userId);
-  if (existing.household) {
-    throw new Error("You're already in a household. Leave it first to start a new one.");
-  }
-
-  // Retry on the tiny chance of a duplicate code.
-  let household: Household | null = null;
-  let lastError: string | null = null;
-  for (let attempt = 0; attempt < 5 && !household; attempt += 1) {
-    const { data, error } = await supabase
-      .from("households")
-      .insert({ name: input.name, owner_id: userId, join_code: makeJoinCode() })
-      .select("id, name, owner_id, join_code")
-      .single();
-    if (error) {
-      lastError = error.message;
-      continue;
-    }
-    household = data;
-  }
-  if (!household) throw new Error(lastError ?? "Could not create the household.");
-
-  const { error: memberError } = await supabase.from("household_members").insert({
-    household_id: household.id,
-    user_id: userId,
+  // Done inside the database so the household and the owner's membership are
+  // created together — no half-made household if the second write fails.
+  const { error } = await supabase.rpc("create_household", {
+    name: input.name,
     display_name: input.display_name,
-    role: "owner",
   });
-  if (memberError) throw new Error(memberError.message);
+
+  if (error) {
+    const message = error.message ?? "";
+    if (/already in a household/i.test(message)) {
+      throw new Error("You're already in a household. Leave it first to start a new one.");
+    }
+    if (/name/i.test(message) && /give/i.test(message)) {
+      throw new Error("Give the household a name.");
+    }
+    throw new Error(message || "Could not create the household.");
+  }
 
   return fetchHousehold(supabase, userId);
 }

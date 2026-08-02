@@ -109,6 +109,65 @@ $$;
 
 grant execute on function public.join_household_by_code(text, text) to authenticated;
 
+-- Create a household and make the caller its owner, in one atomic step.
+-- Done as a function so the household row and the membership row can't get
+-- out of sync, and so creation doesn't depend on insert-policy subtleties.
+create or replace function public.create_household(name text, display_name text default null)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  already uuid;
+  new_id uuid;
+  code text;
+  alphabet text := 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  attempt int := 0;
+begin
+  if auth.uid() is null then
+    raise exception 'Not signed in';
+  end if;
+
+  select m.household_id into already from public.household_members m
+  where m.user_id = auth.uid() limit 1;
+
+  if already is not null then
+    raise exception 'You are already in a household';
+  end if;
+
+  if coalesce(trim(name), '') = '' then
+    raise exception 'Give the household a name';
+  end if;
+
+  loop
+    attempt := attempt + 1;
+    code := '';
+    for i in 1..6 loop
+      code := code || substr(alphabet, floor(random() * length(alphabet) + 1)::int, 1);
+    end loop;
+
+    begin
+      insert into public.households (name, owner_id, join_code)
+      values (trim(name), auth.uid(), code)
+      returning id into new_id;
+      exit;
+    exception when unique_violation then
+      if attempt >= 10 then
+        raise exception 'Could not generate a unique code';
+      end if;
+    end;
+  end loop;
+
+  insert into public.household_members (household_id, user_id, display_name, role)
+  values (new_id, auth.uid(), display_name, 'owner');
+
+  return new_id;
+end;
+$$;
+
+grant execute on function public.create_household(text, text) to authenticated;
+
 -- 4. Policies: households -------------------------------------------------
 grant select, insert, update, delete on public.households to authenticated;
 grant all on public.households to service_role;

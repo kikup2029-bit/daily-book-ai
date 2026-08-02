@@ -295,6 +295,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_household: {
+        Args: { name: string; display_name?: string | null }
+        Returns: string
+      }
       join_household_by_code: {
         Args: { code: string; display_name?: string | null }
         Returns: string
