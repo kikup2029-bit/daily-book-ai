@@ -49,6 +49,7 @@ export type Database = {
           entry_date: string
           household_id: string | null
           id: string
+          is_split: boolean
           merchant: string | null
           payment_method: string | null
           receipt_path: string | null
@@ -62,6 +63,7 @@ export type Database = {
           entry_date?: string
           household_id?: string | null
           id?: string
+          is_split?: boolean
           merchant?: string | null
           payment_method?: string | null
           receipt_path?: string | null
@@ -75,6 +77,7 @@ export type Database = {
           entry_date?: string
           household_id?: string | null
           id?: string
+          is_split?: boolean
           merchant?: string | null
           payment_method?: string | null
           receipt_path?: string | null

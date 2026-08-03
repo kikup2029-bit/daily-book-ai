@@ -17,7 +17,7 @@ import {
 
 import { parseQuickEntry } from "@/lib/quick-entry";
 import { getInsights } from "@/lib/shop.functions";
-import { getHousehold, setEntryShared } from "@/lib/household.functions";
+import { getHousehold, setEntryShare } from "@/lib/household.functions";
 
 import { AppHeader } from "@/components/app-header";
 import { ReceiptAttachButton, ReceiptThumb } from "@/components/receipt-controls";
@@ -85,7 +85,7 @@ function Dashboard() {
   const [spentOn, setSpentOn] = useState("");
   const [merchant, setMerchant] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "card" | "other">("cash");
-  const [shareWithHousehold, setShareWithHousehold] = useState(false);
+  const [shareMode, setShareMode] = useState<"private" | "visible" | "split">("private");
   const fetchHousehold = useServerFn(getHousehold);
   const { data: household } = useQuery({
     queryKey: ["household"],
@@ -105,9 +105,10 @@ function Dashboard() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["entries"] }),
   });
 
-  const runSetShared = useServerFn(setEntryShared);
+  const runSetShare = useServerFn(setEntryShare);
   const toggleShare = useMutation({
-    mutationFn: (input: { entry_id: string; shared: boolean }) => runSetShared({ data: input }),
+    mutationFn: (input: { entry_id: string; mode: "private" | "visible" | "split" }) =>
+      runSetShare({ data: input }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["entries"] });
       queryClient.invalidateQueries({ queryKey: ["settlement"] });
@@ -156,7 +157,7 @@ function Dashboard() {
       spent_on: string | null;
       merchant: string | null;
       payment_method: string | null;
-      shared: boolean;
+      share: "private" | "visible" | "split";
     }) => {
       const entry = await addEntry({ data: input });
       if (receiptFile) {
@@ -171,6 +172,7 @@ function Dashboard() {
       setAmountOut("");
       setSpentOn("");
       setMerchant("");
+      setShareMode("private");
       setReceiptFile(null);
       setReceiptKey((value) => value + 1);
       setReceiptNotice(null);
@@ -200,7 +202,7 @@ function Dashboard() {
       spent_on: spentOn.trim() ? spentOn.trim() : null,
       merchant: merchant.trim() ? merchant.trim() : null,
       payment_method: paymentMethod,
-      shared: shareWithHousehold,
+      share: shareMode,
     });
   };
 
@@ -342,21 +344,38 @@ function Dashboard() {
 
 
           {household?.household ? (
-            <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border p-3">
-              <input
-                type="checkbox"
-                checked={shareWithHousehold}
-                onChange={(event) => setShareWithHousehold(event.target.checked)}
-                className="mt-0.5 size-4 shrink-0 accent-current"
-              />
-              <span className="text-sm">
-                <span className="font-semibold">Share with {household.household.name}</span>
-                <span className="block text-xs text-muted-foreground">
-                  Everyone in the household sees it, and it counts toward splitting costs. Leave
-                  unticked to keep it private.
-                </span>
-              </span>
-            </label>
+            <div className="space-y-2">
+              <Label>Who can see this?</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {(
+                  [
+                    { key: "private", label: "Just me" },
+                    { key: "visible", label: "Share" },
+                    { key: "split", label: "Split it" },
+                  ] as const
+                ).map((option) => (
+                  <button
+                    key={option.key}
+                    type="button"
+                    onClick={() => setShareMode(option.key)}
+                    className={`rounded-xl border px-2 py-2 text-sm font-semibold transition-colors ${
+                      shareMode === option.key
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:bg-accent"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {shareMode === "private"
+                  ? "Only you will see this."
+                  : shareMode === "visible"
+                    ? `${household.household.name} can see it, but nobody owes anybody.`
+                    : `${household.household.name} can see it and it gets divided evenly.`}
+              </p>
+            </div>
           ) : null}
 
           {formError ? <p className="text-sm text-danger">{formError}</p> : null}
@@ -432,7 +451,7 @@ function Dashboard() {
                     ) : null}
                     {entry.household_id ? (
                       <span className="ml-2 inline-flex items-center gap-0.5 text-xs text-primary">
-                        <Users className="size-3" /> shared
+                        <Users className="size-3" /> {entry.is_split ? "split" : "shared"}
                       </span>
                     ) : null}
                   </span>
@@ -457,13 +476,21 @@ function Dashboard() {
                       onClick={() =>
                         toggleShare.mutate({
                           entry_id: entry.id,
-                          shared: !entry.household_id,
+                          mode: !entry.household_id
+                            ? "visible"
+                            : entry.is_split
+                              ? "private"
+                              : "split",
                         })
                       }
-                      aria-label={
-                        entry.household_id ? "Make private again" : "Share with household"
+                      aria-label="Change who can see this entry"
+                      title={
+                        !entry.household_id
+                          ? "Share with household"
+                          : entry.is_split
+                            ? "Make private again"
+                            : "Split this one evenly"
                       }
-                      title={entry.household_id ? "Make private again" : "Share with household"}
                     >
                       <Users className="size-4" />
                     </Button>

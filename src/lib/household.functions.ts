@@ -64,17 +64,27 @@ export const getSettlement = createServerFn({ method: "GET" })
     return fetchSettlement(context.supabase, context.userId);
   });
 
-/** Flips a single entry between private and shared with the household. */
-export const setEntryShared = createServerFn({ method: "POST" })
+/**
+ * Sets how a single entry is shared:
+ *   private — only you can see it
+ *   visible — the household can see it, but it creates no debts
+ *   split   — the household can see it AND it's divided evenly
+ */
+export const setEntryShare = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>
-    z.object({ entry_id: z.string().uuid(), shared: z.boolean() }).parse(data),
+    z
+      .object({
+        entry_id: z.string().uuid(),
+        mode: z.enum(["private", "visible", "split"]),
+      })
+      .parse(data),
   )
   .handler(async ({ data, context }) => {
     const { fetchHousehold } = await import("./household.server");
 
     let householdId: string | null = null;
-    if (data.shared) {
+    if (data.mode !== "private") {
       const state = await fetchHousehold(context.supabase, context.userId);
       if (!state.household) throw new Error("You're not in a household yet.");
       householdId = state.household.id;
@@ -82,9 +92,9 @@ export const setEntryShared = createServerFn({ method: "POST" })
 
     const { error } = await context.supabase
       .from("entries")
-      .update({ household_id: householdId })
+      .update({ household_id: householdId, is_split: data.mode === "split" })
       .eq("id", data.entry_id)
       .eq("user_id", context.userId);
     if (error) throw new Error(error.message);
-    return { ok: true, shared: data.shared };
+    return { ok: true, mode: data.mode };
   });

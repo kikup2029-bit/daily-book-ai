@@ -159,20 +159,48 @@ export async function renameMember(
 export async function fetchSettlement(supabase: Client, userId: string) {
   const state = await fetchHousehold(supabase, userId);
   if (!state.household) {
-    return { household: null, settlement: null };
+    return { household: null, settlement: null, combined: null };
   }
 
   const { data, error } = await supabase
     .from("entries")
-    .select("user_id, amount_out")
+    .select("user_id, amount_in, amount_out, is_split")
     .eq("household_id", state.household.id);
   if (error) throw new Error(error.message);
 
+  const rows = (data ?? []).map((row) => ({
+    user_id: row.user_id,
+    amount_in: Number(row.amount_in),
+    amount_out: Number(row.amount_out),
+    is_split: Boolean(row.is_split),
+  }));
+
+  // Only entries explicitly marked as a shared bill create debts. Everything
+  // else that's shared is just visible to the household.
   const { settleShared } = await import("./settlement");
   const settlement = settleShared(
-    (data ?? []).map((row) => ({ user_id: row.user_id, amount_out: Number(row.amount_out) })),
+    rows.filter((r) => r.is_split).map((r) => ({ user_id: r.user_id, amount_out: r.amount_out })),
     state.members.map((m) => ({ user_id: m.user_id, display_name: m.display_name })),
   );
 
-  return { household: state.household, settlement };
+  // Combined picture across everything shared, split or not, per person.
+  const byMember = state.members.map((member) => {
+    const mine = rows.filter((r) => r.user_id === member.user_id);
+    return {
+      user_id: member.user_id,
+      name: member.display_name?.trim() || `Member ${member.user_id.slice(0, 4)}`,
+      moneyIn: mine.reduce((sum, r) => sum + r.amount_in, 0),
+      moneyOut: mine.reduce((sum, r) => sum + r.amount_out, 0),
+    };
+  });
+
+  const combined = {
+    byMember,
+    totalIn: byMember.reduce((sum, m) => sum + m.moneyIn, 0),
+    totalOut: byMember.reduce((sum, m) => sum + m.moneyOut, 0),
+    sharedCount: rows.length,
+    splitCount: rows.filter((r) => r.is_split).length,
+  };
+
+  return { household: state.household, settlement, combined };
 }

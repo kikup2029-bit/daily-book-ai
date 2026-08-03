@@ -219,6 +219,7 @@ function HouseholdSection() {
 
   // --- in a household ---
   const settlement = settleData?.settlement ?? null;
+  const combined = settleData?.combined ?? null;
   const me = state.members.find((m) => m.role === "owner" && state.isOwner);
 
   return (
@@ -295,14 +296,38 @@ function HouseholdSection() {
         </div>
       </div>
 
-      {/* settlement */}
+      {/* what everyone has logged (shared, whether split or not) */}
+      {combined && combined.sharedCount > 0 ? (
+        <div className="mt-5 border-t pt-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            What everyone has shared
+          </p>
+          <ul className="mt-2 space-y-1.5 text-sm">
+            {combined.byMember.map((member) => (
+              <li key={member.user_id} className="flex justify-between gap-2">
+                <span>{member.name}</span>
+                <span className="tabular-nums text-muted-foreground">
+                  {member.moneyIn > 0 ? `${money(member.moneyIn)} in · ` : ""}
+                  {money(member.moneyOut)} out
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-xs text-muted-foreground">
+            {combined.sharedCount} shared {combined.sharedCount === 1 ? "entry" : "entries"}
+            {combined.splitCount > 0 ? `, ${combined.splitCount} marked to split` : ", none marked to split"}.
+          </p>
+        </div>
+      ) : null}
+
+      {/* settlement — only entries marked "split it" */}
       {settlement && settlement.totalShared > 0 ? (
         <div className="mt-5 border-t pt-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Splitting shared costs
+            Bills you're splitting
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
-            {money(settlement.totalShared)} shared so far — {money(settlement.perPerson)} each.
+            {money(settlement.totalShared)} marked to split — {money(settlement.perPerson)} each.
           </p>
 
           <ul className="mt-3 space-y-1.5 text-sm">
@@ -340,12 +365,17 @@ function HouseholdSection() {
             <p className="mt-3 text-sm text-success">Everyone&apos;s square — nothing owed.</p>
           )}
         </div>
-      ) : settlement ? (
-        <p className="mt-5 border-t pt-4 text-sm text-muted-foreground">
-          Nothing shared yet. Tick &ldquo;share with household&rdquo; when you log something, or
-          share an existing entry from the Today tab.
+      ) : combined && combined.sharedCount > 0 ? (
+        <p className="mt-3 text-sm text-muted-foreground">
+          Nothing marked to split, so nobody owes anybody. Choose &ldquo;Split it&rdquo; when
+          logging if you want an expense divided evenly.
         </p>
-      ) : null}
+      ) : (
+        <p className="mt-5 border-t pt-4 text-sm text-muted-foreground">
+          Nothing shared yet. When you log something, choose &ldquo;Share&rdquo; so the household
+          can see it, or &ldquo;Split it&rdquo; to divide it evenly.
+        </p>
+      )}
 
       {error ? <p className="mt-3 text-sm text-danger">{error}</p> : null}
 
