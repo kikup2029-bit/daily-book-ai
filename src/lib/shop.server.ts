@@ -86,43 +86,101 @@ export async function deleteProduct(supabase: Client, userId: string, id: string
 export type Settings = {
   tax_rate_percent: number;
   opening_float: number;
+  /** Whether an app lock PIN is set. The hash itself never leaves the server. */
+  lock_enabled: boolean;
+  lock_timeout_minutes: number;
 };
 
 export async function fetchSettings(supabase: Client, userId: string): Promise<Settings> {
   const { data, error } = await supabase
     .from("user_settings")
-    .select("tax_rate_percent, opening_float")
+    .select("tax_rate_percent, opening_float, lock_pin_hash, lock_timeout_minutes")
     .eq("user_id", userId)
     .maybeSingle();
   if (error) throw new Error(error.message);
   return {
     tax_rate_percent: Number(data?.tax_rate_percent ?? 0),
     opening_float: Number(data?.opening_float ?? 0),
+    lock_enabled: Boolean(data?.lock_pin_hash),
+    lock_timeout_minutes: Number(data?.lock_timeout_minutes ?? 5),
   };
+}
+
+// --- app lock -------------------------------------------------------------
+
+/** Stores a new PIN. The plain PIN is hashed here and never persisted. */
+export async function setLockPin(
+  supabase: Client,
+  userId: string,
+  input: { pin: string; timeout_minutes: number },
+) {
+  const { validatePin, randomSalt, hashPin } = await import("./pin");
+  const problem = validatePin(input.pin);
+  if (problem) throw new Error(problem);
+
+  const salt = randomSalt();
+  const hash = await hashPin(input.pin, salt);
+
+  const { error } = await supabase.from("user_settings").upsert(
+    {
+      user_id: userId,
+      lock_pin_hash: hash,
+      lock_pin_salt: salt,
+      lock_timeout_minutes: input.timeout_minutes,
+    },
+    { onConflict: "user_id" },
+  );
+  if (error) throw new Error(error.message);
+  return { ok: true };
+}
+
+export async function clearLockPin(supabase: Client, userId: string) {
+  const { error } = await supabase
+    .from("user_settings")
+    .update({ lock_pin_hash: null, lock_pin_salt: null })
+    .eq("user_id", userId);
+  if (error) throw new Error(error.message);
+  return { ok: true };
+}
+
+/**
+ * Checks a PIN. Comparison happens server-side so the hash is never sent to
+ * the browser, and a wrong PIN reveals nothing beyond "no".
+ */
+export async function checkLockPin(
+  supabase: Client,
+  userId: string,
+  pin: string,
+): Promise<{ ok: boolean }> {
+  const { data, error } = await supabase
+    .from("user_settings")
+    .select("lock_pin_hash, lock_pin_salt")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+
+  // No PIN set means nothing to unlock.
+  if (!data?.lock_pin_hash || !data?.lock_pin_salt) return { ok: true };
+
+  const { verifyPin } = await import("./pin");
+  return { ok: await verifyPin(pin, data.lock_pin_salt, data.lock_pin_hash) };
 }
 
 export async function saveSettings(
   supabase: Client,
   userId: string,
-  input: Settings,
+  input: { tax_rate_percent: number; opening_float: number },
 ): Promise<Settings> {
-  const { data, error } = await supabase
-    .from("user_settings")
-    .upsert(
-      {
-        user_id: userId,
-        tax_rate_percent: input.tax_rate_percent,
-        opening_float: input.opening_float,
-      },
-      { onConflict: "user_id" },
-    )
-    .select("tax_rate_percent, opening_float")
-    .single();
+  const { error } = await supabase.from("user_settings").upsert(
+    {
+      user_id: userId,
+      tax_rate_percent: input.tax_rate_percent,
+      opening_float: input.opening_float,
+    },
+    { onConflict: "user_id" },
+  );
   if (error) throw new Error(error.message);
-  return {
-    tax_rate_percent: Number(data.tax_rate_percent),
-    opening_float: Number(data.opening_float),
-  };
+  return fetchSettings(supabase, userId);
 }
 
 // --- cash drawer counts ---------------------------------------------------

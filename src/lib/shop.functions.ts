@@ -61,6 +61,38 @@ export const putSettings = createServerFn({ method: "POST" })
     return saveSettings(context.supabase, context.userId, data);
   });
 
+// --- app lock -------------------------------------------------------------
+
+export const setAppLock = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        pin: z.string().min(4).max(8),
+        timeout_minutes: z.number().int().min(0).max(240),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const { setLockPin } = await import("./shop.server");
+    return setLockPin(context.supabase, context.userId, data);
+  });
+
+export const removeAppLock = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { clearLockPin } = await import("./shop.server");
+    return clearLockPin(context.supabase, context.userId);
+  });
+
+export const unlockApp = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ pin: z.string().max(8) }).parse(data))
+  .handler(async ({ data, context }) => {
+    const { checkLockPin } = await import("./shop.server");
+    return checkLockPin(context.supabase, context.userId, data.pin);
+  });
+
 // --- cash drawer ----------------------------------------------------------
 
 export const getCashCounts = createServerFn({ method: "GET" })

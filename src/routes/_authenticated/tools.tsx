@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Users, X } from "lucide-react";
+import { Lock, Users, X } from "lucide-react";
 
 import { AppHeader } from "@/components/app-header";
 import { Button } from "@/components/ui/button";
@@ -14,11 +14,14 @@ import {
   getProducts,
   getSettings,
   putSettings,
+  removeAppLock,
   removeCashCount,
   removeProduct,
   saveCashCount,
   saveProduct,
+  setAppLock,
 } from "@/lib/shop.functions";
+import { validatePin } from "@/lib/pin";
 import { averageMonthlyOverhead, productMargin, reconcileDrawer } from "@/lib/insights";
 import {
   enterHousehold,
@@ -64,6 +67,7 @@ function ToolsPage() {
       <MarginsSection />
       <DrawerSection />
       <SettingsSection />
+      <LockSection />
     </main>
   );
 }
@@ -833,6 +837,168 @@ function SettingsSection() {
           surprise. Check the rate with your accountant.
         </p>
       </form>
+    </section>
+  );
+}
+
+// =========================================================================
+// App lock
+// =========================================================================
+
+function LockSection() {
+  const queryClient = useQueryClient();
+  const fetchSettings = useServerFn(getSettings);
+  const setLock = useServerFn(setAppLock);
+  const clearLock = useServerFn(removeAppLock);
+
+  const { data: settings } = useQuery({ queryKey: ["settings"], queryFn: () => fetchSettings() });
+
+  const [pin, setPin] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [timeout, setTimeoutMinutes] = useState("5");
+  const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState<string | null>(null);
+
+  const refresh = () => queryClient.invalidateQueries({ queryKey: ["settings"] });
+
+  const save = useMutation({
+    mutationFn: () =>
+      setLock({ data: { pin, timeout_minutes: Number(timeout || 0) } }),
+    onSuccess: () => {
+      setPin("");
+      setConfirm("");
+      setError(null);
+      setDone("Lock is on. You'll be asked for this PIN when you come back.");
+      setTimeout(() => setDone(null), 4000);
+      refresh();
+    },
+    onError: (err: Error) => setError(err.message),
+  });
+
+  const turnOff = useMutation({
+    mutationFn: () => clearLock({}),
+    onSuccess: () => {
+      setError(null);
+      setDone("Lock turned off.");
+      setTimeout(() => setDone(null), 3000);
+      refresh();
+    },
+    onError: (err: Error) => setError(err.message),
+  });
+
+  const enabled = Boolean(settings?.lock_enabled);
+
+  return (
+    <section className="mt-5 rounded-3xl border bg-card p-5 shadow-sm">
+      <h2 className="flex items-center gap-2 text-lg font-bold">
+        <Lock className="size-4 text-primary" /> Lock this app
+      </h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Hide your books behind a PIN so someone holding your unlocked phone can&apos;t read them.
+      </p>
+
+      {enabled ? (
+        <div className="mt-4 space-y-3">
+          <div className="rounded-2xl bg-success-soft p-3">
+            <p className="text-sm font-semibold text-success">Lock is on</p>
+            <p className="text-xs text-muted-foreground">
+              {settings?.lock_timeout_minutes === 0
+                ? "Asks for your PIN every time you open the app."
+                : `Asks again after ${settings?.lock_timeout_minutes} minutes away.`}
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            disabled={turnOff.isPending}
+            onClick={() => turnOff.mutate()}
+          >
+            {turnOff.isPending ? "Turning off…" : "Turn off lock"}
+          </Button>
+        </div>
+      ) : (
+        <form
+          className="mt-4 space-y-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const problem = validatePin(pin);
+            if (problem) {
+              setError(problem);
+              return;
+            }
+            if (pin !== confirm) {
+              setError("Those two PINs don't match.");
+              return;
+            }
+            save.mutate();
+          }}
+        >
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="lock-pin">Choose a PIN (4–8 numbers)</Label>
+              <Input
+                id="lock-pin"
+                type="password"
+                inputMode="numeric"
+                maxLength={8}
+                autoComplete="new-password"
+                placeholder="••••"
+                value={pin}
+                onChange={(event) => {
+                  setPin(event.target.value.replace(/\D/g, ""));
+                  setError(null);
+                }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="lock-confirm">Type it again</Label>
+              <Input
+                id="lock-confirm"
+                type="password"
+                inputMode="numeric"
+                maxLength={8}
+                autoComplete="new-password"
+                placeholder="••••"
+                value={confirm}
+                onChange={(event) => {
+                  setConfirm(event.target.value.replace(/\D/g, ""));
+                  setError(null);
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="lock-timeout">Ask again after</Label>
+            <select
+              id="lock-timeout"
+              value={timeout}
+              onChange={(event) => setTimeoutMinutes(event.target.value)}
+              className="h-10 w-full rounded-xl border bg-background px-3 text-sm"
+            >
+              <option value="0">Every time I open it</option>
+              <option value="1">1 minute away</option>
+              <option value="5">5 minutes away</option>
+              <option value="15">15 minutes away</option>
+              <option value="60">1 hour away</option>
+            </select>
+          </div>
+
+          <Button type="submit" className="w-full" disabled={save.isPending}>
+            {save.isPending ? "Saving…" : "Turn on lock"}
+          </Button>
+        </form>
+      )}
+
+      {error ? <p className="mt-3 text-sm text-danger">{error}</p> : null}
+      {done ? <p className="mt-3 text-sm text-success">{done}</p> : null}
+
+      <p className="mt-3 text-xs text-muted-foreground">
+        This hides the app on your device. Your account is already protected by your password, and
+        only you can read your data — the PIN is a convenience lock on top of that, not a
+        replacement for it. Forgotten it? Sign out and back in, then set a new one.
+      </p>
     </section>
   );
 }

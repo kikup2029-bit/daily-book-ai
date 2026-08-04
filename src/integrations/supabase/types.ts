@@ -202,18 +202,27 @@ export type Database = {
       }
       user_settings: {
         Row: {
+          lock_pin_hash: string | null
+          lock_pin_salt: string | null
+          lock_timeout_minutes: number
           opening_float: number
           tax_rate_percent: number
           updated_at: string
           user_id: string
         }
         Insert: {
+          lock_pin_hash?: string | null
+          lock_pin_salt?: string | null
+          lock_timeout_minutes?: number
           opening_float?: number
           tax_rate_percent?: number
           updated_at?: string
           user_id: string
         }
         Update: {
+          lock_pin_hash?: string | null
+          lock_pin_salt?: string | null
+          lock_timeout_minutes?: number
           opening_float?: number
           tax_rate_percent?: number
           updated_at?: string

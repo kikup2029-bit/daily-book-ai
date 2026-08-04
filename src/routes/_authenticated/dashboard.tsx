@@ -10,12 +10,15 @@ import {
   Loader2,
   Send,
   Sparkles,
+  Mic,
+  MicOff,
   Trash2,
   Users,
   Zap,
 } from "lucide-react";
 
 import { parseQuickEntry } from "@/lib/quick-entry";
+import { normalizeSpokenMoney, useSpeech } from "@/lib/use-speech";
 import { getInsights } from "@/lib/shop.functions";
 import { getHousehold, setEntryShare } from "@/lib/household.functions";
 
@@ -687,6 +690,14 @@ function QuickAdd({ entries }: { entries: EntryRow[] }) {
   const [saved, setSaved] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Browser-native dictation — no AI service involved.
+  const speech = useSpeech({
+    onFinal: (spoken) => {
+      setText(normalizeSpokenMoney(spoken));
+      setError(null);
+    },
+  });
+
   // Learn categories and merchants from what's already been logged.
   const history = useMemo(
     () => entries.map((e) => ({ spent_on: e.spent_on, merchant: e.merchant })),
@@ -732,6 +743,7 @@ function QuickAdd({ entries }: { entries: EntryRow[] }) {
       </h2>
       <p className="mt-1 text-sm text-muted-foreground">
         Just type it — &ldquo;spent 20 at costco on groceries&rdquo; or &ldquo;made 300&rdquo;.
+        {speech.supported ? " Or tap the mic and say it." : ""}
       </p>
 
       <form
@@ -743,14 +755,31 @@ function QuickAdd({ entries }: { entries: EntryRow[] }) {
         }}
       >
         <Input
-          value={text}
+          value={speech.listening && speech.interim ? speech.interim : text}
           onChange={(event) => {
             setText(event.target.value);
             setError(null);
           }}
-          placeholder="spent 20 on supplies"
+          placeholder={speech.listening ? "Listening…" : "spent 20 on supplies"}
           aria-label="Quick add entry"
         />
+        {speech.supported ? (
+          <Button
+            type="button"
+            variant={speech.listening ? "default" : "outline"}
+            size="icon"
+            className="size-10 shrink-0"
+            onClick={speech.toggle}
+            aria-label={speech.listening ? "Stop listening" : "Add by voice"}
+            title={speech.listening ? "Stop listening" : "Add by voice"}
+          >
+            {speech.listening ? (
+              <MicOff className="size-4" />
+            ) : (
+              <Mic className="size-4" />
+            )}
+          </Button>
+        ) : null}
         <Button type="submit" disabled={!parsed.ok || save.isPending} className="shrink-0">
           {save.isPending ? "Saving…" : "Add"}
         </Button>
@@ -776,6 +805,13 @@ function QuickAdd({ entries }: { entries: EntryRow[] }) {
         </p>
       ) : null}
 
+      {speech.listening ? (
+        <p className="mt-2 flex items-center gap-1.5 text-sm text-muted-foreground">
+          <span className="size-2 animate-pulse rounded-full bg-danger" /> Listening — say something
+          like &ldquo;spent twenty dollars on lunch&rdquo;.
+        </p>
+      ) : null}
+      {speech.error ? <p className="mt-2 text-sm text-danger">{speech.error}</p> : null}
       {saved ? <p className="mt-2 text-sm text-success">Saved: {saved}</p> : null}
       {error ? <p className="mt-2 text-sm text-danger">{error}</p> : null}
     </section>
