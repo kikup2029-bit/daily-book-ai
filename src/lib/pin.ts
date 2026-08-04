@@ -9,7 +9,10 @@
  * row security; a short PIN is not, and can't be, a substitute for either.
  */
 
-const ITERATIONS = 150_000;
+// Cloudflare Workers refuses PBKDF2 iteration counts above 100,000, so this is
+// the ceiling rather than a preference. Don't raise it without checking the
+// runtime still accepts it — Node does, Workers doesn't.
+const ITERATIONS = 100_000;
 const KEY_BITS = 256;
 
 function toHex(buffer: ArrayBuffer) {
