@@ -10,7 +10,10 @@ export const Route = createFileRoute("/_authenticated/categories")({
       { title: "Where the money went — SimpleBooks AI" },
       { name: "description", content: "See which categories your spending went to this month." },
       { property: "og:title", content: "Where the money went — SimpleBooks AI" },
-      { property: "og:description", content: "See which categories your spending went to this month." },
+      {
+        property: "og:description",
+        content: "See which categories your spending went to this month.",
+      },
     ],
   }),
   component: Page,

@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate, useRouteContext, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, Menu, Moon, Search, Sun, X } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { CommandPalette } from "@/components/command-palette";
+import { OfflineBar } from "@/components/offline-bar";
 import { HELP_NAV } from "@/lib/help-content";
+import { clearOfflineData } from "@/lib/register-sw";
+import { browserQueueStorage, counts } from "@/lib/offline-queue";
 
 type Leaf = { to: string; label: string };
 type Item = { label: string; to: string; children?: Leaf[] };
@@ -17,6 +20,7 @@ const NAV: Item[] = [
     children: [
       { to: "/dashboard", label: "Overview" },
       { to: "/add", label: "Add an entry" },
+      { to: "/entries", label: "Find an entry" },
       { to: "/streaks", label: "Your streaks" },
       { to: "/ask", label: "Ask about your money" },
     ],
@@ -103,6 +107,8 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const { user } = useRouteContext({ from: "/_authenticated" });
+  const userId = user?.id;
   const { light, toggle } = useTheme();
 
   // Which group's menu is showing. Hover on desktop, tap on mobile.
@@ -134,8 +140,22 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
   );
 
   const signOut = async () => {
+    // Signing out with entries still on the device would look like they'd
+    // vanished. They're kept and sent on the next sign-in, but say so first.
+    const { waiting, stuck } = counts(browserQueueStorage(userId));
+    const held = waiting + stuck;
+    if (held > 0) {
+      const noun = held === 1 ? "entry" : "entries";
+      const proceed = window.confirm(
+        `${held} ${noun} haven't been sent yet. They'll stay on this device and go through next time you sign in on it. Sign out anyway?`,
+      );
+      if (!proceed) return;
+    }
+
     await queryClient.cancelQueries();
     queryClient.clear();
+    // Drop cached figures so they can't be read by whoever signs in next.
+    await clearOfflineData();
     await supabase.auth.signOut();
     navigate({ to: "/auth", replace: true });
   };
@@ -317,6 +337,8 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       ) : null}
+
+      <OfflineBar userId={userId} />
 
       {/* ---------- page ---------- */}
       <main className="mx-auto w-full max-w-4xl px-5 pb-28 pt-12">{children}</main>

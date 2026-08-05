@@ -31,8 +31,7 @@ const CLOUDFLARE_DEFAULT_MODEL = "@cf/meta/llama-3.1-8b-instruct";
 const CLOUDFLARE_DEFAULT_VISION_MODEL = "@cf/meta/llama-3.2-11b-vision-instruct";
 
 export type AiPart =
-  | { kind: "text"; text: string }
-  | { kind: "image"; base64: string; mimeType: string };
+  { kind: "text"; text: string } | { kind: "image"; base64: string; mimeType: string };
 
 type AiRequest = {
   system: string;
@@ -177,11 +176,7 @@ async function callGroq(apiKey: string, req: AiRequest): Promise<string> {
 
 // --- Cloudflare Workers AI (free daily allowance) -------------------------
 
-async function callCloudflare(
-  accountId: string,
-  token: string,
-  req: AiRequest,
-): Promise<string> {
+async function callCloudflare(accountId: string, token: string, req: AiRequest): Promise<string> {
   const hasImage = req.parts.some((p) => p.kind === "image");
   const model = hasImage
     ? (readServerEnv("CLOUDFLARE_VISION_MODEL") ?? CLOUDFLARE_DEFAULT_VISION_MODEL)
@@ -255,8 +250,7 @@ async function callAi(req: AiRequest): Promise<string> {
       name: "Cloudflare AI",
       run: () => callCloudflare(cfAccount, cfToken, req),
     });
-  if (anthropicKey)
-    providers.push({ name: "Claude", run: () => callAnthropic(anthropicKey, req) });
+  if (anthropicKey) providers.push({ name: "Claude", run: () => callAnthropic(anthropicKey, req) });
 
   if (providers.length === 0) {
     throw new Error(

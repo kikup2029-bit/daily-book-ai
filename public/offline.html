@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Offline — SimpleBooks</title>
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: #141413;
+        color: #fafaf7;
+        font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+        line-height: 1.6;
+      }
+      main {
+        max-width: 26rem;
+      }
+      .eyebrow {
+        font-size: 11px;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        color: #8a8a83;
+        margin: 0;
+      }
+      h1 {
+        font-size: 28px;
+        font-weight: 500;
+        margin: 12px 0 0;
+        letter-spacing: -0.02em;
+      }
+      p {
+        color: #b4b3ab;
+        font-size: 15px;
+      }
+      #queued {
+        margin-top: 28px;
+        padding-top: 20px;
+        border-top: 1px solid #2c2c29;
+      }
+      #queued strong {
+        color: #fafaf7;
+        font-weight: 500;
+      }
+      button {
+        margin-top: 24px;
+        background: none;
+        border: 1px solid #46453f;
+        color: #fafaf7;
+        font: inherit;
+        font-size: 14px;
+        padding: 9px 16px;
+        border-radius: 10px;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #201f1d;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p class="eyebrow">No connection</p>
+      <h1>You're offline</h1>
+      <p>
+        This page hasn't been opened on this device before, so there's no saved copy to show you.
+        Pages you've already visited will still open.
+      </p>
+
+      <div id="queued" hidden>
+        <p id="queued-text"></p>
+      </div>
+
+      <button type="button" onclick="location.reload()">Try again</button>
+    </main>
+
+    <script>
+      // Anything logged while offline is sitting in the same origin's storage,
+      // so we can reassure the owner it's still there.
+      try {
+        // Queues are stored per account, so add up every one on this device.
+        var total = 0;
+        for (var i = 0; i < localStorage.length; i++) {
+          var key = localStorage.key(i);
+          if (!key || key.indexOf("simplebooks.queue") !== 0) continue;
+          var items = JSON.parse(localStorage.getItem(key));
+          if (Array.isArray(items)) total += items.length;
+        }
+        if (total > 0) {
+          var box = document.getElementById("queued");
+          var noun = total === 1 ? "entry" : "entries";
+          document.getElementById("queued-text").innerHTML =
+            "<strong>" +
+            total +
+            " " +
+            noun +
+            " saved on this device.</strong> Nothing is lost — they'll be sent as soon as you're back online.";
+          box.hidden = false;
+        }
+      } catch (error) {
+        // Storage unavailable. The queue, if any, is still on disk.
+      }
+    </script>
+  </body>
+</html>

@@ -89,7 +89,9 @@ export async function insertEntry(
       household_id: householdId,
       is_split: householdId ? share === "split" : false,
     })
-    .select("id, entry_date, amount_in, amount_out, spent_on, merchant, payment_method, receipt_path, household_id, is_split, user_id, created_at")
+    .select(
+      "id, entry_date, amount_in, amount_out, spent_on, merchant, payment_method, receipt_path, household_id, is_split, user_id, created_at",
+    )
     .single();
   if (error) throw new Error(error.message);
   return { ...data, amount_in: Number(data.amount_in), amount_out: Number(data.amount_out) };
@@ -164,15 +166,15 @@ export async function answerQuestion(
   // (including general money questions). Otherwise fall back to the local one.
   const hasAiKey = Boolean(
     (await import("./server-env")).readServerEnv("GEMINI_API_KEY") ??
-      (await import("./server-env")).readServerEnv("ANTHROPIC_API_KEY"),
+    (await import("./server-env")).readServerEnv("ANTHROPIC_API_KEY"),
   );
   if (!hasAiKey) return localAnswer;
 
   try {
     const text = await chatWithAI(
-    `You are a warm, down-to-earth money helper for a small shop owner. Today's date is ${new Date()
-      .toISOString()
-      .slice(0, 10)}.
+      `You are a warm, down-to-earth money helper for a small shop owner. Today's date is ${new Date()
+        .toISOString()
+        .slice(0, 10)}.
 
 You can help with two kinds of questions:
 1. Questions about THEIR OWN numbers ("what did I spend the most on?", "can I afford more supplies?"). Answer these using the bookkeeping data provided below. Use the real numbers. If the data doesn't cover it, say so plainly rather than guessing.
@@ -193,16 +195,52 @@ Style rules:
   }
 }
 
+/**
+ * Correct an entry that's already saved.
+ *
+ * Note there's no `.eq("user_id", userId)` here, unlike delete. That's
+ * deliberate: the row-level security policy already allows editing your own
+ * rows and rows shared with your household, so a partner can fix a typo on a
+ * shared entry. Deleting stays restricted to whoever logged it.
+ *
+ * Only the fields below can change. user_id and household_id are never taken
+ * from the request, so an edit can't move an entry to another person or into a
+ * household.
+ */
+export async function updateEntry(
+  supabase: Client,
+  userId: string,
+  entryId: string,
+  fields: {
+    entry_date: string;
+    amount_in: number;
+    amount_out: number;
+    spent_on: string | null;
+    merchant: string | null;
+    payment_method: string | null;
+  },
+): Promise<Entry> {
+  const { data, error } = await supabase
+    .from("entries")
+    .update(fields)
+    .eq("id", entryId)
+    .select(ENTRY_COLUMNS)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  // No row came back: it's gone, or it isn't one this account may edit. Say so
+  // plainly rather than reporting a save that didn't happen.
+  if (!data) throw new Error("That entry couldn't be found, or isn't yours to edit.");
+
+  return { ...data, amount_in: Number(data.amount_in), amount_out: Number(data.amount_out) };
+}
+
 export async function deleteEntry(
   supabase: Client,
   userId: string,
   entryId: string,
 ): Promise<{ id: string }> {
-  const { error } = await supabase
-    .from("entries")
-    .delete()
-    .eq("id", entryId)
-    .eq("user_id", userId);
+  const { error } = await supabase.from("entries").delete().eq("id", entryId).eq("user_id", userId);
   if (error) throw new Error(error.message);
   return { id: entryId };
 }
@@ -225,7 +263,9 @@ export async function setEntryReceipt(
     .update({ receipt_path: receiptPath })
     .eq("id", entryId)
     .eq("user_id", userId)
-    .select("id, entry_date, amount_in, amount_out, spent_on, merchant, payment_method, receipt_path, household_id, is_split, user_id, created_at")
+    .select(
+      "id, entry_date, amount_in, amount_out, spent_on, merchant, payment_method, receipt_path, household_id, is_split, user_id, created_at",
+    )
     .single();
   if (error) throw new Error(error.message);
   return { ...data, amount_in: Number(data.amount_in), amount_out: Number(data.amount_out) };

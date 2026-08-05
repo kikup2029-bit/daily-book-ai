@@ -211,9 +211,7 @@ export function HouseholdSection() {
 
       {/* join code */}
       <div className="mt-4 rounded-2xl bg-muted p-3">
-        <p className="eyebrow">
-          Invite code
-        </p>
+        <p className="eyebrow">Invite code</p>
         <div className="mt-1 flex items-center gap-2">
           <p className="font-mono text-2xl font-bold tracking-widest">
             {state.household.join_code}
@@ -275,9 +273,7 @@ export function HouseholdSection() {
       {/* what everyone has logged (shared, whether split or not) */}
       {combined && combined.sharedCount > 0 ? (
         <div className="mt-5 border-t pt-4">
-          <p className="eyebrow">
-            What everyone has shared
-          </p>
+          <p className="eyebrow">What everyone has shared</p>
           <ul className="mt-2 space-y-1.5 text-sm">
             {combined.byMember.map((member) => (
               <li key={member.user_id} className="flex justify-between gap-2">
@@ -291,7 +287,10 @@ export function HouseholdSection() {
           </ul>
           <p className="mt-2 text-xs text-muted-foreground">
             {combined.sharedCount} shared {combined.sharedCount === 1 ? "entry" : "entries"}
-            {combined.splitCount > 0 ? `, ${combined.splitCount} marked to split` : ", none marked to split"}.
+            {combined.splitCount > 0
+              ? `, ${combined.splitCount} marked to split`
+              : ", none marked to split"}
+            .
           </p>
         </div>
       ) : null}
@@ -299,9 +298,7 @@ export function HouseholdSection() {
       {/* settlement — only entries marked "split it" */}
       {settlement && settlement.totalShared > 0 ? (
         <div className="mt-5 border-t pt-4">
-          <p className="eyebrow">
-            Bills you're splitting
-          </p>
+          <p className="eyebrow">Bills you're splitting</p>
           <p className="mt-1 text-sm text-muted-foreground">
             {money(settlement.totalShared)} marked to split — {money(settlement.perPerson)} each.
           </p>
@@ -447,7 +444,9 @@ export function MarginsSection() {
                 </div>
 
                 <div className="mt-3 grid grid-cols-2 gap-2">
-                  <div className={`rounded-xl p-2.5 ${losing ? "bg-danger-soft" : "bg-success-soft"}`}>
+                  <div
+                    className={`rounded-xl p-2.5 ${losing ? "bg-danger-soft" : "bg-success-soft"}`}
+                  >
                     <p
                       className={`text-xs font-semibold uppercase tracking-wide ${
                         losing ? "text-danger" : "text-success"
@@ -460,9 +459,7 @@ export function MarginsSection() {
                     </p>
                   </div>
                   <div className="rounded-xl bg-muted p-2.5">
-                    <p className="eyebrow">
-                      Margin
-                    </p>
+                    <p className="eyebrow">Margin</p>
                     <p className="mt-0.5 font-bold">{Math.round(m.grossMarginPercent)}%</p>
                   </div>
                 </div>
@@ -832,8 +829,7 @@ export function LockSection() {
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["settings"] });
 
   const save = useMutation({
-    mutationFn: () =>
-      setLock({ data: { pin, timeout_minutes: Number(timeout || 0) } }),
+    mutationFn: () => setLock({ data: { pin, timeout_minutes: Number(timeout || 0) } }),
     onSuccess: () => {
       setPin("");
       setConfirm("");

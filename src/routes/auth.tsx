@@ -151,9 +151,7 @@ function AuthPage() {
             setNotice(null);
           }}
         >
-          {mode === "signin"
-            ? "New here? Create an account"
-            : "Already have an account? Sign in"}
+          {mode === "signin" ? "New here? Create an account" : "Already have an account? Sign in"}
         </button>
       </section>
     </main>

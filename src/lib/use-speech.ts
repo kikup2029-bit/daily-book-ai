@@ -206,7 +206,7 @@ export function normalizeSpokenMoney(raw: string): string {
   const tokens = cleaned.split(/\s+/).filter(Boolean);
   const out: string[] = [];
 
-  for (let i = 0; i < tokens.length; ) {
+  for (let i = 0; i < tokens.length;) {
     if (!isNumberWord(tokens[i])) {
       out.push(tokens[i]);
       i += 1;

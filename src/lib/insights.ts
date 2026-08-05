@@ -482,10 +482,7 @@ const fmt = (value: number) =>
   })}`;
 
 /** Builds a short plain-English recap of the last 7 days. */
-export function weeklyDigest(
-  entries: InsightEntry[],
-  options: { today?: string } = {},
-): Digest {
+export function weeklyDigest(entries: InsightEntry[], options: { today?: string } = {}): Digest {
   const today = options.today ?? isoToday();
   const weekFrom = addDays(today, -6);
   const prevFrom = addDays(today, -13);
@@ -531,9 +528,7 @@ export function weeklyDigest(
       if (Math.abs(diff) < 0.005) {
         lines.push("That's about the same as the week before.");
       } else {
-        lines.push(
-          `That's ${fmt(diff)} ${diff > 0 ? "better" : "worse"} than the week before.`,
-        );
+        lines.push(`That's ${fmt(diff)} ${diff > 0 ? "better" : "worse"} than the week before.`);
       }
     }
 
@@ -695,15 +690,16 @@ export function detectRecurring(
     const typicalGap = median(gaps);
     if (typicalGap < 5) continue; // too frequent to be a subscription
 
-    const steady = gaps.every((gap) => Math.abs(gap - typicalGap) <= Math.max(3, typicalGap * 0.25));
+    const steady = gaps.every(
+      (gap) => Math.abs(gap - typicalGap) <= Math.max(3, typicalGap * 0.25),
+    );
     if (!steady) continue;
 
     const frequency: "weekly" | "monthly" = typicalGap <= 10 ? "weekly" : "monthly";
     if (frequency === "monthly" && (typicalGap < 25 || typicalGap > 35)) continue;
 
     const last = dates[dates.length - 1];
-    const nextExpected =
-      frequency === "weekly" ? addDays(last, 7) : addMonths(last, 1);
+    const nextExpected = frequency === "weekly" ? addDays(last, 7) : addMonths(last, 1);
 
     // Only suggest things that look live (seen within roughly two cycles).
     const daysSinceLast = daysBetween(last, today);
@@ -719,7 +715,8 @@ export function detectRecurring(
       occurrences: group.length,
       dates,
       nextExpected,
-      confidence: group.length >= 4 && gaps.every((g) => Math.abs(g - typicalGap) <= 2) ? "high" : "medium",
+      confidence:
+        group.length >= 4 && gaps.every((g) => Math.abs(g - typicalGap) <= 2) ? "high" : "medium",
     });
   }
 
@@ -754,10 +751,7 @@ export type Streaks = {
  * with no entries at all is treated as "didn't record", not "didn't spend", so
  * the streak can't be inflated by forgetting to use the app.
  */
-export function computeStreaks(
-  entries: InsightEntry[],
-  options: { today?: string } = {},
-): Streaks {
+export function computeStreaks(entries: InsightEntry[], options: { today?: string } = {}): Streaks {
   const today = options.today ?? isoToday();
 
   // Roll entries up per day.
@@ -933,7 +927,6 @@ export function reconcileDrawer(
     expected,
     counted: args.counted,
     difference,
-    status:
-      Math.abs(difference) < 0.005 ? "balanced" : difference > 0 ? "over" : "short",
+    status: Math.abs(difference) < 0.005 ? "balanced" : difference > 0 ? "over" : "short",
   };
 }

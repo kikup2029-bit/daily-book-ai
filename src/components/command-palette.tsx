@@ -1,16 +1,23 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate, useRouteContext } from "@tanstack/react-router";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { CornerDownLeft, Plus, Search } from "lucide-react";
 
-import { createEntry, getEntries } from "@/lib/books.functions";
+import { getEntries } from "@/lib/books.functions";
 import { parseQuickEntry } from "@/lib/quick-entry";
+import { useOfflineEntries } from "@/lib/use-offline";
 
 /** Every page you can jump to, with words people might search for instead. */
 const PAGES: Array<{ to: string; label: string; group: string; keywords?: string }> = [
   { to: "/dashboard", label: "Today", group: "Today", keywords: "overview home safe to spend" },
   { to: "/add", label: "Add an entry", group: "Today", keywords: "new log record income expense" },
+  {
+    to: "/entries",
+    label: "Find an entry",
+    group: "Today",
+    keywords: "search filter edit fix correct change history all entries find",
+  },
   { to: "/streaks", label: "Your streaks", group: "Today", keywords: "habit run profitable" },
   { to: "/ask", label: "Ask about your money", group: "Today", keywords: "chat question ai help" },
 
@@ -107,8 +114,8 @@ function matches(query: string, text: string) {
 
 export function CommandPalette() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const addEntry = useServerFn(createEntry);
+  const { user } = useRouteContext({ from: "/_authenticated" });
+  const offline = useOfflineEntries(user?.id);
   const fetchEntries = useServerFn(getEntries);
 
   const [open, setOpen] = useState(false);
@@ -172,21 +179,21 @@ export function CommandPalette() {
 
   const save = useMutation({
     mutationFn: () =>
-      addEntry({
-        data: {
-          entry_date: parsed.date,
-          amount_in: parsed.amountIn,
-          amount_out: parsed.amountOut,
-          spent_on: parsed.category,
-          merchant: parsed.merchant,
-          payment_method: "cash",
-          share: "private",
-        },
+      offline.save({
+        entry_date: parsed.date,
+        amount_in: parsed.amountIn,
+        amount_out: parsed.amountOut,
+        spent_on: parsed.category,
+        merchant: parsed.merchant,
+        payment_method: "cash",
+        share: "private",
       }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["entries"] });
-      queryClient.invalidateQueries({ queryKey: ["insights"] });
-      setNote(`Logged: ${parsed.summary}`);
+    onSuccess: (result) => {
+      setNote(
+        result.queued
+          ? `Saved on this device, will send later: ${parsed.summary}`
+          : `Logged: ${parsed.summary}`,
+      );
       setQuery("");
       window.setTimeout(() => setNote(null), 2500);
     },

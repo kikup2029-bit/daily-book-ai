@@ -138,11 +138,7 @@ export async function leaveHousehold(supabase: Client, userId: string) {
   return { ok: true };
 }
 
-export async function renameMember(
-  supabase: Client,
-  userId: string,
-  displayName: string | null,
-) {
+export async function renameMember(supabase: Client, userId: string, displayName: string | null) {
   const state = await fetchHousehold(supabase, userId);
   if (!state.household) throw new Error("You're not in a household.");
 

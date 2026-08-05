@@ -353,9 +353,7 @@ export function parseQuickEntry(
     const candidate = explicitCategory[1].trim();
     if (candidate && !/^\d+$/.test(candidate)) {
       // Match it to an existing category name if we can, so casing stays tidy.
-      const existing = knownCategories.find(
-        (cat) => cat.toLowerCase() === candidate.toLowerCase(),
-      );
+      const existing = knownCategories.find((cat) => cat.toLowerCase() === candidate.toLowerCase());
       category = existing ?? titleCase(candidate);
     }
   }
@@ -382,9 +380,7 @@ export function parseQuickEntry(
 
   const parts: string[] = [];
   parts.push(
-    direction === "in"
-      ? `Money in $${amount.toFixed(2)}`
-      : `Money out $${amount.toFixed(2)}`,
+    direction === "in" ? `Money in $${amount.toFixed(2)}` : `Money out $${amount.toFixed(2)}`,
   );
   if (category) parts.push(category);
   if (merchant) parts.push(`at ${merchant}`);

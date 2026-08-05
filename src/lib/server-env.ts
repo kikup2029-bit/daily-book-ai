@@ -25,8 +25,7 @@ const BUILD_TIME_VALUES: Record<string, string | undefined> = {
 export function readServerEnv(key: string): string | undefined {
   // 1. Standard Node-style access (works locally, and on Workers when
   //    process.env is populated from bindings).
-  const fromProcess =
-    typeof process !== "undefined" && process.env ? process.env[key] : undefined;
+  const fromProcess = typeof process !== "undefined" && process.env ? process.env[key] : undefined;
   if (fromProcess) return fromProcess;
 
   // 2. Cloudflare sometimes exposes bindings on globalThis (Nitro/Wrangler

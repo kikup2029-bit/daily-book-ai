@@ -73,13 +73,7 @@ const CHART_COLORS = [
 ];
 
 export type MonthPart =
-  | "totals"
-  | "categories"
-  | "daybyday"
-  | "budgets"
-  | "goals"
-  | "recurring"
-  | "bills";
+  "totals" | "categories" | "daybyday" | "budgets" | "goals" | "recurring" | "bills";
 
 const ALL_PARTS: MonthPart[] = [
   "totals",
@@ -181,7 +175,6 @@ export function MonthlyPage({ parts = ALL_PARTS }: { parts?: MonthPart[] } = {})
 
   return (
     <div className="rise mx-auto w-full max-w-3xl">
-
       <section className="py-8">
         <div className="flex items-center justify-between gap-2">
           <Button
@@ -225,108 +218,111 @@ export function MonthlyPage({ parts = ALL_PARTS }: { parts?: MonthPart[] } = {})
         ) : null}
 
         {show("totals") ? (
-        <>
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          <div className="">
-            <p className="eyebrow text-success">Money in</p>
-            <p className="figure mt-2 text-4xl">{money(totalIn)}</p>
-          </div>
-          <div className="">
-            <p className="eyebrow text-danger">Money out</p>
-            <p className="figure mt-2 text-4xl">{money(totalOut)}</p>
-          </div>
-        </div>
+          <>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <div className="">
+                <p className="eyebrow text-success">Money in</p>
+                <p className="figure mt-2 text-4xl">{money(totalIn)}</p>
+              </div>
+              <div className="">
+                <p className="eyebrow text-danger">Money out</p>
+                <p className="figure mt-2 text-4xl">{money(totalOut)}</p>
+              </div>
+            </div>
 
-        <div
-          className={`mt-3 rounded-2xl p-4 text-center ${
-            net > 0
-              ? "bg-success text-success-foreground"
-              : net < 0
-                ? "bg-danger text-danger-foreground"
-                : "bg-muted text-foreground"
-          }`}
-        >
-          <p className="text-sm font-semibold">
-            {net > 0 ? "Profit this month" : net < 0 ? "Loss this month" : "Break even this month"}
-          </p>
-          <p className="figure mt-2 text-5xl">{money(Math.abs(net))}</p>
-        </div>
-        </>
+            <div
+              className={`mt-3 rounded-2xl p-4 text-center ${
+                net > 0
+                  ? "bg-success text-success-foreground"
+                  : net < 0
+                    ? "bg-danger text-danger-foreground"
+                    : "bg-muted text-foreground"
+              }`}
+            >
+              <p className="text-sm font-semibold">
+                {net > 0
+                  ? "Profit this month"
+                  : net < 0
+                    ? "Loss this month"
+                    : "Break even this month"}
+              </p>
+              <p className="figure mt-2 text-5xl">{money(Math.abs(net))}</p>
+            </div>
+          </>
         ) : null}
 
-        {isLoading ? (
-          <span className="skeleton mt-4 block h-4 w-40" />
-        ) : null}
+        {isLoading ? <span className="skeleton mt-4 block h-4 w-40" /> : null}
       </section>
 
       {show("categories") ? (
-      <section className="border-t py-8">
-        <h2 className="text-xl">Where the money went</h2>
-        {byCategory.length === 0 ? (
-          <EmptyState
-            title="Nothing spent this month yet"
-            blurb="Once you log expenses, this shows exactly which categories your money went to, biggest first."
-            sample={<SampleRows rows={4} />}
-          />
-        ) : (
-          <>
-            <div className="mt-2 h-56 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={byCategory} dataKey="amount" nameKey="name" outerRadius={80} label>
-                    {byCategory.map((row, index) => (
-                      <Cell key={row.name} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value: number) => money(value)} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <ul className="mt-2 divide-y">
-              {byCategory.map((row, index) => (
-                <li key={row.name} className="flex items-center justify-between py-2 text-sm">
-                  <span className="flex items-center gap-2">
-                    <span
-                      className="size-3 rounded-full"
-                      style={{ background: CHART_COLORS[index % CHART_COLORS.length] }}
-                    />
-                    {row.name}
-                  </span>
-                  <span className="tabular-nums font-semibold">{money(row.amount)}</span>
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
-      </section>
+        <section className="border-t py-8">
+          <h2 className="text-xl">Where the money went</h2>
+          {byCategory.length === 0 ? (
+            <EmptyState
+              title="Nothing spent this month yet"
+              blurb="Once you log expenses, this shows exactly which categories your money went to, biggest first."
+              sample={<SampleRows rows={4} />}
+            />
+          ) : (
+            <>
+              <div className="mt-2 h-56 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={byCategory} dataKey="amount" nameKey="name" outerRadius={80} label>
+                      {byCategory.map((row, index) => (
+                        <Cell key={row.name} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value: number) => money(value)} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <ul className="mt-2 divide-y">
+                {byCategory.map((row, index) => (
+                  <li key={row.name} className="flex items-center justify-between py-2 text-sm">
+                    <span className="flex items-center gap-2">
+                      <span
+                        className="size-3 rounded-full"
+                        style={{ background: CHART_COLORS[index % CHART_COLORS.length] }}
+                      />
+                      {row.name}
+                    </span>
+                    <span className="tabular-nums font-semibold">{money(row.amount)}</span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </section>
       ) : null}
 
       {show("daybyday") ? (
-      <section className="border-t py-8">
-        <h2 className="text-xl">Day by day</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Green bars are good days, red are not.</p>
-        <div className="mt-3 h-48 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={dailyNet}>
-              <XAxis dataKey="day" tick={{ fontSize: 10 }} interval={4} />
-              <YAxis tick={{ fontSize: 10 }} width={40} />
-              <Tooltip
-                formatter={(value: number) => money(value)}
-                labelFormatter={(label) => `Day ${label}`}
-              />
-              <Bar dataKey="net" radius={[4, 4, 0, 0]}>
-                {dailyNet.map((row) => (
-                  <Cell
-                    key={row.day}
-                    fill={row.net < 0 ? "var(--color-danger)" : "var(--color-success)"}
-                  />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </section>
-
+        <section className="border-t py-8">
+          <h2 className="text-xl">Day by day</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Green bars are good days, red are not.
+          </p>
+          <div className="mt-3 h-48 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={dailyNet}>
+                <XAxis dataKey="day" tick={{ fontSize: 10 }} interval={4} />
+                <YAxis tick={{ fontSize: 10 }} width={40} />
+                <Tooltip
+                  formatter={(value: number) => money(value)}
+                  labelFormatter={(label) => `Day ${label}`}
+                />
+                <Bar dataKey="net" radius={[4, 4, 0, 0]}>
+                  {dailyNet.map((row) => (
+                    <Cell
+                      key={row.day}
+                      fill={row.net < 0 ? "var(--color-danger)" : "var(--color-success)"}
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </section>
       ) : null}
 
       {show("budgets") ? (
@@ -385,9 +381,7 @@ export function InsightsSection() {
 
         <div className="mt-4 grid grid-cols-2 gap-3">
           <div className="">
-            <p className="eyebrow">
-              Where you are
-            </p>
+            <p className="eyebrow">Where you are</p>
             <p className="figure mt-2 text-3xl">{money(forecast.currentNet)}</p>
           </div>
           <div
@@ -431,9 +425,7 @@ export function InsightsSection() {
 
         {forecast.upcomingBills.length > 0 ? (
           <div className="mt-3 border-t pt-3">
-            <p className="eyebrow">
-              Bills coming up
-            </p>
+            <p className="eyebrow">Bills coming up</p>
             <ul className="mt-2 space-y-1 text-sm">
               {forecast.upcomingBills.slice(0, 6).map((bill, index) => (
                 <li key={index} className="flex justify-between gap-2">
@@ -460,26 +452,22 @@ export function InsightsSection() {
         <h2 className="text-xl">Tax set-aside</h2>
         {tax.ratePercent <= 0 ? (
           <p className="mt-1 text-sm text-muted-foreground">
-            Set a percentage on the Tools tab and I&apos;ll keep a running total of what to hold back
-            for tax.
+            Set a percentage on the Tools tab and I&apos;ll keep a running total of what to hold
+            back for tax.
           </p>
         ) : (
           <>
             <p className="mt-1 text-sm text-muted-foreground">
-              Holding back {tax.ratePercent}% of the {money(tax.incomeInPeriod)} you&apos;ve taken in{" "}
-              {tax.periodLabel}.
+              Holding back {tax.ratePercent}% of the {money(tax.incomeInPeriod)} you&apos;ve taken
+              in {tax.periodLabel}.
             </p>
             <div className="mt-4 grid grid-cols-2 gap-3">
               <div className="">
-                <p className="eyebrow">
-                  Should set aside
-                </p>
+                <p className="eyebrow">Should set aside</p>
                 <p className="figure mt-2 text-3xl">{money(tax.shouldHaveSetAside)}</p>
               </div>
               <div className="">
-                <p className="eyebrow text-success">
-                  Already paid
-                </p>
+                <p className="eyebrow text-success">Already paid</p>
                 <p className="figure mt-2 text-3xl">{money(tax.alreadyPaid)}</p>
               </div>
             </div>
@@ -1169,7 +1157,11 @@ export function RecurringSection({ rules }: { rules: Rule[] }) {
         ) : null}
         <div className="flex gap-2">
           <Button type="submit" className="flex-1" disabled={save.isPending}>
-            {save.isPending ? "Saving…" : editing ? "Update recurring expense" : "Add recurring expense"}
+            {save.isPending
+              ? "Saving…"
+              : editing
+                ? "Update recurring expense"
+                : "Add recurring expense"}
           </Button>
           {editing ? (
             <Button type="button" variant="outline" onClick={reset}>

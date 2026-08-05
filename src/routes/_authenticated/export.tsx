@@ -54,13 +54,7 @@ const SAMPLE_ROWS: ExportEntry[] = [
   { entry_date: "2026-07-15", amount_in: 0, amount_out: 500, spent_on: "Rent" },
 ];
 
-function PreviewTable({
-  rows,
-  money,
-}: {
-  rows: ExportEntry[];
-  money: (value: number) => string;
-}) {
+function PreviewTable({ rows, money }: { rows: ExportEntry[]; money: (value: number) => string }) {
   const totalIn = rows.reduce((sum, entry) => sum + entry.amount_in, 0);
   const totalOut = rows.reduce((sum, entry) => sum + entry.amount_out, 0);
 
@@ -94,8 +88,12 @@ function PreviewTable({
             <td className="px-3 py-2" colSpan={2}>
               Totals ({money(totalIn - totalOut)} net)
             </td>
-            <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums">{money(totalIn)}</td>
-            <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums">{money(totalOut)}</td>
+            <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums">
+              {money(totalIn)}
+            </td>
+            <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums">
+              {money(totalOut)}
+            </td>
           </tr>
         </tfoot>
       </table>
@@ -146,7 +144,6 @@ function ExportPage() {
 
   return (
     <div className="rise mx-auto w-full max-w-3xl">
-
       <section className="py-8">
         <h2 className="text-xl">Export your records</h2>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -186,7 +183,9 @@ function ExportPage() {
             size="sm"
             onClick={() => {
               const now = new Date();
-              setFrom(new Date(now.getFullYear(), now.getMonth() - 1, 1).toLocaleDateString("en-CA"));
+              setFrom(
+                new Date(now.getFullYear(), now.getMonth() - 1, 1).toLocaleDateString("en-CA"),
+              );
               setTo(new Date(now.getFullYear(), now.getMonth(), 0).toLocaleDateString("en-CA"));
             }}
           >
@@ -220,9 +219,7 @@ function ExportPage() {
 
         {!isLoading && filtered.length > 0 ? (
           <div className="mt-4">
-            <p className="eyebrow">
-              Preview — this is what you&apos;ll get
-            </p>
+            <p className="eyebrow">Preview — this is what you&apos;ll get</p>
             <div className="mt-2">
               <PreviewTable rows={filtered} money={money} />
             </div>
@@ -239,9 +236,7 @@ function ExportPage() {
               <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-secondary-foreground">
                 Sample
               </span>
-              <p className="eyebrow">
-                What your export will look like
-              </p>
+              <p className="eyebrow">What your export will look like</p>
             </div>
             <p className="mt-2 text-sm text-muted-foreground">
               You don&apos;t have entries in this date range yet, so here&apos;s a made-up example

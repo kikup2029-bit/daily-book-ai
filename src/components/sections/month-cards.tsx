@@ -71,17 +71,11 @@ export function OutlookCard() {
 
       <div className="mt-6 grid grid-cols-2 gap-8">
         <div className="">
-          <p className="eyebrow">
-            Where you are
-          </p>
+          <p className="eyebrow">Where you are</p>
           <p className="figure mt-2 text-3xl">{money(forecast.currentNet)}</p>
         </div>
         <div>
-          <p
-            className={`eyebrow ${
-              forecast.projectedNet >= 0 ? "text-success" : "text-danger"
-            }`}
-          >
+          <p className={`eyebrow ${forecast.projectedNet >= 0 ? "text-success" : "text-danger"}`}>
             In {forecast.horizonDays} days
           </p>
           <p className="figure mt-2 text-3xl">
@@ -113,9 +107,7 @@ export function OutlookCard() {
 
       {forecast.upcomingBills.length > 0 ? (
         <div className="mt-3 border-t pt-3">
-          <p className="eyebrow">
-            Bills coming up
-          </p>
+          <p className="eyebrow">Bills coming up</p>
           <ul className="mt-2 space-y-1 text-sm">
             {forecast.upcomingBills.slice(0, 6).map((bill, index) => (
               <li key={index} className="flex justify-between gap-2">
@@ -162,15 +154,11 @@ export function TaxJarCard() {
           </p>
           <div className="mt-6 grid grid-cols-2 gap-8">
             <div className="">
-              <p className="eyebrow">
-                Should set aside
-              </p>
+              <p className="eyebrow">Should set aside</p>
               <p className="figure mt-2 text-3xl">{money(tax.shouldHaveSetAside)}</p>
             </div>
             <div className="">
-              <p className="eyebrow text-success">
-                Already paid
-              </p>
+              <p className="eyebrow text-success">Already paid</p>
               <p className="figure mt-2 text-3xl">{money(tax.alreadyPaid)}</p>
             </div>
           </div>
@@ -201,8 +189,8 @@ export function BusyDaysCard() {
       <section className="py-8">
         <h2 className="text-xl">Your busy and quiet days</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          Keep logging for a few more weeks and I&apos;ll show which days of the week are your
-          best and quietest.
+          Keep logging for a few more weeks and I&apos;ll show which days of the week are your best
+          and quietest.
         </p>
       </section>
     );

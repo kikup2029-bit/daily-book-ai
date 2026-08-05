@@ -59,7 +59,7 @@ export function exportCsv(entries: ExportEntry[], filename: string) {
   ]);
 
   const csv = [header, ...rows].map((row) => row.map(csvCell).join(",")).join("\r\n");
-  download(new Blob([`﻿${csv}`], { type: "text/csv;charset=utf-8" }), `${filename}.csv`);
+  download(new Blob([`\ufeff${csv}`], { type: "text/csv;charset=utf-8" }), `${filename}.csv`);
 }
 
 export function exportPdf(entries: ExportEntry[], filename: string, rangeLabel: string) {
@@ -78,9 +78,7 @@ export function exportPdf(entries: ExportEntry[], filename: string, rangeLabel: 
     startY: 104,
     head: [["Date", "Money in", "Money out", "Category", "Where", "Note"]],
     body: rowsFor(entries, "-"),
-    foot: [
-      ["Totals", money(totalIn), money(totalOut), "", "", `Net ${money(totalIn - totalOut)}`],
-    ],
+    foot: [["Totals", money(totalIn), money(totalOut), "", "", `Net ${money(totalIn - totalOut)}`]],
     styles: { fontSize: 10, cellPadding: 6, textColor: 30 },
     headStyles: { fillColor: [38, 38, 38], textColor: 255 },
     footStyles: { fillColor: [240, 240, 240], textColor: 20, fontStyle: "bold" },

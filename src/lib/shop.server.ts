@@ -72,11 +72,7 @@ export async function upsertProduct(
 }
 
 export async function deleteProduct(supabase: Client, userId: string, id: string) {
-  const { error } = await supabase
-    .from("products")
-    .delete()
-    .eq("id", id)
-    .eq("user_id", userId);
+  const { error } = await supabase.from("products").delete().eq("id", id).eq("user_id", userId);
   if (error) throw new Error(error.message);
   return { ok: true };
 }
@@ -270,11 +266,7 @@ export async function recordCashCount(
 }
 
 export async function deleteCashCount(supabase: Client, userId: string, id: string) {
-  const { error } = await supabase
-    .from("cash_counts")
-    .delete()
-    .eq("id", id)
-    .eq("user_id", userId);
+  const { error } = await supabase.from("cash_counts").delete().eq("id", id).eq("user_id", userId);
   if (error) throw new Error(error.message);
   return { ok: true };
 }

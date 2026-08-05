@@ -45,7 +45,11 @@ export function SampleBars({ heights = [40, 65, 30, 80, 55, 70, 45] }: { heights
   return (
     <div className="flex h-32 items-end gap-2">
       {heights.map((height, index) => (
-        <div key={index} className="flex-1 rounded-t bg-muted-foreground" style={{ height: `${height}%` }} />
+        <div
+          key={index}
+          className="flex-1 rounded-t bg-muted-foreground"
+          style={{ height: `${height}%` }}
+        />
       ))}
     </div>
   );

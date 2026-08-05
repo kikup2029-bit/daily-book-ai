@@ -63,9 +63,7 @@ export function LockGate({ children }: { children: React.ReactNode }) {
 
     // A timeout of 0 means "lock every time the app is opened".
     const stillValid =
-      timeoutMinutes > 0 &&
-      unlockedAt > 0 &&
-      Date.now() - unlockedAt < timeoutMinutes * 60_000;
+      timeoutMinutes > 0 && unlockedAt > 0 && Date.now() - unlockedAt < timeoutMinutes * 60_000;
 
     setLocked(!stillValid);
   }, [isLoading, lockEnabled, timeoutMinutes]);

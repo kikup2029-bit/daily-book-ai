@@ -112,9 +112,7 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
       "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors",
       indented ? "pl-9 text-[13px]" : "",
       active ? "border-l-2 border-foreground -ml-[2px]" : "border-l-2 border-transparent -ml-[2px]",
-      active
-        ? "font-semibold text-foreground"
-        : "text-muted-foreground hover:text-foreground",
+      active ? "font-semibold text-foreground" : "text-muted-foreground hover:text-foreground",
     ].join(" ");
 
   const nav = (
@@ -173,11 +171,7 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
       </button>
       {toolsOpen
         ? TOOLS.children.map((child) => (
-            <Link
-              key={child.to}
-              to={child.to}
-              className={leafClass(pathname === child.to, true)}
-            >
+            <Link key={child.to} to={child.to} className={leafClass(pathname === child.to, true)}>
               {child.label}
             </Link>
           ))

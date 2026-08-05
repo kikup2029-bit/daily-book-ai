@@ -5,6 +5,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { useRouteContext } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowDownCircle,
@@ -35,6 +36,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Onboarding } from "@/components/onboarding";
+import { InstallPrompt } from "@/components/offline-bar";
+import { isNetworkError, useOfflineEntries } from "@/lib/use-offline";
 
 type ChatMessage = { role: "user" | "assistant"; text: string };
 
@@ -65,6 +68,8 @@ export function Dashboard({ parts = ALL_TODAY }: { parts?: TodayPart[] } = {}) {
   const queryClient = useQueryClient();
   const fetchEntries = useServerFn(getEntries);
   const addEntry = useServerFn(createEntry);
+  const { user } = useRouteContext({ from: "/_authenticated" });
+  const offline = useOfflineEntries(user?.id);
 
   const { data: entries = [], isLoading } = useQuery({
     queryKey: ["entries"],
@@ -137,7 +142,9 @@ export function Dashboard({ parts = ALL_TODAY }: { parts?: TodayPart[] } = {}) {
       );
     },
     onError: () => {
-      setReceiptNotice("Couldn't read that receipt automatically — just fill in the details yourself.");
+      setReceiptNotice(
+        "Couldn't read that receipt automatically — just fill in the details yourself.",
+      );
     },
   });
 
@@ -150,24 +157,40 @@ export function Dashboard({ parts = ALL_TODAY }: { parts?: TodayPart[] } = {}) {
       merchant: string | null;
       payment_method: string | null;
       share: "private" | "visible" | "split";
-    }) => {
-      const entry = await addEntry({ data: input });
-      if (receiptFile) {
-        const path = await uploadReceipt(receiptFile, entry.id);
-        await linkReceipt({ data: { entry_id: entry.id, receipt_path: path } });
+    }): Promise<{ queued: boolean }> => {
+      // A receipt photo can only be attached to a row that exists, so an offline
+      // save records the figures now and leaves the photo to be added later.
+      // Better than refusing the entry, and better than pretending the photo
+      // was saved.
+      if (!navigator.onLine) return offline.save(input);
+
+      try {
+        const entry = await addEntry({ data: input });
+        if (receiptFile) {
+          const path = await uploadReceipt(receiptFile, entry.id);
+          await linkReceipt({ data: { entry_id: entry.id, receipt_path: path } });
+        }
+        return { queued: false };
+      } catch (error) {
+        if (isNetworkError(error)) return offline.save(input);
+        throw error;
       }
-      return entry;
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["entries"] });
       setAmountIn("");
       setAmountOut("");
       setSpentOn("");
       setMerchant("");
       setShareMode("private");
+      const hadReceipt = Boolean(receiptFile);
       setReceiptFile(null);
       setReceiptKey((value) => value + 1);
-      setReceiptNotice(null);
+      setReceiptNotice(
+        result.queued && hadReceipt
+          ? "Saved on this device. The photo couldn't be attached without a connection — add it from the entry once you're back online."
+          : null,
+      );
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     },
@@ -209,309 +232,310 @@ export function Dashboard({ parts = ALL_TODAY }: { parts?: TodayPart[] } = {}) {
 
   return (
     <div className="rise mx-auto w-full max-w-3xl">
-
+      {show("due") ? <InstallPrompt /> : null}
       {show("due") ? <Onboarding /> : null}
       {show("due") ? <DueSoonBanner /> : null}
       {show("safe") ? <SafeToSpendCard /> : null}
       {show("quickadd") ? <QuickAdd entries={entries} /> : null}
 
       {show("form") ? (
-      <section className="border-t py-8">
-        <h2 className="text-xl">Today&apos;s entry</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Jot down what came in and what went out.
-        </p>
+        <section className="border-t py-8">
+          <h2 className="text-xl">Today&apos;s entry</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Jot down what came in and what went out.
+          </p>
 
-        <form onSubmit={onSubmit} className="mt-4 space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="date">Date</Label>
-            <Input
-              id="date"
-              type="date"
-              value={date}
-              onChange={(event) => setDate(event.target.value)}
-              required
-            />
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
+          <form onSubmit={onSubmit} className="mt-4 space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="in">Money made</Label>
+              <Label htmlFor="date">Date</Label>
               <Input
-                id="in"
-                type="number"
-                inputMode="decimal"
-                min="0"
-                step="0.01"
-                placeholder="0.00"
-                value={amountIn}
-                onChange={(event) => setAmountIn(event.target.value)}
+                id="date"
+                type="date"
+                value={date}
+                onChange={(event) => setDate(event.target.value)}
+                required
               />
             </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="in">Money made</Label>
+                <Input
+                  id="in"
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={amountIn}
+                  onChange={(event) => setAmountIn(event.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="out">Money spent</Label>
+                <Input
+                  id="out"
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={amountOut}
+                  onChange={(event) => setAmountOut(event.target.value)}
+                />
+              </div>
+            </div>
+
             <div className="space-y-2">
-              <Label htmlFor="out">Money spent</Label>
+              <Label htmlFor="spent-on">What was it spent on?</Label>
               <Input
-                id="out"
-                type="number"
-                inputMode="decimal"
-                min="0"
-                step="0.01"
-                placeholder="0.00"
-                value={amountOut}
-                onChange={(event) => setAmountOut(event.target.value)}
+                id="spent-on"
+                placeholder="Supplies, Rent, Inventory…"
+                value={spentOn}
+                onChange={(event) => setSpentOn(event.target.value)}
               />
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="spent-on">What was it spent on?</Label>
-            <Input
-              id="spent-on"
-              placeholder="Supplies, Rent, Inventory…"
-              value={spentOn}
-              onChange={(event) => setSpentOn(event.target.value)}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Cash or card?</Label>
-            <div className="flex gap-2">
-              {(["cash", "card", "other"] as const).map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => setPaymentMethod(option)}
-                  className={`flex-1 rounded-xl border px-3 py-2 text-sm font-semibold capitalize transition-colors ${
-                    paymentMethod === option
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-accent"
-                  }`}
-                >
-                  {option}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="merchant">Where? (optional)</Label>
-            <Input
-              id="merchant"
-              placeholder="Costco, Shell, Home Depot…"
-              value={merchant}
-              onChange={(event) => setMerchant(event.target.value)}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="receipt">Receipt photo (optional)</Label>
-            <Input
-              key={receiptKey}
-              id="receipt"
-              type="file"
-              accept="image/*"
-              capture="environment"
-              className="file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-2 file:py-1 file:text-sm"
-              onChange={(event) => {
-                const file = event.target.files?.[0] ?? null;
-                setReceiptFile(file);
-                setReceiptNotice(null);
-                if (file) analyze.mutate(file);
-              }}
-            />
-            {receiptFile ? (
-              <p className="text-xs text-muted-foreground">
-                Attaching “{receiptFile.name}” — only you can see it.
-              </p>
-            ) : null}
-            {analyze.isPending ? (
-              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Loader2 className="size-3 animate-spin" /> Reading your receipt…
-              </p>
-            ) : receiptNotice ? (
-              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Sparkles className="size-3" /> {receiptNotice}
-              </p>
-            ) : null}
-          </div>
-
-
-          {household?.household ? (
             <div className="space-y-2">
-              <Label>Who can see this?</Label>
-              <div className="grid grid-cols-3 gap-2">
-                {(
-                  [
-                    { key: "private", label: "Just me" },
-                    { key: "visible", label: "Share" },
-                    { key: "split", label: "Split it" },
-                  ] as const
-                ).map((option) => (
+              <Label>Cash or card?</Label>
+              <div className="flex gap-2">
+                {(["cash", "card", "other"] as const).map((option) => (
                   <button
-                    key={option.key}
+                    key={option}
                     type="button"
-                    onClick={() => setShareMode(option.key)}
-                    className={`rounded-xl border px-2 py-2 text-sm font-semibold transition-colors ${
-                      shareMode === option.key
+                    onClick={() => setPaymentMethod(option)}
+                    className={`flex-1 rounded-xl border px-3 py-2 text-sm font-semibold capitalize transition-colors ${
+                      paymentMethod === option
                         ? "border-primary bg-primary text-primary-foreground"
                         : "text-muted-foreground hover:bg-accent"
                     }`}
                   >
-                    {option.label}
+                    {option}
                   </button>
                 ))}
               </div>
-              <p className="text-xs text-muted-foreground">
-                {shareMode === "private"
-                  ? "Only you will see this."
-                  : shareMode === "visible"
-                    ? `${household.household.name} can see it, but nobody owes anybody.`
-                    : `${household.household.name} can see it and it gets divided evenly.`}
-              </p>
             </div>
-          ) : null}
 
-          {formError ? <p className="text-sm text-danger">{formError}</p> : null}
-          {saved ? <p className="text-sm text-success">Saved! Nice work.</p> : null}
+            <div className="space-y-2">
+              <Label htmlFor="merchant">Where? (optional)</Label>
+              <Input
+                id="merchant"
+                placeholder="Costco, Shell, Home Depot…"
+                value={merchant}
+                onChange={(event) => setMerchant(event.target.value)}
+              />
+            </div>
 
-          <Button type="submit" className="w-full" size="lg" disabled={save.isPending}>
-            {save.isPending ? "Saving…" : "Save entry"}
-          </Button>
-        </form>
-      </section>
+            <div className="space-y-2">
+              <Label htmlFor="receipt">Receipt photo (optional)</Label>
+              <Input
+                key={receiptKey}
+                id="receipt"
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-2 file:py-1 file:text-sm"
+                onChange={(event) => {
+                  const file = event.target.files?.[0] ?? null;
+                  setReceiptFile(file);
+                  setReceiptNotice(null);
+                  if (file) analyze.mutate(file);
+                }}
+              />
+              {receiptFile ? (
+                <p className="text-xs text-muted-foreground">
+                  Attaching “{receiptFile.name}” — only you can see it.
+                </p>
+              ) : null}
+              {analyze.isPending ? (
+                <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Loader2 className="size-3 animate-spin" /> Reading your receipt…
+                </p>
+              ) : receiptNotice ? (
+                <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Sparkles className="size-3" /> {receiptNotice}
+                </p>
+              ) : null}
+            </div>
 
+            {household?.household ? (
+              <div className="space-y-2">
+                <Label>Who can see this?</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(
+                    [
+                      { key: "private", label: "Just me" },
+                      { key: "visible", label: "Share" },
+                      { key: "split", label: "Split it" },
+                    ] as const
+                  ).map((option) => (
+                    <button
+                      key={option.key}
+                      type="button"
+                      onClick={() => setShareMode(option.key)}
+                      className={`rounded-xl border px-2 py-2 text-sm font-semibold transition-colors ${
+                        shareMode === option.key
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:bg-accent"
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {shareMode === "private"
+                    ? "Only you will see this."
+                    : shareMode === "visible"
+                      ? `${household.household.name} can see it, but nobody owes anybody.`
+                      : `${household.household.name} can see it and it gets divided evenly.`}
+                </p>
+              </div>
+            ) : null}
+
+            {formError ? <p className="text-sm text-danger">{formError}</p> : null}
+            {saved ? <p className="text-sm text-success">Saved! Nice work.</p> : null}
+
+            <Button type="submit" className="w-full" size="lg" disabled={save.isPending}>
+              {save.isPending ? "Saving…" : "Save entry"}
+            </Button>
+          </form>
+        </section>
       ) : null}
 
       {show("glance") ? (
-      <section className="border-t py-8">
-        <h2 className="text-xl">Today at a glance</h2>
+        <section className="border-t py-8">
+          <h2 className="text-xl">Today at a glance</h2>
 
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          <div className="">
-            <p className="eyebrow flex items-center gap-1.5 text-success">
-              <ArrowUpCircle className="size-4" /> Money in
-            </p>
-            <p className="figure mt-2 text-4xl">{money(todayIn)}</p>
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <div className="">
+              <p className="eyebrow flex items-center gap-1.5 text-success">
+                <ArrowUpCircle className="size-4" /> Money in
+              </p>
+              <p className="figure mt-2 text-4xl">{money(todayIn)}</p>
+            </div>
+            <div className="">
+              <p className="eyebrow flex items-center gap-1.5 text-danger">
+                <ArrowDownCircle className="size-4" /> Money out
+              </p>
+              <p className="figure mt-2 text-4xl">{money(todayOut)}</p>
+            </div>
           </div>
-          <div className="">
-            <p className="eyebrow flex items-center gap-1.5 text-danger">
-              <ArrowDownCircle className="size-4" /> Money out
+
+          <div
+            className={`mt-3 rounded-2xl p-4 text-center ${
+              net > 0
+                ? "bg-success text-success-foreground"
+                : net < 0
+                  ? "bg-danger text-danger-foreground"
+                  : "bg-muted text-foreground"
+            }`}
+          >
+            <p className="text-sm font-semibold">
+              {net > 0
+                ? "You made money today"
+                : net < 0
+                  ? "You lost money today"
+                  : "Break even today"}
             </p>
-            <p className="figure mt-2 text-4xl">{money(todayOut)}</p>
+            <p className="figure mt-2 text-5xl">{money(Math.abs(net))}</p>
           </div>
-        </div>
 
-        <div
-          className={`mt-3 rounded-2xl p-4 text-center ${
-            net > 0
-              ? "bg-success text-success-foreground"
-              : net < 0
-                ? "bg-danger text-danger-foreground"
-                : "bg-muted text-foreground"
-          }`}
-        >
-          <p className="text-sm font-semibold">
-            {net > 0
-              ? "You made money today"
-              : net < 0
-                ? "You lost money today"
-                : "Break even today"}
+          <p className="mt-4 text-sm text-muted-foreground">
+            All time: {money(allIn)} in · {money(allOut)} out ·{" "}
+            <span className="font-semibold text-foreground">{money(allIn - allOut)} net</span>
           </p>
-          <p className="figure mt-2 text-5xl">{money(Math.abs(net))}</p>
-        </div>
 
-        <p className="mt-4 text-sm text-muted-foreground">
-          All time: {money(allIn)} in · {money(allOut)} out ·{" "}
-          <span className="font-semibold text-foreground">{money(allIn - allOut)} net</span>
-        </p>
-
-        {isLoading ? (
-          <span className="skeleton mt-3 block h-4 w-40" />
-        ) : entries.length === 0 ? (
-          <p className="mt-3 text-sm text-muted-foreground">
-            No entries yet — add your first one above.
-          </p>
-        ) : (
-          <ul className="mt-4 divide-y">
-            {entries.slice(0, 6).map((entry) => (
-              <li key={entry.id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
-                <span className="flex min-w-0 items-center gap-2">
-                  {entry.receipt_path ? <ReceiptThumb path={entry.receipt_path} /> : null}
-                  <span className="min-w-0">
-                    <span className="font-semibold whitespace-nowrap">{entry.entry_date}</span>
-                    {entry.spent_on ? (
-                      <span className="ml-2 text-muted-foreground">{entry.spent_on}</span>
-                    ) : null}
-                    {entry.merchant ? (
-                      <span className="ml-2 text-muted-foreground">· {entry.merchant}</span>
-                    ) : null}
-                    {entry.household_id ? (
-                      <span className="ml-2 inline-flex items-center gap-0.5 text-xs text-primary">
-                        <Users className="size-3" /> {entry.is_split ? "split" : "shared"}
-                      </span>
-                    ) : null}
+          {isLoading ? (
+            <span className="skeleton mt-3 block h-4 w-40" />
+          ) : entries.length === 0 ? (
+            <p className="mt-3 text-sm text-muted-foreground">
+              No entries yet — add your first one above.
+            </p>
+          ) : (
+            <ul className="mt-4 divide-y">
+              {entries.slice(0, 6).map((entry) => (
+                <li
+                  key={entry.id}
+                  className="flex items-center justify-between gap-3 py-2.5 text-sm"
+                >
+                  <span className="flex min-w-0 items-center gap-2">
+                    {entry.receipt_path ? <ReceiptThumb path={entry.receipt_path} /> : null}
+                    <span className="min-w-0">
+                      <span className="font-semibold whitespace-nowrap">{entry.entry_date}</span>
+                      {entry.spent_on ? (
+                        <span className="ml-2 text-muted-foreground">{entry.spent_on}</span>
+                      ) : null}
+                      {entry.merchant ? (
+                        <span className="ml-2 text-muted-foreground">· {entry.merchant}</span>
+                      ) : null}
+                      {entry.household_id ? (
+                        <span className="ml-2 inline-flex items-center gap-0.5 text-xs text-primary">
+                          <Users className="size-3" /> {entry.is_split ? "split" : "shared"}
+                        </span>
+                      ) : null}
+                    </span>
                   </span>
-                </span>
-                <span className="flex shrink-0 items-center gap-1 tabular-nums">
-                  {entry.amount_in > 0 ? (
-                    <span className="text-success">+{money(entry.amount_in)}</span>
-                  ) : null}
-                  {entry.amount_out > 0 ? (
-                    <span className="text-danger">−{money(entry.amount_out)}</span>
-                  ) : null}
-                  <ReceiptAttachButton entryId={entry.id} currentPath={entry.receipt_path} />
-                  {household?.household ? (
+                  <span className="flex shrink-0 items-center gap-1 tabular-nums">
+                    {entry.amount_in > 0 ? (
+                      <span className="text-success">+{money(entry.amount_in)}</span>
+                    ) : null}
+                    {entry.amount_out > 0 ? (
+                      <span className="text-danger">−{money(entry.amount_out)}</span>
+                    ) : null}
+                    <ReceiptAttachButton entryId={entry.id} currentPath={entry.receipt_path} />
+                    {household?.household ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className={`h-8 px-2 ${
+                          entry.household_id ? "text-primary" : "text-muted-foreground"
+                        }`}
+                        disabled={toggleShare.isPending}
+                        onClick={() =>
+                          toggleShare.mutate({
+                            entry_id: entry.id,
+                            mode: !entry.household_id
+                              ? "visible"
+                              : entry.is_split
+                                ? "private"
+                                : "split",
+                          })
+                        }
+                        aria-label="Change who can see this entry"
+                        title={
+                          !entry.household_id
+                            ? "Share with household"
+                            : entry.is_split
+                              ? "Make private again"
+                              : "Split this one evenly"
+                        }
+                      >
+                        <Users className="size-4" />
+                      </Button>
+                    ) : null}
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className={`h-8 px-2 ${
-                        entry.household_id ? "text-primary" : "text-muted-foreground"
-                      }`}
-                      disabled={toggleShare.isPending}
-                      onClick={() =>
-                        toggleShare.mutate({
-                          entry_id: entry.id,
-                          mode: !entry.household_id
-                            ? "visible"
-                            : entry.is_split
-                              ? "private"
-                              : "split",
-                        })
-                      }
-                      aria-label="Change who can see this entry"
-                      title={
-                        !entry.household_id
-                          ? "Share with household"
-                          : entry.is_split
-                            ? "Make private again"
-                            : "Split this one evenly"
-                      }
+                      className="h-8 px-2 text-muted-foreground"
+                      disabled={remove.isPending}
+                      onClick={() => {
+                        if (window.confirm("Delete this entry? This can't be undone.")) {
+                          remove.mutate(entry.id);
+                        }
+                      }}
+                      aria-label="Delete entry"
                     >
-                      <Users className="size-4" />
+                      <Trash2 className="size-4" />
                     </Button>
-                  ) : null}
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 px-2 text-muted-foreground"
-                    disabled={remove.isPending}
-                    onClick={() => {
-                      if (window.confirm("Delete this entry? This can't be undone.")) {
-                        remove.mutate(entry.id);
-                      }
-                    }}
-                    aria-label="Delete entry"
-                  >
-                    <Trash2 className="size-4" />
-                  </Button>
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       ) : null}
 
       {show("streaks") ? <StreaksCard /> : null}
@@ -604,9 +628,7 @@ export function StreaksCard() {
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
         {tiles.map((tile) => (
           <div key={tile.label} className="">
-            <p className="eyebrow">
-              {tile.label}
-            </p>
+            <p className="eyebrow">{tile.label}</p>
             <p className="figure mt-2 text-4xl">
               {tile.value} <span className="text-sm font-normal">{tile.suffix}</span>
             </p>
@@ -651,9 +673,7 @@ export function SafeToSpendCard() {
       >
         Safe to spend today
       </p>
-      <p className={`mt-1 text-4xl font-bold ${none ? "text-danger" : ""}`}>
-        {money(safe.amount)}
-      </p>
+      <p className={`mt-1 text-4xl font-bold ${none ? "text-danger" : ""}`}>{money(safe.amount)}</p>
       <p className="mt-3 max-w-md text-sm text-muted-foreground">{safe.explanation}</p>
     </section>
   );
@@ -672,8 +692,8 @@ type EntryRow = {
  * Parsing happens locally, so it's instant and costs nothing.
  */
 export function QuickAdd({ entries }: { entries: EntryRow[] }) {
-  const queryClient = useQueryClient();
-  const addEntry = useServerFn(createEntry);
+  const { user } = useRouteContext({ from: "/_authenticated" });
+  const offline = useOfflineEntries(user?.id);
   const [text, setText] = useState("");
   const [saved, setSaved] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -703,21 +723,19 @@ export function QuickAdd({ entries }: { entries: EntryRow[] }) {
   );
 
   const save = useMutation({
+    // Goes to the server when there's a connection and waits on the device when
+    // there isn't, so a dead signal never costs you the entry.
     mutationFn: () =>
-      addEntry({
-        data: {
-          entry_date: parsed.date,
-          amount_in: parsed.amountIn,
-          amount_out: parsed.amountOut,
-          spent_on: parsed.category,
-          merchant: parsed.merchant,
-          payment_method: "cash",
-        },
+      offline.save({
+        entry_date: parsed.date,
+        amount_in: parsed.amountIn,
+        amount_out: parsed.amountOut,
+        spent_on: parsed.category,
+        merchant: parsed.merchant,
+        payment_method: "cash",
       }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["entries"] });
-      queryClient.invalidateQueries({ queryKey: ["insights"] });
-      setSaved(parsed.summary);
+    onSuccess: (result) => {
+      setSaved(result.queued ? `Saved on this device — ${parsed.summary}` : parsed.summary);
       setText("");
       setTimeout(() => setSaved(null), 3000);
     },
@@ -761,11 +779,7 @@ export function QuickAdd({ entries }: { entries: EntryRow[] }) {
             aria-label={speech.listening ? "Stop listening" : "Add by voice"}
             title={speech.listening ? "Stop listening" : "Add by voice"}
           >
-            {speech.listening ? (
-              <MicOff className="size-4" />
-            ) : (
-              <Mic className="size-4" />
-            )}
+            {speech.listening ? <MicOff className="size-4" /> : <Mic className="size-4" />}
           </Button>
         ) : null}
         <Button type="submit" disabled={!parsed.ok || save.isPending} className="shrink-0">
@@ -774,11 +788,7 @@ export function QuickAdd({ entries }: { entries: EntryRow[] }) {
       </form>
 
       {text.trim() ? (
-        <p
-          className={`mt-2 text-sm ${
-            parsed.ok ? "text-foreground" : "text-muted-foreground"
-          }`}
-        >
+        <p className={`mt-2 text-sm ${parsed.ok ? "text-foreground" : "text-muted-foreground"}`}>
           {parsed.ok ? (
             <>
               <span className="text-muted-foreground">Reading that as:</span>{" "}

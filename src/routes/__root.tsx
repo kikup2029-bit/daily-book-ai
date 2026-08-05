@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { getPublicConfig } from "../lib/public-config.functions";
 import { setSupabaseRuntimeConfig } from "../integrations/supabase/client";
+import { registerServiceWorker } from "../lib/register-sw";
 
 function NotFoundComponent() {
   return (
@@ -85,15 +86,32 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      // viewport-fit=cover so the installed app can paint into the safe area
+      // rather than leaving a pale band under the notch.
+      {
+        name: "viewport",
+        content: "width=device-width, initial-scale=1, viewport-fit=cover",
+      },
+      { title: "SimpleBooks — your daily books, in seconds" },
+      {
+        name: "description",
+        content:
+          "Log the money in and out of your business in seconds, see where you stand, and keep working even with no signal.",
+      },
+      { property: "og:title", content: "SimpleBooks" },
+      {
+        property: "og:description",
+        content: "Log the money in and out of your business in seconds, and see where you stand.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
+      // Installed-app chrome. The colour matches the dark canvas so the status
+      // bar blends into the page instead of framing it.
+      { name: "theme-color", content: "#141413" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "apple-mobile-web-app-title", content: "SimpleBooks" },
+      { name: "mobile-web-app-capable", content: "yes" },
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -107,6 +125,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: appCss,
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "apple-touch-icon", href: "/icons/apple-touch-icon.png", sizes: "180x180" },
     ],
   }),
   shellComponent: RootShell,
@@ -137,6 +157,10 @@ function RootComponent() {
   // Supabase). On client hydration the loader may not re-run, so this covers
   // the case where the config arrives as serialized loader data.
   setSupabaseRuntimeConfig(config.supabaseUrl, config.supabaseKey);
+
+  useEffect(() => {
+    registerServiceWorker();
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

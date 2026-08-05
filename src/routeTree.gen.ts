@@ -33,6 +33,7 @@ import { Route as AuthenticatedAddRouteImport } from './routes/_authenticated/ad
 import { Route as AuthenticatedStreaksRouteImport } from './routes/_authenticated/streaks'
 import { Route as AuthenticatedAskRouteImport } from './routes/_authenticated/ask'
 import { Route as AuthenticatedHelpRouteImport } from './routes/_authenticated/help'
+import { Route as AuthenticatedEntriesRouteImport } from './routes/_authenticated/entries'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -153,6 +154,11 @@ const AuthenticatedHelpRoute = AuthenticatedHelpRouteImport.update({
   path: '/help',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedEntriesRoute = AuthenticatedEntriesRouteImport.update({
+  id: '/entries',
+  path: '/entries',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -177,6 +183,7 @@ export interface FileRoutesByFullPath {
   '/streaks': typeof AuthenticatedStreaksRoute
   '/ask': typeof AuthenticatedAskRoute
   '/help': typeof AuthenticatedHelpRoute
+  '/entries': typeof AuthenticatedEntriesRoute
   '/monthly': typeof AuthenticatedMonthlyRoute
 }
 export interface FileRoutesByTo {
@@ -202,6 +209,7 @@ export interface FileRoutesByTo {
   '/streaks': typeof AuthenticatedStreaksRoute
   '/ask': typeof AuthenticatedAskRoute
   '/help': typeof AuthenticatedHelpRoute
+  '/entries': typeof AuthenticatedEntriesRoute
   '/monthly': typeof AuthenticatedMonthlyRoute
 }
 export interface FileRoutesById {
@@ -229,13 +237,14 @@ export interface FileRoutesById {
   '/_authenticated/streaks': typeof AuthenticatedStreaksRoute
   '/_authenticated/ask': typeof AuthenticatedAskRoute
   '/_authenticated/help': typeof AuthenticatedHelpRoute
+  '/_authenticated/entries': typeof AuthenticatedEntriesRoute
   '/_authenticated/monthly': typeof AuthenticatedMonthlyRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/dashboard' | '/export' | '/monthly' | '/tools' | '/household' | '/margins' | '/drawer' | '/tax' | '/lock' | '/categories' | '/daybyday' | '/week' | '/outlook' | '/busydays' | '/budgets' | '/goals' | '/bills' | '/add' | '/streaks' | '/ask' | '/help'
+  fullPaths: '/' | '/auth' | '/dashboard' | '/export' | '/monthly' | '/tools' | '/household' | '/margins' | '/drawer' | '/tax' | '/lock' | '/categories' | '/daybyday' | '/week' | '/outlook' | '/busydays' | '/budgets' | '/goals' | '/bills' | '/add' | '/streaks' | '/ask' | '/help' | '/entries'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/dashboard' | '/export' | '/monthly' | '/tools' | '/household' | '/margins' | '/drawer' | '/tax' | '/lock' | '/categories' | '/daybyday' | '/week' | '/outlook' | '/busydays' | '/budgets' | '/goals' | '/bills' | '/add' | '/streaks' | '/ask' | '/help'
+  to: '/' | '/auth' | '/dashboard' | '/export' | '/monthly' | '/tools' | '/household' | '/margins' | '/drawer' | '/tax' | '/lock' | '/categories' | '/daybyday' | '/week' | '/outlook' | '/busydays' | '/budgets' | '/goals' | '/bills' | '/add' | '/streaks' | '/ask' | '/help' | '/entries'
   id:
     | '__root__'
     | '/'
@@ -261,6 +270,7 @@ export interface FileRouteTypes {
     | '/_authenticated/streaks'
     | '/_authenticated/ask'
     | '/_authenticated/help'
+    | '/_authenticated/entries'
     | '/_authenticated/monthly'
   fileRoutesById: FileRoutesById
 }
@@ -440,6 +450,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedHelpRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/entries': {
+      id: '/_authenticated/entries'
+      path: '/entries'
+      fullPath: '/entries'
+      preLoaderRoute: typeof AuthenticatedEntriesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -465,6 +482,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedStreaksRoute: typeof AuthenticatedStreaksRoute
   AuthenticatedAskRoute: typeof AuthenticatedAskRoute
   AuthenticatedHelpRoute: typeof AuthenticatedHelpRoute
+  AuthenticatedEntriesRoute: typeof AuthenticatedEntriesRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -489,6 +507,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedStreaksRoute: AuthenticatedStreaksRoute,
   AuthenticatedAskRoute: AuthenticatedAskRoute,
   AuthenticatedHelpRoute: AuthenticatedHelpRoute,
+  AuthenticatedEntriesRoute: AuthenticatedEntriesRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

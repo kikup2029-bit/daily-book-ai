@@ -153,6 +153,27 @@ export const HELP: HelpGroup[] = [
           "The people icon changes who can see it (only if you're in a household).",
           "The bin icon deletes it — it asks first, and this can't be undone.",
         ],
+        notes: ["To change the figures themselves, use Find an entry — see below."],
+      },
+      {
+        id: "find-entry",
+        title: "Find an entry, and correct it",
+        where: "Today → Find an entry",
+        summary: "Search everything you've logged, then tap one to change it.",
+        to: "/entries",
+        keywords:
+          "search find filter edit correct fix change typo mistake history look up amount date wrong",
+        steps: [
+          "Type anything you remember — a shop, a category, a date, even the amount.",
+          "Narrow further with More filters: category, cash or card, a date range, or an amount range.",
+          "Tap a result to open it, change what's wrong, and Save changes.",
+        ],
+        notes: [
+          "Every word you type has to match, so “costco groceries” narrows the list rather than widening it.",
+          "The totals line adds up whatever is on screen, so a search doubles as a quick report — filter to one category and you have that category's total.",
+          "In a household, anyone can correct a shared entry, but only whoever logged it can delete it.",
+          "Searching happens on your device, so it's instant and works offline.",
+        ],
       },
     ],
   },
@@ -436,6 +457,44 @@ export const HELP: HelpGroup[] = [
   },
 
   {
+    id: "offline",
+    label: "Phone and no signal",
+    topics: [
+      {
+        id: "install",
+        title: "Put it on your phone",
+        where: "Today, or your browser menu",
+        summary: "Install it so it opens like an app, full screen, with its own icon.",
+        keywords: "install app home screen pwa download icon standalone phone",
+        steps: [
+          "On Android or Chrome, tap Install when the app offers it on Today.",
+          "On iPhone, tap the Share button in Safari, then Add to Home Screen.",
+        ],
+        notes: [
+          "Installing is what makes offline logging and daily reminders work properly, especially on iPhone.",
+          "It's the same app and the same account — nothing to set up again.",
+        ],
+      },
+      {
+        id: "offline-logging",
+        title: "Logging with no signal",
+        where: "Anywhere",
+        summary: "Keep logging in a basement, a market, or a dead spot. Nothing is lost.",
+        keywords: "offline no signal no internet connection sync queue market basement",
+        notes: [
+          "A bar appears at the top when there's no connection. Carry on logging as normal.",
+          "Entries are held on your device and sent automatically the moment you're back online, in the order you logged them.",
+          "Tap “Show them” in that bar to see exactly what's still waiting.",
+          "Pages you've already opened still work offline, and your figures are readable from the last time they loaded.",
+          "One thing that can't work offline: attaching a receipt photo needs a connection. The entry saves and you add the photo later.",
+          "If an entry is refused several times the app parks it and tells you, rather than dropping it quietly. You can retry or discard it yourself.",
+          "Signing out won't delete anything still waiting — it warns you and keeps it for the next time you sign in on that device.",
+        ],
+      },
+    ],
+  },
+
+  {
     id: "privacy",
     label: "Privacy and your data",
     topics: [
@@ -447,6 +506,7 @@ export const HELP: HelpGroup[] = [
         keywords: "privacy security data who can see safe encryption",
         notes: [
           "Access is enforced by the database itself, not just the app, so another account can't read your entries even in principle.",
+          "The offline copy of your figures is wiped when you sign out, so it can't be read by whoever uses the device next.",
           "Household sharing is per entry and always a deliberate choice.",
           "Receipt photos sit in private storage that only you can open.",
           "You can export everything you've logged at any time, and delete any entry.",

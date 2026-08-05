@@ -293,7 +293,11 @@ export function answerFromEntries(
 
   // === Slow / busy days ====================================================
 
-  if (/\bslow(est)? day\b|\bbusiest day\b|\bbest day\b|\bquiet(est)? day\b|\bday of the week\b|\bwhich day\b/.test(q)) {
+  if (
+    /\bslow(est)? day\b|\bbusiest day\b|\bbest day\b|\bquiet(est)? day\b|\bday of the week\b|\bwhich day\b/.test(
+      q,
+    )
+  ) {
     const p = dayOfWeekPatterns(entries);
     if (!p.enoughData || !p.best || !p.worst) {
       return `I need a few more weeks of entries before day-of-the-week patterns mean anything. Keep logging and ask me again.`;
@@ -307,7 +311,11 @@ export function answerFromEntries(
 
   // === Product margins =====================================================
 
-  if (/\bmargin\b|\bmarkup\b|\bprofit per\b|\bper (item|unit|sale)\b|\bhow much.*keep\b|\bpricing\b|\bprice.*right\b/.test(q)) {
+  if (
+    /\bmargin\b|\bmarkup\b|\bprofit per\b|\bper (item|unit|sale)\b|\bhow much.*keep\b|\bpricing\b|\bprice.*right\b/.test(
+      q,
+    )
+  ) {
     const products = ctx.products ?? [];
     if (products.length === 0) {
       return `You haven't added any items yet — put your cost and selling price into the Tools tab and I'll work out what you keep on each sale.`;
@@ -341,9 +349,7 @@ export function answerFromEntries(
   // === Cash drawer =========================================================
 
   if (/\bdrawer\b|\btill\b|\bcash count\b|\bcount(ed)? the cash\b|\bcash match\b/.test(q)) {
-    const cashEntries = entries.filter(
-      (e) => (e.payment_method ?? "").toLowerCase() === "cash",
-    );
+    const cashEntries = entries.filter((e) => (e.payment_method ?? "").toLowerCase() === "cash");
     const anyMarked = entries.some((e) => e.payment_method);
     const todayCash = (anyMarked ? cashEntries : entries).filter(
       (e) => e.entry_date === todayISO(),
@@ -370,7 +376,7 @@ export function answerFromEntries(
   if (/\bdebt\b|\bcredit.?card\b|\bloan\b|\bowe\b/.test(q)) {
     return NOT_TRACKED(
       "debts, loans, or card balances",
-      "If you log debt payments as expenses with a category like \"Debt\", I can tell you how much you've paid toward it.",
+      'If you log debt payments as expenses with a category like "Debt", I can tell you how much you\'ve paid toward it.',
     );
   }
   if (/\bpaycheck\b|\bpayday\b|\bget paid\b/.test(q)) {
@@ -396,14 +402,12 @@ export function answerFromEntries(
     }
 
     // Monthly saving pace, based on the last 3 months of net.
-    const paceMonths = [0, 1, 2].map((back) =>
-      totals(inRange(entries, monthStart(back), monthEnd(back))).net,
+    const paceMonths = [0, 1, 2].map(
+      (back) => totals(inRange(entries, monthStart(back), monthEnd(back))).net,
     );
     const positivePace = paceMonths.filter((n) => n > 0);
     const monthlyPace =
-      positivePace.length > 0
-        ? positivePace.reduce((s, n) => s + n, 0) / positivePace.length
-        : 0;
+      positivePace.length > 0 ? positivePace.reduce((s, n) => s + n, 0) / positivePace.length : 0;
 
     const lines = goals.map((g) => {
       const remaining = Math.max(0, g.target_amount - g.saved_amount);
@@ -488,7 +492,8 @@ export function answerFromEntries(
       seen.set(key, (seen.get(key) ?? 0) + 1);
     }
     const dupes = [...seen.entries()].filter(([, count]) => count > 1);
-    if (dupes.length === 0) return `I don't see any duplicate expenses — nothing logged twice on the same day for the same amount and category.`;
+    if (dupes.length === 0)
+      return `I don't see any duplicate expenses — nothing logged twice on the same day for the same amount and category.`;
     const list = dupes
       .slice(0, 3)
       .map(([key, count]) => {
@@ -501,9 +506,10 @@ export function answerFromEntries(
 
   // === Budgets =============================================================
 
-  const budgetIntent = /\bbudget\b|\bon track\b|\bexceed|\bover budget\b|\bleft (in|to spend)\b|\bhow much.*left\b|\bsafely spend\b/.test(
-    q,
-  );
+  const budgetIntent =
+    /\bbudget\b|\bon track\b|\bexceed|\bover budget\b|\bleft (in|to spend)\b|\bhow much.*left\b|\bsafely spend\b/.test(
+      q,
+    );
 
   if (budgetIntent) {
     if (budgets.length === 0) {
@@ -520,7 +526,10 @@ export function answerFromEntries(
     });
 
     // "How much is left in <category>?"
-    const askedCat = findCategory(q, budgets.map((b) => b.category));
+    const askedCat = findCategory(
+      q,
+      budgets.map((b) => b.category),
+    );
     if (askedCat) {
       const row = rows.find((r) => r.category === askedCat)!;
       if (row.left >= 0) {
@@ -539,7 +548,9 @@ export function answerFromEntries(
     if (/\bexceed|\bover budget\b/.test(q)) {
       if (over.length === 0)
         return `Good news — you haven't gone over any budget this month.${
-          close.length ? ` ${close.map((r) => r.category).join(" and ")} ${close.length === 1 ? "is" : "are"} getting close though.` : ""
+          close.length
+            ? ` ${close.map((r) => r.category).join(" and ")} ${close.length === 1 ? "is" : "are"} getting close though.`
+            : ""
         }`;
       return `You're over on ${over
         .map((r) => `${r.category} (${money(r.spent)} of ${money(r.monthly_limit)})`)
@@ -593,7 +604,7 @@ export function answerFromEntries(
     }
 
     const monthlyCost = recurring.reduce(
-      (sum, r) => sum + (r.frequency === "weekly" ? r.amount * 52 / 12 : r.amount),
+      (sum, r) => sum + (r.frequency === "weekly" ? (r.amount * 52) / 12 : r.amount),
       0,
     );
 
@@ -601,9 +612,7 @@ export function answerFromEntries(
       const list = recurring
         .map((r) => `${r.category} ${money(r.amount)} ${r.frequency}`)
         .join(", ");
-      return `Your recurring bills come to about ${money(
-        monthlyCost,
-      )} a month: ${list}.`;
+      return `Your recurring bills come to about ${money(monthlyCost)} a month: ${list}.`;
     }
 
     const upcoming = recurring
@@ -657,7 +666,11 @@ export function answerFromEntries(
 
   // === Month-over-month comparison ========================================
 
-  if (/\bcompare\b|\bversus\b|\bvs\b|\bmore or less than\b|\bbetter off\b|\bincreas|\bdecreas|\btrend\b/.test(q)) {
+  if (
+    /\bcompare\b|\bversus\b|\bvs\b|\bmore or less than\b|\bbetter off\b|\bincreas|\bdecreas|\btrend\b/.test(
+      q,
+    )
+  ) {
     const a = totals(thisMonth);
     const b = totals(lastMonth);
 
@@ -681,10 +694,14 @@ export function answerFromEntries(
         .filter((d) => Math.abs(d.delta) > 0.005)
         .sort((x, y) => y.delta - x.delta);
 
-      if (deltas.length === 0) return `Your category spending is basically unchanged from last month.`;
+      if (deltas.length === 0)
+        return `Your category spending is basically unchanged from last month.`;
 
       const up = deltas.filter((d) => d.delta > 0).slice(0, 3);
-      const down = deltas.filter((d) => d.delta < 0).slice(-3).reverse();
+      const down = deltas
+        .filter((d) => d.delta < 0)
+        .slice(-3)
+        .reverse();
       const upText = up.length
         ? `Up: ${up.map((d) => `${d.name} +${money(d.delta)}`).join(", ")}.`
         : "";
@@ -694,10 +711,12 @@ export function answerFromEntries(
       return `${upText}${downText}`.trim();
     }
 
-    return `This month you've spent ${money(a.outSum)} versus ${money(
-      b.outSum,
-    )} last month — ${
-      spendDiff > 0 ? `${money(spendDiff)} more` : spendDiff < 0 ? `${money(spendDiff)} less` : "the same"
+    return `This month you've spent ${money(a.outSum)} versus ${money(b.outSum)} last month — ${
+      spendDiff > 0
+        ? `${money(spendDiff)} more`
+        : spendDiff < 0
+          ? `${money(spendDiff)} less`
+          : "the same"
     }. On the bottom line you're ${
       a.net >= 0 ? `up ${money(a.net)}` : `down ${money(a.net)}`
     } this month versus ${b.net >= 0 ? `up ${money(b.net)}` : `down ${money(b.net)}`} last month${
@@ -731,7 +750,9 @@ export function answerFromEntries(
       .slice(0, 3);
     if (top.length === 0) return `You haven't logged any expenses yet.`;
     return `Your largest expenses: ${top
-      .map((e) => `${money(e.amount_out)} on ${e.entry_date}${e.spent_on ? ` (${e.spent_on})` : ""}`)
+      .map(
+        (e) => `${money(e.amount_out)} on ${e.entry_date}${e.spent_on ? ` (${e.spent_on})` : ""}`,
+      )
       .join(", ")}.`;
   }
 
@@ -759,7 +780,8 @@ export function answerFromEntries(
 
   if (/\bunusual\b|\bmore than normal\b|\bweird\b|\bstands out\b|\bneed review\b/.test(q)) {
     const expenses = entries.filter((e) => e.amount_out > 0);
-    if (expenses.length < 3) return `You don't have enough logged yet for me to spot anything unusual.`;
+    if (expenses.length < 3)
+      return `You don't have enough logged yet for me to spot anything unusual.`;
     const avg = expenses.reduce((s, e) => s + e.amount_out, 0) / expenses.length;
     const outliers = expenses.filter((e) => e.amount_out > avg * 2).slice(0, 3);
     if (outliers.length === 0)
@@ -767,7 +789,9 @@ export function answerFromEntries(
         avg,
       )} average.`;
     return `These stand out against your ${money(avg)} average: ${outliers
-      .map((e) => `${money(e.amount_out)} on ${e.entry_date}${e.spent_on ? ` (${e.spent_on})` : ""}`)
+      .map(
+        (e) => `${money(e.amount_out)} on ${e.entry_date}${e.spent_on ? ` (${e.spent_on})` : ""}`,
+      )
       .join(", ")}.`;
   }
 
@@ -799,8 +823,7 @@ export function answerFromEntries(
       (e) => (e.spent_on ?? "").trim().toLowerCase() === askedCategory.toLowerCase(),
     );
     const spent = scoped.reduce((s, e) => s + e.amount_out, 0);
-    if (spent === 0)
-      return `You haven't logged any ${askedCategory} spending ${period.label}.`;
+    if (spent === 0) return `You haven't logged any ${askedCategory} spending ${period.label}.`;
 
     const budget = budgets.find((b) => b.category === askedCategory);
     const budgetNote =
@@ -846,9 +869,8 @@ export function answerFromEntries(
 
   const incomeIntent =
     /\bincome\b|\bhow much.*(made|earn|revenue|took in|brought in)\b|\bdeposit\b/.test(q);
-  const spendIntent = /\bhow much.*(spent|spend|paid|cost)\b|\btotal (spending|expenses|spent)\b/.test(
-    q,
-  );
+  const spendIntent =
+    /\bhow much.*(spent|spend|paid|cost)\b|\btotal (spending|expenses|spent)\b/.test(q);
 
   if (incomeIntent || spendIntent) {
     const p = detectPeriod(q);
@@ -873,7 +895,10 @@ export function answerFromEntries(
   // === Summaries and period questions =====================================
 
   const period = detectPeriod(q);
-  if (period || /\bsummary\b|\bhow am i doing\b|\bcash flow\b|\bincome versus\b|\bincome vs\b/.test(q)) {
+  if (
+    period ||
+    /\bsummary\b|\bhow am i doing\b|\bcash flow\b|\bincome versus\b|\bincome vs\b/.test(q)
+  ) {
     const p = period ?? { label: "this month", from: monthStart(0), to: monthEnd(0) };
     const scoped = inRange(entries, p.from, p.to);
     const t = totals(scoped);
@@ -881,7 +906,11 @@ export function answerFromEntries(
 
     const top = categoryTotals(scoped)[0];
     const verdict =
-      t.net > 0 ? `you're up ${money(t.net)}` : t.net < 0 ? `you're down ${money(t.net)}` : `you broke even`;
+      t.net > 0
+        ? `you're up ${money(t.net)}`
+        : t.net < 0
+          ? `you're down ${money(t.net)}`
+          : `you broke even`;
 
     return `${p.label[0].toUpperCase()}${p.label.slice(1)}: ${money(t.inSum)} in, ${money(
       t.outSum,
