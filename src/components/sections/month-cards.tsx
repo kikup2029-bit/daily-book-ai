@@ -19,7 +19,7 @@ function useInsights() {
 
 function Loading({ label }: { label: string }) {
   return (
-    <section className="rounded-3xl border bg-card p-5 shadow-sm">
+    <section className="py-8">
       <p className="text-sm text-muted-foreground">{label}</p>
     </section>
   );
@@ -34,8 +34,8 @@ export function WeekDigestCard() {
   const { digest } = data;
 
   return (
-    <section className="rounded-3xl border bg-card p-5 shadow-sm">
-      <h2 className="text-lg font-bold">Your week in plain English</h2>
+    <section className="py-8">
+      <h2 className="text-xl">Your week in plain English</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         {digest.weekFrom} to {digest.weekTo}
       </p>
@@ -60,19 +60,19 @@ export function OutlookCard() {
   const { forecast } = data;
 
   return (
-    <section className="rounded-3xl border bg-card p-5 shadow-sm">
-      <h2 className="text-lg font-bold">Can you cover what&apos;s coming?</h2>
+    <section className="py-8">
+      <h2 className="text-xl">Can you cover what&apos;s coming?</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         Next {forecast.horizonDays} days, based on your last {forecast.basedOnDays} days and the
         bills you&apos;ve set up.
       </p>
 
       <div className="mt-4 grid grid-cols-2 gap-3">
-        <div className="rounded-2xl bg-muted p-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <div className="">
+          <p className="eyebrow">
             Where you are
           </p>
-          <p className="mt-0.5 text-lg font-bold">{money(forecast.currentNet)}</p>
+          <p className="figure mt-2 text-3xl">{money(forecast.currentNet)}</p>
         </div>
         <div
           className={`rounded-2xl p-3 ${
@@ -86,7 +86,7 @@ export function OutlookCard() {
           >
             In {forecast.horizonDays} days
           </p>
-          <p className="mt-0.5 text-lg font-bold">
+          <p className="figure mt-2 text-3xl">
             {forecast.projectedNet < 0 ? "−" : ""}
             {money(forecast.projectedNet)}
           </p>
@@ -115,7 +115,7 @@ export function OutlookCard() {
 
       {forecast.upcomingBills.length > 0 ? (
         <div className="mt-3 border-t pt-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <p className="eyebrow">
             Bills coming up
           </p>
           <ul className="mt-2 space-y-1 text-sm">
@@ -150,8 +150,8 @@ export function TaxJarCard() {
   const { tax } = data;
 
   return (
-    <section className="rounded-3xl border bg-card p-5 shadow-sm">
-      <h2 className="text-lg font-bold">Tax set-aside</h2>
+    <section className="py-8">
+      <h2 className="text-xl">Tax set-aside</h2>
       {tax.ratePercent <= 0 ? (
         <p className="mt-1 text-sm text-muted-foreground">
           Set a percentage below and I&apos;ll keep a running total of what to hold back for tax.
@@ -163,22 +163,22 @@ export function TaxJarCard() {
             {tax.periodLabel}.
           </p>
           <div className="mt-4 grid grid-cols-2 gap-3">
-            <div className="rounded-2xl bg-muted p-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <div className="">
+              <p className="eyebrow">
                 Should set aside
               </p>
-              <p className="mt-0.5 text-lg font-bold">{money(tax.shouldHaveSetAside)}</p>
+              <p className="figure mt-2 text-3xl">{money(tax.shouldHaveSetAside)}</p>
             </div>
-            <div className="rounded-2xl bg-success-soft p-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-success">
+            <div className="">
+              <p className="eyebrow text-success">
                 Already paid
               </p>
-              <p className="mt-0.5 text-lg font-bold">{money(tax.alreadyPaid)}</p>
+              <p className="figure mt-2 text-3xl">{money(tax.alreadyPaid)}</p>
             </div>
           </div>
           <div className="mt-3 rounded-2xl bg-primary p-3 text-center text-primary-foreground">
             <p className="text-sm font-semibold">Still to put aside</p>
-            <p className="mt-0.5 text-2xl font-bold">{money(tax.stillToSetAside)}</p>
+            <p className="figure mt-2 text-5xl">{money(tax.stillToSetAside)}</p>
           </div>
           <p className="mt-2 text-xs text-muted-foreground">
             Log tax payments with &ldquo;tax&rdquo; in the category and they&apos;ll count here. Not
@@ -200,8 +200,8 @@ export function BusyDaysCard() {
 
   if (!dayPatterns.enoughData || !dayPatterns.best || !dayPatterns.worst) {
     return (
-      <section className="rounded-3xl border bg-card p-5 shadow-sm">
-        <h2 className="text-lg font-bold">Your busy and quiet days</h2>
+      <section className="py-8">
+        <h2 className="text-xl">Your busy and quiet days</h2>
         <p className="mt-2 text-sm text-muted-foreground">
           Keep logging for a few more weeks and I&apos;ll show which days of the week are your
           best and quietest.
@@ -214,8 +214,8 @@ export function BusyDaysCard() {
   const worst = dayPatterns.worst;
 
   return (
-    <section className="rounded-3xl border bg-card p-5 shadow-sm">
-      <h2 className="text-lg font-bold">Your busy and quiet days</h2>
+    <section className="py-8">
+      <h2 className="text-xl">Your busy and quiet days</h2>
       <p className="mt-1 text-sm text-muted-foreground">Average money in per day of the week.</p>
 
       <div className="mt-4 space-y-2">

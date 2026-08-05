@@ -181,7 +181,7 @@ export function MonthlyPage({ parts = ALL_PARTS }: { parts?: MonthPart[] } = {})
   return (
     <main className="w-full max-w-2xl">
 
-      <section className="rounded-3xl border bg-card p-5 shadow-sm">
+      <section className="py-8">
         <div className="flex items-center justify-between gap-2">
           <Button
             variant="outline"
@@ -191,7 +191,7 @@ export function MonthlyPage({ parts = ALL_PARTS }: { parts?: MonthPart[] } = {})
           >
             <ChevronLeft className="size-4" />
           </Button>
-          <h2 className="text-lg font-bold">{monthLabel(month)}</h2>
+          <h2 className="text-xl">{monthLabel(month)}</h2>
           <Button
             variant="outline"
             size="icon"
@@ -226,13 +226,13 @@ export function MonthlyPage({ parts = ALL_PARTS }: { parts?: MonthPart[] } = {})
         {show("totals") ? (
         <>
         <div className="mt-4 grid grid-cols-2 gap-3">
-          <div className="rounded-2xl bg-success-soft p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-success">Money in</p>
-            <p className="mt-1 text-xl font-bold">{money(totalIn)}</p>
+          <div className="">
+            <p className="eyebrow text-success">Money in</p>
+            <p className="figure mt-2 text-4xl">{money(totalIn)}</p>
           </div>
-          <div className="rounded-2xl bg-danger-soft p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-danger">Money out</p>
-            <p className="mt-1 text-xl font-bold">{money(totalOut)}</p>
+          <div className="">
+            <p className="eyebrow text-danger">Money out</p>
+            <p className="figure mt-2 text-4xl">{money(totalOut)}</p>
           </div>
         </div>
 
@@ -248,7 +248,7 @@ export function MonthlyPage({ parts = ALL_PARTS }: { parts?: MonthPart[] } = {})
           <p className="text-sm font-semibold">
             {net > 0 ? "Profit this month" : net < 0 ? "Loss this month" : "Break even this month"}
           </p>
-          <p className="mt-0.5 text-2xl font-bold">{money(Math.abs(net))}</p>
+          <p className="figure mt-2 text-5xl">{money(Math.abs(net))}</p>
         </div>
         </>
         ) : null}
@@ -259,8 +259,8 @@ export function MonthlyPage({ parts = ALL_PARTS }: { parts?: MonthPart[] } = {})
       </section>
 
       {show("categories") ? (
-      <section className="mt-5 rounded-3xl border bg-card p-5 shadow-sm">
-        <h2 className="text-lg font-bold">Where the money went</h2>
+      <section className="border-t py-8">
+        <h2 className="text-xl">Where the money went</h2>
         {byCategory.length === 0 ? (
           <p className="mt-2 text-sm text-muted-foreground">
             No spending logged for this month yet.
@@ -299,8 +299,8 @@ export function MonthlyPage({ parts = ALL_PARTS }: { parts?: MonthPart[] } = {})
       ) : null}
 
       {show("daybyday") ? (
-      <section className="mt-5 rounded-3xl border bg-card p-5 shadow-sm">
-        <h2 className="text-lg font-bold">Day by day</h2>
+      <section className="border-t py-8">
+        <h2 className="text-xl">Day by day</h2>
         <p className="mt-1 text-sm text-muted-foreground">Green bars are good days, red are not.</p>
         <div className="mt-3 h-48 w-full">
           <ResponsiveContainer width="100%" height="100%">
@@ -345,7 +345,7 @@ export function InsightsSection() {
 
   if (isLoading) {
     return (
-      <section className="mt-5 rounded-3xl border bg-card p-5 shadow-sm">
+      <section className="border-t py-8">
         <p className="text-sm text-muted-foreground">Working out your outlook…</p>
       </section>
     );
@@ -357,8 +357,8 @@ export function InsightsSection() {
   return (
     <>
       {/* ---------- Weekly digest ---------- */}
-      <section className="mt-5 rounded-3xl border bg-card p-5 shadow-sm">
-        <h2 className="text-lg font-bold">Your week in plain English</h2>
+      <section className="border-t py-8">
+        <h2 className="text-xl">Your week in plain English</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           {digest.weekFrom} to {digest.weekTo}
         </p>
@@ -373,19 +373,19 @@ export function InsightsSection() {
       </section>
 
       {/* ---------- Cash runway ---------- */}
-      <section className="mt-5 rounded-3xl border bg-card p-5 shadow-sm">
-        <h2 className="text-lg font-bold">Can you cover what&apos;s coming?</h2>
+      <section className="border-t py-8">
+        <h2 className="text-xl">Can you cover what&apos;s coming?</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Next {forecast.horizonDays} days, based on your last {forecast.basedOnDays} days and the
           bills you&apos;ve set up.
         </p>
 
         <div className="mt-4 grid grid-cols-2 gap-3">
-          <div className="rounded-2xl bg-muted p-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <div className="">
+            <p className="eyebrow">
               Where you are
             </p>
-            <p className="mt-0.5 text-lg font-bold">{money(forecast.currentNet)}</p>
+            <p className="figure mt-2 text-3xl">{money(forecast.currentNet)}</p>
           </div>
           <div
             className={`rounded-2xl p-3 ${
@@ -399,7 +399,7 @@ export function InsightsSection() {
             >
               In {forecast.horizonDays} days
             </p>
-            <p className="mt-0.5 text-lg font-bold">
+            <p className="figure mt-2 text-3xl">
               {forecast.projectedNet < 0 ? "−" : ""}
               {money(forecast.projectedNet)}
             </p>
@@ -428,7 +428,7 @@ export function InsightsSection() {
 
         {forecast.upcomingBills.length > 0 ? (
           <div className="mt-3 border-t pt-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <p className="eyebrow">
               Bills coming up
             </p>
             <ul className="mt-2 space-y-1 text-sm">
@@ -453,8 +453,8 @@ export function InsightsSection() {
       </section>
 
       {/* ---------- Tax jar ---------- */}
-      <section className="mt-5 rounded-3xl border bg-card p-5 shadow-sm">
-        <h2 className="text-lg font-bold">Tax set-aside</h2>
+      <section className="border-t py-8">
+        <h2 className="text-xl">Tax set-aside</h2>
         {tax.ratePercent <= 0 ? (
           <p className="mt-1 text-sm text-muted-foreground">
             Set a percentage on the Tools tab and I&apos;ll keep a running total of what to hold back
@@ -467,22 +467,22 @@ export function InsightsSection() {
               {tax.periodLabel}.
             </p>
             <div className="mt-4 grid grid-cols-2 gap-3">
-              <div className="rounded-2xl bg-muted p-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <div className="">
+                <p className="eyebrow">
                   Should set aside
                 </p>
-                <p className="mt-0.5 text-lg font-bold">{money(tax.shouldHaveSetAside)}</p>
+                <p className="figure mt-2 text-3xl">{money(tax.shouldHaveSetAside)}</p>
               </div>
-              <div className="rounded-2xl bg-success-soft p-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-success">
+              <div className="">
+                <p className="eyebrow text-success">
                   Already paid
                 </p>
-                <p className="mt-0.5 text-lg font-bold">{money(tax.alreadyPaid)}</p>
+                <p className="figure mt-2 text-3xl">{money(tax.alreadyPaid)}</p>
               </div>
             </div>
             <div className="mt-3 rounded-2xl bg-primary p-3 text-center text-primary-foreground">
               <p className="text-sm font-semibold">Still to put aside</p>
-              <p className="mt-0.5 text-2xl font-bold">{money(tax.stillToSetAside)}</p>
+              <p className="figure mt-2 text-5xl">{money(tax.stillToSetAside)}</p>
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
               Log tax payments with &ldquo;tax&rdquo; in the category and they&apos;ll count here.
@@ -500,8 +500,8 @@ export function InsightsSection() {
 
       {/* ---------- Day patterns ---------- */}
       {dayPatterns.enoughData && dayPatterns.best && dayPatterns.worst ? (
-        <section className="mt-5 rounded-3xl border bg-card p-5 shadow-sm">
-          <h2 className="text-lg font-bold">Your busy and quiet days</h2>
+        <section className="border-t py-8">
+          <h2 className="text-xl">Your busy and quiet days</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             Average money in per day of the week.
           </p>
@@ -566,8 +566,8 @@ export function BillCalendarSection({
   const total = calendar.reduce((sum, b) => sum + b.amount, 0);
 
   return (
-    <section className="mt-5 rounded-3xl border bg-card p-5 shadow-sm">
-      <h2 className="text-lg font-bold">What&apos;s due</h2>
+    <section className="border-t py-8">
+      <h2 className="text-xl">What&apos;s due</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         {money(total)} of bills over the next 45 days.
       </p>
@@ -575,7 +575,7 @@ export function BillCalendarSection({
       <div className="mt-4 space-y-4">
         {groups.map((group) => (
           <div key={group.heading}>
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <p className="eyebrow">
               {group.heading} · {money(group.bills.reduce((s, b) => s + b.amount, 0))}
             </p>
             <ul className="mt-2 divide-y">
@@ -653,8 +653,8 @@ export function DetectedRecurringSection({
   if (visible.length === 0) return null;
 
   return (
-    <section className="mt-5 rounded-3xl border bg-card p-5 shadow-sm">
-      <h2 className="text-lg font-bold">Looks like a regular bill</h2>
+    <section className="border-t py-8">
+      <h2 className="text-xl">Looks like a regular bill</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         I spotted these repeating in your entries. Track them and they&apos;ll show up in your
         outlook and bill reminders.
@@ -742,8 +742,8 @@ export function GoalsSection() {
   });
 
   return (
-    <section className="mt-5 rounded-3xl border bg-card p-5 shadow-sm">
-      <h2 className="text-lg font-bold">Savings goals</h2>
+    <section className="border-t py-8">
+      <h2 className="text-xl">Savings goals</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         Something you're putting money aside for — track how close you are.
       </p>
@@ -886,8 +886,8 @@ export function BudgetsSection({
   });
 
   return (
-    <section className="mt-5 rounded-3xl border bg-card p-5 shadow-sm">
-      <h2 className="text-lg font-bold">Budget limits</h2>
+    <section className="border-t py-8">
+      <h2 className="text-xl">Budget limits</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         Set a monthly cap per category and watch the bars.
       </p>
@@ -1039,8 +1039,8 @@ export function RecurringSection({ rules }: { rules: Rule[] }) {
   };
 
   return (
-    <section className="mt-5 rounded-3xl border bg-card p-5 shadow-sm">
-      <h2 className="text-lg font-bold">Recurring expenses</h2>
+    <section className="border-t py-8">
+      <h2 className="text-xl">Recurring expenses</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         Bills that repeat get logged for you automatically.
       </p>
@@ -1199,7 +1199,7 @@ export function BillsPage() {
   return (
     <main className="w-full max-w-2xl">
       {isLoading ? (
-        <section className="rounded-3xl border bg-card p-5 shadow-sm">
+        <section className="py-8">
           <p className="text-sm text-muted-foreground">Checking what's due…</p>
         </section>
       ) : insights ? (

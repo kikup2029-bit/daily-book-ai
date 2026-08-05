@@ -109,20 +109,21 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
 
   const leafClass = (active: boolean, indented = false) =>
     [
-      "flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm transition-colors",
-      indented ? "pl-9" : "",
+      "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors",
+      indented ? "pl-9 text-[13px]" : "",
+      active ? "border-l-2 border-foreground -ml-[2px]" : "border-l-2 border-transparent -ml-[2px]",
       active
-        ? "bg-primary font-semibold text-primary-foreground"
-        : "text-muted-foreground hover:bg-accent",
+        ? "font-semibold text-foreground"
+        : "text-muted-foreground hover:text-foreground",
     ].join(" ");
 
   const nav = (
     <nav className="flex h-full flex-col gap-0.5">
-      <div className="mb-2 flex items-center gap-2.5 px-3 py-2">
+      <div className="mb-6 flex items-center gap-2.5 px-3">
         <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
           <NotebookPen className="size-4" />
         </span>
-        <span className="text-sm font-bold">SimpleBooks AI</span>
+        <span className="text-sm font-semibold tracking-tight">SimpleBooks AI</span>
       </div>
 
       {TOP.map((item) => (
@@ -220,9 +221,9 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl gap-6 px-4 pb-16 pt-6">
+    <div className="mx-auto flex w-full max-w-6xl gap-10 px-5 pb-24 pt-8">
       {/* Desktop sidebar */}
-      <aside className="sticky top-6 hidden h-[calc(100vh-3rem)] w-56 shrink-0 rounded-3xl border bg-card p-2 shadow-sm lg:block">
+      <aside className="sticky top-8 hidden h-[calc(100vh-4rem)] w-56 shrink-0 border-r pr-4 lg:block">
         {nav}
       </aside>
 

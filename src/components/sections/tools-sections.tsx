@@ -121,8 +121,8 @@ export function HouseholdSection() {
   // --- not in a household yet ---
   if (!state?.household) {
     return (
-      <section className="rounded-3xl border bg-card p-5 shadow-sm">
-        <h2 className="flex items-center gap-2 text-lg font-bold">
+      <section className="py-8">
+        <h2 className="flex items-center gap-2 text-xl">
           <Users className="size-4 text-primary" /> Share with someone
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -199,8 +199,8 @@ export function HouseholdSection() {
   const me = state.members.find((m) => m.role === "owner" && state.isOwner);
 
   return (
-    <section className="rounded-3xl border bg-card p-5 shadow-sm">
-      <h2 className="flex items-center gap-2 text-lg font-bold">
+    <section className="py-8">
+      <h2 className="flex items-center gap-2 text-xl">
         <Users className="size-4 text-primary" /> {state.household.name}
       </h2>
       <p className="mt-1 text-sm text-muted-foreground">
@@ -211,7 +211,7 @@ export function HouseholdSection() {
 
       {/* join code */}
       <div className="mt-4 rounded-2xl bg-muted p-3">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <p className="eyebrow">
           Invite code
         </p>
         <div className="mt-1 flex items-center gap-2">
@@ -275,7 +275,7 @@ export function HouseholdSection() {
       {/* what everyone has logged (shared, whether split or not) */}
       {combined && combined.sharedCount > 0 ? (
         <div className="mt-5 border-t pt-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <p className="eyebrow">
             What everyone has shared
           </p>
           <ul className="mt-2 space-y-1.5 text-sm">
@@ -299,7 +299,7 @@ export function HouseholdSection() {
       {/* settlement — only entries marked "split it" */}
       {settlement && settlement.totalShared > 0 ? (
         <div className="mt-5 border-t pt-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <p className="eyebrow">
             Bills you're splitting
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -418,8 +418,8 @@ export function MarginsSection() {
   });
 
   return (
-    <section className="rounded-3xl border bg-card p-5 shadow-sm">
-      <h2 className="text-lg font-bold">What you actually keep</h2>
+    <section className="py-8">
+      <h2 className="text-xl">What you actually keep</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         Put in what an item costs you and what you sell it for, and see the real profit per sale.
       </p>
@@ -462,7 +462,7 @@ export function MarginsSection() {
                     </p>
                   </div>
                   <div className="rounded-xl bg-muted p-2.5">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    <p className="eyebrow">
                       Margin
                     </p>
                     <p className="mt-0.5 font-bold">{Math.round(m.grossMarginPercent)}%</p>
@@ -596,8 +596,8 @@ export function DrawerSection() {
   });
 
   return (
-    <section className="mt-5 rounded-3xl border bg-card p-5 shadow-sm">
-      <h2 className="text-lg font-bold">Cash drawer check</h2>
+    <section className="border-t py-8">
+      <h2 className="text-xl">Cash drawer check</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         Count the till at the end of the day and see whether it matches what you logged.
       </p>
@@ -653,7 +653,7 @@ export function DrawerSection() {
           />
         </div>
 
-        <div className="rounded-2xl bg-muted p-3 text-sm">
+        <div className="text-sm">
           <p>
             Should be <span className="font-semibold">{money(preview.expected)}</span>{" "}
             <span className="text-muted-foreground">
@@ -755,8 +755,8 @@ export function SettingsSection() {
   });
 
   return (
-    <section className="mt-5 rounded-3xl border bg-card p-5 shadow-sm">
-      <h2 className="text-lg font-bold">Settings</h2>
+    <section className="border-t py-8">
+      <h2 className="text-xl">Settings</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         Set what share of income to hold back for tax, and how much cash you normally start the day
         with.
@@ -861,8 +861,8 @@ export function LockSection() {
   const enabled = Boolean(settings?.lock_enabled);
 
   return (
-    <section className="mt-5 rounded-3xl border bg-card p-5 shadow-sm">
-      <h2 className="flex items-center gap-2 text-lg font-bold">
+    <section className="border-t py-8">
+      <h2 className="flex items-center gap-2 text-xl">
         <Lock className="size-4 text-primary" /> Lock this app
       </h2>
       <p className="mt-1 text-sm text-muted-foreground">
@@ -871,7 +871,7 @@ export function LockSection() {
 
       {enabled ? (
         <div className="mt-4 space-y-3">
-          <div className="rounded-2xl bg-success-soft p-3">
+          <div className="">
             <p className="text-sm font-semibold text-success">Lock is on</p>
             <p className="text-xs text-muted-foreground">
               {settings?.lock_timeout_minutes === 0

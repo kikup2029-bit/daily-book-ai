@@ -137,8 +137,8 @@ export function LockGate({ children }: { children: React.ReactNode }) {
         </div>
       </div>
 
-      <section className="rounded-3xl border bg-card p-5 shadow-sm">
-        <h2 className="flex items-center gap-2 text-lg font-bold">
+      <section className="py-8">
+        <h2 className="flex items-center gap-2 text-xl">
           <Lock className="size-4" /> Enter your PIN
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">

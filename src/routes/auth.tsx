@@ -101,8 +101,8 @@ function AuthPage() {
         </div>
       </div>
 
-      <section className="rounded-3xl border bg-card p-5 shadow-sm">
-        <h2 className="text-lg font-bold">{mode === "signin" ? "Welcome back" : "Create account"}</h2>
+      <section className="py-8">
+        <h2 className="text-xl">{mode === "signin" ? "Welcome back" : "Create account"}</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           {mode === "signin"
             ? "Sign in to see today's totals."

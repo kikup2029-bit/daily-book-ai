@@ -224,8 +224,8 @@ function Dashboard() {
       <SafeToSpendCard />
       <QuickAdd entries={entries} />
 
-      <section className="mt-5 rounded-3xl border bg-card p-5 shadow-sm">
-        <h2 className="text-lg font-bold">Today&apos;s entry</h2>
+      <section className="border-t py-8">
+        <h2 className="text-xl">Today&apos;s entry</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Jot down what came in and what went out.
         </p>
@@ -388,21 +388,21 @@ function Dashboard() {
         </form>
       </section>
 
-      <section className="mt-5 rounded-3xl border bg-card p-5 shadow-sm">
-        <h2 className="text-lg font-bold">Today at a glance</h2>
+      <section className="border-t py-8">
+        <h2 className="text-xl">Today at a glance</h2>
 
         <div className="mt-4 grid grid-cols-2 gap-3">
-          <div className="rounded-2xl bg-success-soft p-4">
-            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-success">
+          <div className="">
+            <p className="eyebrow flex items-center gap-1.5 text-success">
               <ArrowUpCircle className="size-4" /> Money in
             </p>
-            <p className="mt-1 text-xl font-bold">{money(todayIn)}</p>
+            <p className="figure mt-2 text-4xl">{money(todayIn)}</p>
           </div>
-          <div className="rounded-2xl bg-danger-soft p-4">
-            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-danger">
+          <div className="">
+            <p className="eyebrow flex items-center gap-1.5 text-danger">
               <ArrowDownCircle className="size-4" /> Money out
             </p>
-            <p className="mt-1 text-xl font-bold">{money(todayOut)}</p>
+            <p className="figure mt-2 text-4xl">{money(todayOut)}</p>
           </div>
         </div>
 
@@ -422,7 +422,7 @@ function Dashboard() {
                 ? "You lost money today"
                 : "Break even today"}
           </p>
-          <p className="mt-0.5 text-2xl font-bold">{money(Math.abs(net))}</p>
+          <p className="figure mt-2 text-5xl">{money(Math.abs(net))}</p>
         </div>
 
         <p className="mt-4 text-sm text-muted-foreground">
@@ -535,7 +535,7 @@ function DueSoonBanner() {
   const total = soon.reduce((sum, bill) => sum + bill.amount, 0);
 
   return (
-    <section className="mb-5 rounded-3xl border border-danger bg-danger-soft p-4">
+    <section className="mb-8 border-l-2 border-danger pl-4">
       <p className="flex items-center gap-2 text-sm font-bold text-danger">
         <CalendarClock className="size-4" />
         {soon.length === 1 ? "A bill is due soon" : `${soon.length} bills due soon`} ·{" "}
@@ -595,8 +595,8 @@ function StreaksCard() {
   ].filter((tile) => tile.show);
 
   return (
-    <section className="mt-5 rounded-3xl border bg-card p-5 shadow-sm">
-      <h2 className="flex items-center gap-2 text-lg font-bold">
+    <section className="border-t py-8">
+      <h2 className="flex items-center gap-2 text-xl">
         <Flame className="size-4 text-primary" /> Your streaks
       </h2>
       <p className="mt-1 text-sm text-muted-foreground">
@@ -607,11 +607,11 @@ function StreaksCard() {
 
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
         {tiles.map((tile) => (
-          <div key={tile.label} className="rounded-2xl bg-muted p-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <div key={tile.label} className="">
+            <p className="eyebrow">
               {tile.label}
             </p>
-            <p className="mt-0.5 text-xl font-bold">
+            <p className="figure mt-2 text-4xl">
               {tile.value} <span className="text-sm font-normal">{tile.suffix}</span>
             </p>
             {tile.best > tile.value ? (
@@ -647,11 +647,7 @@ function SafeToSpendCard() {
   const none = safe.amount <= 0;
 
   return (
-    <section
-      className={`rounded-3xl border p-5 shadow-sm ${
-        none ? "bg-danger-soft" : "bg-primary text-primary-foreground"
-      }`}
-    >
+    <section className="pb-8">
       <p
         className={`text-xs font-semibold uppercase tracking-wide ${
           none ? "text-danger" : "text-primary-foreground/80"
@@ -662,9 +658,7 @@ function SafeToSpendCard() {
       <p className={`mt-1 text-4xl font-bold ${none ? "text-danger" : ""}`}>
         {money(safe.amount)}
       </p>
-      <p className={`mt-2 text-sm ${none ? "text-danger" : "text-primary-foreground/90"}`}>
-        {safe.explanation}
-      </p>
+      <p className="mt-3 max-w-md text-sm text-muted-foreground">{safe.explanation}</p>
     </section>
   );
 }
@@ -735,8 +729,8 @@ function QuickAdd({ entries }: { entries: EntryRow[] }) {
   });
 
   return (
-    <section className="rounded-3xl border bg-card p-5 shadow-sm">
-      <h2 className="flex items-center gap-2 text-lg font-bold">
+    <section className="py-8">
+      <h2 className="flex items-center gap-2 text-xl">
         <Zap className="size-4 text-primary" /> Quick add
       </h2>
       <p className="mt-1 text-sm text-muted-foreground">
@@ -859,8 +853,8 @@ function AskSection() {
   };
 
   return (
-    <section className="mt-5 rounded-3xl border bg-card p-5 shadow-sm">
-      <h2 className="text-lg font-bold">Ask about your money</h2>
+    <section className="border-t py-8">
+      <h2 className="text-xl">Ask about your money</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         Ask about your numbers in plain English — no accounting talk.
       </p>

@@ -147,8 +147,8 @@ function ExportPage() {
   return (
     <main className="w-full max-w-2xl">
 
-      <section className="rounded-3xl border bg-card p-5 shadow-sm">
-        <h2 className="text-lg font-bold">Export your records</h2>
+      <section className="py-8">
+        <h2 className="text-xl">Export your records</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Pick the dates you need, then download a spreadsheet or a tidy PDF for your accountant.
         </p>
@@ -204,7 +204,7 @@ function ExportPage() {
           </Button>
         </div>
 
-        <div className="mt-5 rounded-2xl bg-muted p-4 text-sm">
+        <div className="mt-6 text-sm">
           {isLoading ? (
             <p className="text-muted-foreground">Loading your entries…</p>
           ) : (
@@ -220,7 +220,7 @@ function ExportPage() {
 
         {!isLoading && filtered.length > 0 ? (
           <div className="mt-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <p className="eyebrow">
               Preview — this is what you&apos;ll get
             </p>
             <div className="mt-2">
@@ -239,7 +239,7 @@ function ExportPage() {
               <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-secondary-foreground">
                 Sample
               </span>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <p className="eyebrow">
                 What your export will look like
               </p>
             </div>
@@ -260,7 +260,7 @@ function ExportPage() {
         ) : null}
 
         {download && !isLoading && filtered.length === 0 ? (
-          <p className="mt-4 rounded-2xl bg-danger-soft p-3 text-sm text-danger">
+          <p className="mt-4 border-l-2 border-danger pl-4 text-sm text-danger">
             Nothing to download for these dates yet — pick a wider range below.
           </p>
         ) : null}
