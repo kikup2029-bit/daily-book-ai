@@ -1,12 +1,11 @@
-import { useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { FileSpreadsheet, FileText } from "lucide-react";
 
 import type { ExportEntry } from "@/lib/export";
 
-import { AppHeader } from "@/components/app-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,6 +29,10 @@ export const Route = createFileRoute("/_authenticated/export")({
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
+  }),
+  // The sidebar's "Download CSV/PDF" shortcuts land here with ?download=…
+  validateSearch: (search: Record<string, unknown>) => ({
+    download: search.download === "csv" || search.download === "pdf" ? search.download : undefined,
   }),
   component: ExportPage,
 });
@@ -101,6 +104,8 @@ function PreviewTable({
 }
 
 function ExportPage() {
+  const navigate = useNavigate();
+  const { download } = useSearch({ from: "/_authenticated/export" });
   const fetchEntries = useServerFn(getEntries);
   const { data: entries = [], isLoading } = useQuery({
     queryKey: ["entries"],
@@ -124,9 +129,23 @@ function ExportPage() {
   const rangeLabel = `${from || "the beginning"} to ${to || "today"}`;
   const filename = `simplebooks-${from || "all"}-to-${to || "today"}`;
 
+  // Run a shortcut download once, after the entries are in.
+  const firedFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (!download || isLoading) return;
+    if (firedFor.current === download) return;
+    firedFor.current = download;
+
+    if (filtered.length > 0) {
+      if (download === "csv") exportCsv(filtered, filename);
+      else exportPdf(filtered, filename, rangeLabel);
+    }
+    // Drop the parameter so a refresh doesn't download again.
+    navigate({ to: "/export", search: {}, replace: true });
+  }, [download, isLoading, filtered, filename, rangeLabel, navigate]);
+
   return (
-    <main className="mx-auto w-full max-w-xl px-4 pb-16 pt-8 sm:pt-12">
-      <AppHeader />
+    <main className="w-full max-w-2xl">
 
       <section className="rounded-3xl border bg-card p-5 shadow-sm">
         <h2 className="text-lg font-bold">Export your records</h2>
@@ -238,6 +257,12 @@ function ExportPage() {
               in range.
             </p>
           </div>
+        ) : null}
+
+        {download && !isLoading && filtered.length === 0 ? (
+          <p className="mt-4 rounded-2xl bg-danger-soft p-3 text-sm text-danger">
+            Nothing to download for these dates yet — pick a wider range below.
+          </p>
         ) : null}
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2">

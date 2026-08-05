@@ -22,7 +22,6 @@ import { normalizeSpokenMoney, useSpeech } from "@/lib/use-speech";
 import { getInsights } from "@/lib/shop.functions";
 import { getHousehold, setEntryShare } from "@/lib/household.functions";
 
-import { AppHeader } from "@/components/app-header";
 import { ReceiptAttachButton, ReceiptThumb } from "@/components/receipt-controls";
 import { uploadReceipt } from "@/lib/receipts";
 import { attachReceipt, analyzeReceipt, removeEntry } from "@/lib/books.functions";
@@ -219,8 +218,7 @@ function Dashboard() {
   const allOut = entries.reduce((sum, entry) => sum + entry.amount_out, 0);
 
   return (
-    <main className="mx-auto w-full max-w-xl px-4 pb-16 pt-8 sm:pt-12">
-      <AppHeader />
+    <main className="w-full max-w-2xl">
 
       <DueSoonBanner />
       <SafeToSpendCard />
