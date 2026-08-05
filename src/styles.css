@@ -199,3 +199,33 @@
     color: var(--color-muted-foreground);
   }
 }
+
+@layer utilities {
+  /* Placeholder block shown while data loads. */
+  .skeleton {
+    background: color-mix(in oklab, var(--color-muted-foreground) 18%, transparent);
+    border-radius: 0.5rem;
+    animation: skeleton-pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes skeleton-pulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 0.85; }
+  }
+
+  /* Gentle entrance for page content. */
+  .rise {
+    animation: rise-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @keyframes rise-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  /* Anyone who asks for less motion gets none of it. */
+  @media (prefers-reduced-motion: reduce) {
+    .skeleton { animation: none; }
+    .rise { animation: none; }
+  }
+}

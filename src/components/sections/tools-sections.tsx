@@ -325,10 +325,8 @@ export function HouseholdSection() {
           </ul>
 
           {settlement.transfers.length > 0 ? (
-            <div className="mt-3 rounded-2xl bg-primary p-3 text-primary-foreground">
-              <p className="text-xs font-semibold uppercase tracking-wide opacity-80">
-                To square up
-              </p>
+            <div className="mt-6 border-t pt-5">
+              <p className="eyebrow">To square up</p>
               <ul className="mt-1 space-y-0.5 text-sm font-semibold">
                 {settlement.transfers.map((transfer, index) => (
                   <li key={index}>

@@ -34,6 +34,7 @@ import { askBookkeeper, createEntry, getEntries } from "@/lib/books.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Onboarding } from "@/components/onboarding";
 
 type ChatMessage = { role: "user" | "assistant"; text: string };
 
@@ -207,8 +208,9 @@ export function Dashboard({ parts = ALL_TODAY }: { parts?: TodayPart[] } = {}) {
   const allOut = entries.reduce((sum, entry) => sum + entry.amount_out, 0);
 
   return (
-    <div className="w-full max-w-3xl">
+    <div className="rise mx-auto w-full max-w-3xl">
 
+      {show("due") ? <Onboarding /> : null}
       {show("due") ? <DueSoonBanner /> : null}
       {show("safe") ? <SafeToSpendCard /> : null}
       {show("quickadd") ? <QuickAdd entries={entries} /> : null}
@@ -424,7 +426,7 @@ export function Dashboard({ parts = ALL_TODAY }: { parts?: TodayPart[] } = {}) {
         </p>
 
         {isLoading ? (
-          <p className="mt-3 text-sm text-muted-foreground">Loading your entries…</p>
+          <span className="skeleton mt-3 block h-4 w-40" />
         ) : entries.length === 0 ? (
           <p className="mt-3 text-sm text-muted-foreground">
             No entries yet — add your first one above.

@@ -19,8 +19,10 @@ function useInsights() {
 
 function Loading({ label }: { label: string }) {
   return (
-    <section className="py-8">
-      <p className="text-sm text-muted-foreground">{label}</p>
+    <section className="py-8" aria-busy="true" aria-label={label}>
+      <span className="skeleton block h-4 w-44" />
+      <span className="skeleton mt-5 block h-12 w-56" />
+      <span className="skeleton mt-3 block h-3.5 w-72" />
     </section>
   );
 }
@@ -67,20 +69,16 @@ export function OutlookCard() {
         bills you&apos;ve set up.
       </p>
 
-      <div className="mt-4 grid grid-cols-2 gap-3">
+      <div className="mt-6 grid grid-cols-2 gap-8">
         <div className="">
           <p className="eyebrow">
             Where you are
           </p>
           <p className="figure mt-2 text-3xl">{money(forecast.currentNet)}</p>
         </div>
-        <div
-          className={`rounded-2xl p-3 ${
-            forecast.projectedNet >= 0 ? "bg-success-soft" : "bg-danger-soft"
-          }`}
-        >
+        <div>
           <p
-            className={`text-xs font-semibold uppercase tracking-wide ${
+            className={`eyebrow ${
               forecast.projectedNet >= 0 ? "text-success" : "text-danger"
             }`}
           >
@@ -94,11 +92,11 @@ export function OutlookCard() {
       </div>
 
       {forecast.shortfallDate ? (
-        <div className="mt-3 rounded-2xl bg-danger p-3 text-danger-foreground">
-          <p className="text-sm font-semibold">
+        <div className="mt-4 border-l-2 border-danger pl-4">
+          <p className="text-sm font-semibold text-danger">
             Heads up — you could run short around {forecast.shortfallDate}.
           </p>
-          <p className="mt-0.5 text-xs">
+          <p className="mt-0.5 text-xs text-muted-foreground">
             Lowest point is {money(forecast.lowestPoint.balance)} on {forecast.lowestPoint.date}.
           </p>
         </div>
@@ -162,7 +160,7 @@ export function TaxJarCard() {
             Holding back {tax.ratePercent}% of the {money(tax.incomeInPeriod)} you&apos;ve taken in{" "}
             {tax.periodLabel}.
           </p>
-          <div className="mt-4 grid grid-cols-2 gap-3">
+          <div className="mt-6 grid grid-cols-2 gap-8">
             <div className="">
               <p className="eyebrow">
                 Should set aside
@@ -176,9 +174,9 @@ export function TaxJarCard() {
               <p className="figure mt-2 text-3xl">{money(tax.alreadyPaid)}</p>
             </div>
           </div>
-          <div className="mt-3 rounded-2xl bg-primary p-3 text-center text-primary-foreground">
-            <p className="text-sm font-semibold">Still to put aside</p>
-            <p className="figure mt-2 text-5xl">{money(tax.stillToSetAside)}</p>
+          <div className="mt-8 border-t pt-6">
+            <p className="eyebrow">Still to put aside</p>
+            <p className="figure mt-3 text-5xl">{money(tax.stillToSetAside)}</p>
           </div>
           <p className="mt-2 text-xs text-muted-foreground">
             Log tax payments with &ldquo;tax&rdquo; in the category and they&apos;ll count here. Not

@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, Menu, Moon, Sun, X } from "lucide-react";
+import { ChevronDown, Menu, Moon, Search, Sun, X } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { CommandPalette } from "@/components/command-palette";
 
 type Leaf = { to: string; label: string };
 type Item = { label: string; to: string; children?: Leaf[] };
@@ -135,7 +136,7 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen">
       {/* ---------- top bar ---------- */}
       <header className="sticky top-0 z-40 border-b bg-background/85 backdrop-blur">
-        <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-1 px-5">
+        <div className="mx-auto flex h-16 w-full max-w-4xl items-center gap-1 px-5">
           <Link
             to="/dashboard"
             className="mr-6 text-sm font-semibold tracking-tight text-foreground"
@@ -203,6 +204,20 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
           </nav>
 
           <div className="ml-auto flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() =>
+                window.dispatchEvent(
+                  new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true }),
+                )
+              }
+              className="hidden items-center gap-2 rounded-lg border px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground sm:flex"
+              aria-label="Open command palette"
+            >
+              <Search className="size-3.5" />
+              <span>Search</span>
+              <kbd className="rounded border px-1 py-0.5 text-[10px]">⌘K</kbd>
+            </button>
             <button
               type="button"
               onClick={toggle}
@@ -299,7 +314,9 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
       ) : null}
 
       {/* ---------- page ---------- */}
-      <main className="mx-auto w-full max-w-6xl px-5 pb-28 pt-10">{children}</main>
+      <main className="mx-auto w-full max-w-4xl px-5 pb-28 pt-12">{children}</main>
+
+      <CommandPalette />
     </div>
   );
 }

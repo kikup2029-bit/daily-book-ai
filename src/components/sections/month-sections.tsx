@@ -37,6 +37,7 @@ import {
   saveRecurring,
 } from "@/lib/planning.functions";
 import { getInsights } from "@/lib/shop.functions";
+import { EmptyState, SampleRows } from "@/components/empty-state";
 
 const money = (value: number) =>
   value.toLocaleString(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 2 });
@@ -179,7 +180,7 @@ export function MonthlyPage({ parts = ALL_PARTS }: { parts?: MonthPart[] } = {})
   const alerts = budgetRows.filter((row) => row.pct >= 80);
 
   return (
-    <div className="w-full max-w-3xl">
+    <div className="rise mx-auto w-full max-w-3xl">
 
       <section className="py-8">
         <div className="flex items-center justify-between gap-2">
@@ -254,7 +255,7 @@ export function MonthlyPage({ parts = ALL_PARTS }: { parts?: MonthPart[] } = {})
         ) : null}
 
         {isLoading ? (
-          <p className="mt-4 text-sm text-muted-foreground">Loading your numbers…</p>
+          <span className="skeleton mt-4 block h-4 w-40" />
         ) : null}
       </section>
 
@@ -262,9 +263,11 @@ export function MonthlyPage({ parts = ALL_PARTS }: { parts?: MonthPart[] } = {})
       <section className="border-t py-8">
         <h2 className="text-xl">Where the money went</h2>
         {byCategory.length === 0 ? (
-          <p className="mt-2 text-sm text-muted-foreground">
-            No spending logged for this month yet.
-          </p>
+          <EmptyState
+            title="Nothing spent this month yet"
+            blurb="Once you log expenses, this shows exactly which categories your money went to, biggest first."
+            sample={<SampleRows rows={4} />}
+          />
         ) : (
           <>
             <div className="mt-2 h-56 w-full">
@@ -346,7 +349,7 @@ export function InsightsSection() {
   if (isLoading) {
     return (
       <section className="border-t py-8">
-        <p className="text-sm text-muted-foreground">Working out your outlook…</p>
+        <span className="skeleton block h-4 w-48" />
       </section>
     );
   }
@@ -407,7 +410,7 @@ export function InsightsSection() {
         </div>
 
         {forecast.shortfallDate ? (
-          <div className="mt-3 rounded-2xl bg-danger p-3 text-danger-foreground">
+          <div className="mt-4 border-l-2 border-danger pl-4">
             <p className="text-sm font-semibold">
               Heads up — you could run short around {forecast.shortfallDate}.
             </p>
@@ -480,7 +483,7 @@ export function InsightsSection() {
                 <p className="figure mt-2 text-3xl">{money(tax.alreadyPaid)}</p>
               </div>
             </div>
-            <div className="mt-3 rounded-2xl bg-primary p-3 text-center text-primary-foreground">
+            <div className="mt-8 border-t pt-6">
               <p className="text-sm font-semibold">Still to put aside</p>
               <p className="figure mt-2 text-5xl">{money(tax.stillToSetAside)}</p>
             </div>
@@ -1197,10 +1200,10 @@ export function BillsPage() {
   });
 
   return (
-    <div className="w-full max-w-3xl">
+    <div className="rise mx-auto w-full max-w-3xl">
       {isLoading ? (
         <section className="py-8">
-          <p className="text-sm text-muted-foreground">Checking what's due…</p>
+          <span className="skeleton block h-4 w-40" />
         </section>
       ) : insights ? (
         <>

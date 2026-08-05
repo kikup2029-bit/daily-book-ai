@@ -4,7 +4,7 @@ import { TaxJarCard } from "@/components/sections/month-cards";
 import { SettingsSection } from "@/components/sections/tools-sections";
 
 const Page = () => (
-  <div className="w-full max-w-3xl">
+  <div className="rise mx-auto w-full max-w-3xl">
     <TaxJarCard />
     <SettingsSection />
   </div>

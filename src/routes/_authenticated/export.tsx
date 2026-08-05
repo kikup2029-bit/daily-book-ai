@@ -145,7 +145,7 @@ function ExportPage() {
   }, [download, isLoading, filtered, filename, rangeLabel, navigate]);
 
   return (
-    <div className="w-full max-w-3xl">
+    <div className="rise mx-auto w-full max-w-3xl">
 
       <section className="py-8">
         <h2 className="text-xl">Export your records</h2>
@@ -206,7 +206,7 @@ function ExportPage() {
 
         <div className="mt-6 text-sm">
           {isLoading ? (
-            <p className="text-muted-foreground">Loading your entries…</p>
+            <span className="skeleton block h-4 w-40" />
           ) : (
             <p>
               <span className="font-semibold">
