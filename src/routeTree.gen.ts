@@ -29,6 +29,9 @@ import { Route as AuthenticatedBusydaysRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedBudgetsRouteImport } from './routes/_authenticated/budgets'
 import { Route as AuthenticatedGoalsRouteImport } from './routes/_authenticated/goals'
 import { Route as AuthenticatedBillsRouteImport } from './routes/_authenticated/bills'
+import { Route as AuthenticatedAddRouteImport } from './routes/_authenticated/add'
+import { Route as AuthenticatedStreaksRouteImport } from './routes/_authenticated/streaks'
+import { Route as AuthenticatedAskRouteImport } from './routes/_authenticated/ask'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -129,6 +132,21 @@ const AuthenticatedBillsRoute = AuthenticatedBillsRouteImport.update({
   path: '/bills',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAddRoute = AuthenticatedAddRouteImport.update({
+  id: '/add',
+  path: '/add',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedStreaksRoute = AuthenticatedStreaksRouteImport.update({
+  id: '/streaks',
+  path: '/streaks',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAskRoute = AuthenticatedAskRouteImport.update({
+  id: '/ask',
+  path: '/ask',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -149,6 +167,9 @@ export interface FileRoutesByFullPath {
   '/budgets': typeof AuthenticatedBudgetsRoute
   '/goals': typeof AuthenticatedGoalsRoute
   '/bills': typeof AuthenticatedBillsRoute
+  '/add': typeof AuthenticatedAddRoute
+  '/streaks': typeof AuthenticatedStreaksRoute
+  '/ask': typeof AuthenticatedAskRoute
   '/monthly': typeof AuthenticatedMonthlyRoute
 }
 export interface FileRoutesByTo {
@@ -170,6 +191,9 @@ export interface FileRoutesByTo {
   '/budgets': typeof AuthenticatedBudgetsRoute
   '/goals': typeof AuthenticatedGoalsRoute
   '/bills': typeof AuthenticatedBillsRoute
+  '/add': typeof AuthenticatedAddRoute
+  '/streaks': typeof AuthenticatedStreaksRoute
+  '/ask': typeof AuthenticatedAskRoute
   '/monthly': typeof AuthenticatedMonthlyRoute
 }
 export interface FileRoutesById {
@@ -193,13 +217,16 @@ export interface FileRoutesById {
   '/_authenticated/budgets': typeof AuthenticatedBudgetsRoute
   '/_authenticated/goals': typeof AuthenticatedGoalsRoute
   '/_authenticated/bills': typeof AuthenticatedBillsRoute
+  '/_authenticated/add': typeof AuthenticatedAddRoute
+  '/_authenticated/streaks': typeof AuthenticatedStreaksRoute
+  '/_authenticated/ask': typeof AuthenticatedAskRoute
   '/_authenticated/monthly': typeof AuthenticatedMonthlyRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/dashboard' | '/export' | '/monthly' | '/tools' | '/household' | '/margins' | '/drawer' | '/tax' | '/lock' | '/categories' | '/daybyday' | '/week' | '/outlook' | '/busydays' | '/budgets' | '/goals' | '/bills'
+  fullPaths: '/' | '/auth' | '/dashboard' | '/export' | '/monthly' | '/tools' | '/household' | '/margins' | '/drawer' | '/tax' | '/lock' | '/categories' | '/daybyday' | '/week' | '/outlook' | '/busydays' | '/budgets' | '/goals' | '/bills' | '/add' | '/streaks' | '/ask'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/dashboard' | '/export' | '/monthly' | '/tools' | '/household' | '/margins' | '/drawer' | '/tax' | '/lock' | '/categories' | '/daybyday' | '/week' | '/outlook' | '/busydays' | '/budgets' | '/goals' | '/bills'
+  to: '/' | '/auth' | '/dashboard' | '/export' | '/monthly' | '/tools' | '/household' | '/margins' | '/drawer' | '/tax' | '/lock' | '/categories' | '/daybyday' | '/week' | '/outlook' | '/busydays' | '/budgets' | '/goals' | '/bills' | '/add' | '/streaks' | '/ask'
   id:
     | '__root__'
     | '/'
@@ -221,6 +248,9 @@ export interface FileRouteTypes {
     | '/_authenticated/budgets'
     | '/_authenticated/goals'
     | '/_authenticated/bills'
+    | '/_authenticated/add'
+    | '/_authenticated/streaks'
+    | '/_authenticated/ask'
     | '/_authenticated/monthly'
   fileRoutesById: FileRoutesById
 }
@@ -372,6 +402,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedBillsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/add': {
+      id: '/_authenticated/add'
+      path: '/add'
+      fullPath: '/add'
+      preLoaderRoute: typeof AuthenticatedAddRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/streaks': {
+      id: '/_authenticated/streaks'
+      path: '/streaks'
+      fullPath: '/streaks'
+      preLoaderRoute: typeof AuthenticatedStreaksRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/ask': {
+      id: '/_authenticated/ask'
+      path: '/ask'
+      fullPath: '/ask'
+      preLoaderRoute: typeof AuthenticatedAskRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -393,6 +444,9 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedBudgetsRoute: typeof AuthenticatedBudgetsRoute
   AuthenticatedGoalsRoute: typeof AuthenticatedGoalsRoute
   AuthenticatedBillsRoute: typeof AuthenticatedBillsRoute
+  AuthenticatedAddRoute: typeof AuthenticatedAddRoute
+  AuthenticatedStreaksRoute: typeof AuthenticatedStreaksRoute
+  AuthenticatedAskRoute: typeof AuthenticatedAskRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -413,6 +467,9 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBudgetsRoute: AuthenticatedBudgetsRoute,
   AuthenticatedGoalsRoute: AuthenticatedGoalsRoute,
   AuthenticatedBillsRoute: AuthenticatedBillsRoute,
+  AuthenticatedAddRoute: AuthenticatedAddRoute,
+  AuthenticatedStreaksRoute: AuthenticatedStreaksRoute,
+  AuthenticatedAskRoute: AuthenticatedAskRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

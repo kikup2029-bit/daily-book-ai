@@ -9,7 +9,16 @@ type Leaf = { to: string; label: string };
 type Item = { label: string; to: string; children?: Leaf[] };
 
 const NAV: Item[] = [
-  { label: "Today", to: "/dashboard" },
+  {
+    label: "Today",
+    to: "/dashboard",
+    children: [
+      { to: "/dashboard", label: "Overview" },
+      { to: "/add", label: "Add an entry" },
+      { to: "/streaks", label: "Your streaks" },
+      { to: "/ask", label: "Ask about your money" },
+    ],
+  },
   {
     label: "This month",
     to: "/monthly",
