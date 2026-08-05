@@ -15,24 +15,80 @@ const PAGES: Array<{ to: string; label: string; group: string; keywords?: string
   { to: "/ask", label: "Ask about your money", group: "Today", keywords: "chat question ai help" },
 
   { to: "/monthly", label: "This month", group: "This month", keywords: "overview totals profit" },
-  { to: "/categories", label: "Where money went", group: "This month", keywords: "categories pie spending breakdown" },
+  {
+    to: "/categories",
+    label: "Where money went",
+    group: "This month",
+    keywords: "categories pie spending breakdown",
+  },
   { to: "/daybyday", label: "Day by day", group: "This month", keywords: "chart daily" },
   { to: "/week", label: "Your week", group: "This month", keywords: "digest recap summary" },
-  { to: "/outlook", label: "Can you cover it", group: "This month", keywords: "forecast runway rent future" },
-  { to: "/busydays", label: "Busy and quiet days", group: "This month", keywords: "slow best weekday pattern" },
+  {
+    to: "/outlook",
+    label: "Can you cover it",
+    group: "This month",
+    keywords: "forecast runway rent future",
+  },
+  {
+    to: "/busydays",
+    label: "Busy and quiet days",
+    group: "This month",
+    keywords: "slow best weekday pattern",
+  },
   { to: "/budgets", label: "Budgets", group: "This month", keywords: "limits caps" },
   { to: "/goals", label: "Savings goals", group: "This month", keywords: "saving target" },
   { to: "/bills", label: "Bills", group: "This month", keywords: "due recurring subscriptions" },
 
   { to: "/household", label: "Household", group: "Tools", keywords: "share partner split invite" },
-  { to: "/margins", label: "Item margins", group: "Tools", keywords: "profit per item price product" },
+  {
+    to: "/margins",
+    label: "Item margins",
+    group: "Tools",
+    keywords: "profit per item price product",
+  },
   { to: "/drawer", label: "Cash drawer", group: "Tools", keywords: "till count reconcile" },
   { to: "/tax", label: "Tax set-aside", group: "Tools", keywords: "tax rate hold back" },
   { to: "/lock", label: "Lock this app", group: "Tools", keywords: "pin privacy security" },
 
   { to: "/export", label: "Export records", group: "Export", keywords: "download accountant" },
-  { to: "/export?download=csv", label: "Download CSV", group: "Export", keywords: "spreadsheet excel" },
+  {
+    to: "/export?download=csv",
+    label: "Download CSV",
+    group: "Export",
+    keywords: "spreadsheet excel",
+  },
   { to: "/export?download=pdf", label: "Download PDF", group: "Export", keywords: "print pdf" },
+
+  {
+    to: "/help",
+    label: "Help — how everything works",
+    group: "Help",
+    keywords: "help guide tutorial how to stuck support explain",
+  },
+  {
+    to: "/help?group=logging",
+    label: "Help: logging money",
+    group: "Help",
+    keywords: "help entry receipt voice quick add",
+  },
+  {
+    to: "/help?group=month",
+    label: "Help: this month",
+    group: "Help",
+    keywords: "help budgets goals bills forecast charts",
+  },
+  {
+    to: "/help?group=tools",
+    label: "Help: tools",
+    group: "Help",
+    keywords: "help household split margins drawer tax lock",
+  },
+  {
+    to: "/help?group=export",
+    label: "Help: export",
+    group: "Help",
+    keywords: "help csv pdf accountant",
+  },
 ];
 
 /** Loose subsequence match, so "wmw" finds "Where money went". */
@@ -96,7 +152,12 @@ export function CommandPalette() {
   const actions: Action[] = useMemo(
     () => [
       ...(parsed.ok ? [{ kind: "log" as const }] : []),
-      ...pageResults.map((p) => ({ kind: "page" as const, to: p.to, label: p.label, group: p.group })),
+      ...pageResults.map((p) => ({
+        kind: "page" as const,
+        to: p.to,
+        label: p.label,
+        group: p.group,
+      })),
     ],
     [parsed.ok, pageResults],
   );

@@ -32,6 +32,7 @@ import { Route as AuthenticatedBillsRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedAddRouteImport } from './routes/_authenticated/add'
 import { Route as AuthenticatedStreaksRouteImport } from './routes/_authenticated/streaks'
 import { Route as AuthenticatedAskRouteImport } from './routes/_authenticated/ask'
+import { Route as AuthenticatedHelpRouteImport } from './routes/_authenticated/help'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -147,6 +148,11 @@ const AuthenticatedAskRoute = AuthenticatedAskRouteImport.update({
   path: '/ask',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedHelpRoute = AuthenticatedHelpRouteImport.update({
+  id: '/help',
+  path: '/help',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -170,6 +176,7 @@ export interface FileRoutesByFullPath {
   '/add': typeof AuthenticatedAddRoute
   '/streaks': typeof AuthenticatedStreaksRoute
   '/ask': typeof AuthenticatedAskRoute
+  '/help': typeof AuthenticatedHelpRoute
   '/monthly': typeof AuthenticatedMonthlyRoute
 }
 export interface FileRoutesByTo {
@@ -194,6 +201,7 @@ export interface FileRoutesByTo {
   '/add': typeof AuthenticatedAddRoute
   '/streaks': typeof AuthenticatedStreaksRoute
   '/ask': typeof AuthenticatedAskRoute
+  '/help': typeof AuthenticatedHelpRoute
   '/monthly': typeof AuthenticatedMonthlyRoute
 }
 export interface FileRoutesById {
@@ -220,13 +228,14 @@ export interface FileRoutesById {
   '/_authenticated/add': typeof AuthenticatedAddRoute
   '/_authenticated/streaks': typeof AuthenticatedStreaksRoute
   '/_authenticated/ask': typeof AuthenticatedAskRoute
+  '/_authenticated/help': typeof AuthenticatedHelpRoute
   '/_authenticated/monthly': typeof AuthenticatedMonthlyRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/dashboard' | '/export' | '/monthly' | '/tools' | '/household' | '/margins' | '/drawer' | '/tax' | '/lock' | '/categories' | '/daybyday' | '/week' | '/outlook' | '/busydays' | '/budgets' | '/goals' | '/bills' | '/add' | '/streaks' | '/ask'
+  fullPaths: '/' | '/auth' | '/dashboard' | '/export' | '/monthly' | '/tools' | '/household' | '/margins' | '/drawer' | '/tax' | '/lock' | '/categories' | '/daybyday' | '/week' | '/outlook' | '/busydays' | '/budgets' | '/goals' | '/bills' | '/add' | '/streaks' | '/ask' | '/help'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/dashboard' | '/export' | '/monthly' | '/tools' | '/household' | '/margins' | '/drawer' | '/tax' | '/lock' | '/categories' | '/daybyday' | '/week' | '/outlook' | '/busydays' | '/budgets' | '/goals' | '/bills' | '/add' | '/streaks' | '/ask'
+  to: '/' | '/auth' | '/dashboard' | '/export' | '/monthly' | '/tools' | '/household' | '/margins' | '/drawer' | '/tax' | '/lock' | '/categories' | '/daybyday' | '/week' | '/outlook' | '/busydays' | '/budgets' | '/goals' | '/bills' | '/add' | '/streaks' | '/ask' | '/help'
   id:
     | '__root__'
     | '/'
@@ -251,6 +260,7 @@ export interface FileRouteTypes {
     | '/_authenticated/add'
     | '/_authenticated/streaks'
     | '/_authenticated/ask'
+    | '/_authenticated/help'
     | '/_authenticated/monthly'
   fileRoutesById: FileRoutesById
 }
@@ -423,6 +433,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAskRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/help': {
+      id: '/_authenticated/help'
+      path: '/help'
+      fullPath: '/help'
+      preLoaderRoute: typeof AuthenticatedHelpRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -447,6 +464,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAddRoute: typeof AuthenticatedAddRoute
   AuthenticatedStreaksRoute: typeof AuthenticatedStreaksRoute
   AuthenticatedAskRoute: typeof AuthenticatedAskRoute
+  AuthenticatedHelpRoute: typeof AuthenticatedHelpRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -470,6 +488,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAddRoute: AuthenticatedAddRoute,
   AuthenticatedStreaksRoute: AuthenticatedStreaksRoute,
   AuthenticatedAskRoute: AuthenticatedAskRoute,
+  AuthenticatedHelpRoute: AuthenticatedHelpRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

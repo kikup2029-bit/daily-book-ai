@@ -5,6 +5,7 @@ import { ChevronDown, Menu, Moon, Search, Sun, X } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { CommandPalette } from "@/components/command-palette";
+import { HELP_NAV } from "@/lib/help-content";
 
 type Leaf = { to: string; label: string };
 type Item = { label: string; to: string; children?: Leaf[] };
@@ -54,6 +55,13 @@ const NAV: Item[] = [
       { to: "/export?download=csv", label: "Download CSV" },
       { to: "/export?download=pdf", label: "Download PDF" },
     ],
+  },
+  {
+    label: "Help",
+    to: "/help",
+    // Sections come from the help content itself, so adding a topic there
+    // shows up here without touching this file.
+    children: [{ to: "/help", label: "All topics" }, ...HELP_NAV],
   },
 ];
 
@@ -118,9 +126,12 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
     closeTimer.current = window.setTimeout(() => setOpenMenu(null), 140);
   };
 
-  useEffect(() => () => {
-    if (closeTimer.current) window.clearTimeout(closeTimer.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (closeTimer.current) window.clearTimeout(closeTimer.current);
+    },
+    [],
+  );
 
   const signOut = async () => {
     await queryClient.cancelQueries();
@@ -159,9 +170,7 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
                     to={item.to}
                     onClick={() => item.children && setOpenMenu(null)}
                     className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm transition-colors ${
-                      active
-                        ? "text-foreground"
-                        : "text-muted-foreground hover:text-foreground"
+                      active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     {item.label}
@@ -273,11 +282,7 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
             <nav className="mt-6 space-y-6">
               {NAV.map((item) => (
                 <div key={item.label}>
-                  <Link
-                    to={item.to}
-                    className="eyebrow block"
-                    onClick={() => setMobileOpen(false)}
-                  >
+                  <Link to={item.to} className="eyebrow block" onClick={() => setMobileOpen(false)}>
                     {item.label}
                   </Link>
                   {item.children ? (
