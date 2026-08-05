@@ -3,19 +3,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { WeekDigestCard } from "@/components/sections/month-cards";
 
 const Page = () => (
-  <main className="w-full max-w-2xl">
+  <div className="w-full max-w-3xl">
     <WeekDigestCard />
-  </main>
+  </div>
 );
 
 export const Route = createFileRoute("/_authenticated/week")({
-  head: () => ({
-    meta: [
-      { title: "Your week — SimpleBooks AI" },
-      { name: "description", content: "A plain-English recap of the last seven days." },
-      { property: "og:title", content: "Your week — SimpleBooks AI" },
-      { property: "og:description", content: "A plain-English recap of the last seven days." },
-    ],
-  }),
+  head: () => ({ meta: [{ title: "Your week — SimpleBooks AI" }] }),
   component: Page,
 });

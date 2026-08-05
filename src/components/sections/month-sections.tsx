@@ -179,7 +179,7 @@ export function MonthlyPage({ parts = ALL_PARTS }: { parts?: MonthPart[] } = {})
   const alerts = budgetRows.filter((row) => row.pct >= 80);
 
   return (
-    <main className="w-full max-w-2xl">
+    <div className="w-full max-w-3xl">
 
       <section className="py-8">
         <div className="flex items-center justify-between gap-2">
@@ -331,7 +331,7 @@ export function MonthlyPage({ parts = ALL_PARTS }: { parts?: MonthPart[] } = {})
       ) : null}
       {show("goals") ? <GoalsSection /> : null}
       {show("recurring") ? <RecurringSection rules={recurring} /> : null}
-    </main>
+    </div>
   );
 }
 
@@ -1197,7 +1197,7 @@ export function BillsPage() {
   });
 
   return (
-    <main className="w-full max-w-2xl">
+    <div className="w-full max-w-3xl">
       {isLoading ? (
         <section className="py-8">
           <p className="text-sm text-muted-foreground">Checking what's due…</p>
@@ -1209,6 +1209,6 @@ export function BillsPage() {
         </>
       ) : null}
       <RecurringSection rules={recurring} />
-    </main>
+    </div>
   );
 }

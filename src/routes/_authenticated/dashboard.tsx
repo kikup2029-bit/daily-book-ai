@@ -218,7 +218,7 @@ function Dashboard() {
   const allOut = entries.reduce((sum, entry) => sum + entry.amount_out, 0);
 
   return (
-    <main className="w-full max-w-2xl">
+    <div className="w-full max-w-3xl">
 
       <DueSoonBanner />
       <SafeToSpendCard />
@@ -520,7 +520,7 @@ function Dashboard() {
 
       <StreaksCard />
       <AskSection />
-    </main>
+    </div>
   );
 }
 

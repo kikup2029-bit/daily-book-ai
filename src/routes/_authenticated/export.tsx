@@ -145,7 +145,7 @@ function ExportPage() {
   }, [download, isLoading, filtered, filename, rangeLabel, navigate]);
 
   return (
-    <main className="w-full max-w-2xl">
+    <div className="w-full max-w-3xl">
 
       <section className="py-8">
         <h2 className="text-xl">Export your records</h2>
@@ -283,6 +283,6 @@ function ExportPage() {
           </Button>
         </div>
       </section>
-    </main>
+    </div>
   );
 }

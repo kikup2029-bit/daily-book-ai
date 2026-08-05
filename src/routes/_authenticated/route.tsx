@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { LockGate } from "@/components/lock-gate";
-import { AppSidebar } from "@/components/app-sidebar";
+import { AppTopNav } from "@/components/app-topnav";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -12,9 +12,9 @@ export const Route = createFileRoute("/_authenticated")({
   },
   component: () => (
     <LockGate>
-      <AppSidebar>
+      <AppTopNav>
         <Outlet />
-      </AppSidebar>
+      </AppTopNav>
     </LockGate>
   ),
 });
