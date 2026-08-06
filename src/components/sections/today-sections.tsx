@@ -15,7 +15,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useRouteContext } from "@tanstack/react-router";
+import { useNavigate, useRouteContext } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowDownCircle,
@@ -38,7 +38,6 @@ import { normalizeSpokenMoney, useSpeech } from "@/lib/use-speech";
 import { getInsights } from "@/lib/shop.functions";
 import { getHousehold, setEntryShare } from "@/lib/household.functions";
 
-import { ReceiptAttachButton, ReceiptThumb } from "@/components/receipt-controls";
 import { uploadReceipt } from "@/lib/receipts";
 import { attachReceipt, analyzeReceipt, removeEntry } from "@/lib/books.functions";
 
@@ -59,11 +58,10 @@ import {
   Segmented,
   Select,
   SkeletonRows,
-  TxRow,
 } from "@/components/ui/kit";
-import { EmptyState, SampleRows } from "@/components/empty-state";
 import { Onboarding } from "@/components/onboarding";
 import { InstallPrompt } from "@/components/offline-bar";
+import { RecentEntries } from "@/components/sections/recent-entries";
 import { isNetworkError, useOfflineEntries } from "@/lib/use-offline";
 
 type ChatMessage = { role: "user" | "assistant"; text: string };
@@ -76,13 +74,6 @@ const longDate = (iso: string) =>
     month: "long",
     day: "numeric",
   });
-
-/**
- * Row controls stay narrow enough that a 360px phone never scrolls sideways:
- * past two buttons they wrap onto a second line instead of pushing the amount
- * off the edge.
- */
-const ROW_ACTIONS = "flex max-w-[80px] flex-wrap items-center justify-end gap-0.5 sm:max-w-none";
 
 export function fileToBase64(file: File): Promise<{ base64: string; mimeType: string }> {
   return new Promise((resolve, reject) => {
@@ -107,9 +98,14 @@ export function Dashboard({ parts = ALL_TODAY }: { parts?: TodayPart[] } = {}) {
   const fetchEntries = useServerFn(getEntries);
   const addEntry = useServerFn(createEntry);
   const { user } = useRouteContext({ from: "/_authenticated" });
+  const navigate = useNavigate();
   const offline = useOfflineEntries(user?.id);
 
-  const { data: entries = [], isLoading } = useQuery({
+  const {
+    data: entries = [],
+    isLoading,
+    error: entriesError,
+  } = useQuery({
     queryKey: ["entries"],
     queryFn: () => fetchEntries(),
   });
@@ -473,103 +469,23 @@ export function Dashboard({ parts = ALL_TODAY }: { parts?: TodayPart[] } = {}) {
 
       {/* ------------------------------------------ 4. what changed lately */}
       {show("glance") ? (
-        <section aria-labelledby="recent-entries-heading">
-          <div className="flex items-end justify-between gap-3 pb-3">
-            <div className="min-w-0">
-              <h2 id="recent-entries-heading" className="text-[15px] font-semibold leading-tight">
-                Recent entries
-              </h2>
-              <p className="mt-1 text-[13px] text-muted-foreground">
-                The last few things you logged, newest first.
-              </p>
-            </div>
-            {!isLoading && entries.length > 0 ? (
-              <Badge tone="neutral" className="shrink-0">
-                <span className="num">{entries.length}</span> logged
-              </Badge>
-            ) : null}
-          </div>
-
-          {isLoading ? (
-            <SkeletonRows rows={4} />
-          ) : entries.length === 0 ? (
-            <EmptyState
-              title="Nothing logged yet"
-              blurb="Add what came in and what went out, and today's numbers fill in right here."
-              sample={<SampleRows rows={4} />}
-            />
-          ) : (
-            <div className="divide-hairline">
-              {entries.slice(0, 6).map((entry) => (
-                <TxRow
-                  key={entry.id}
-                  date={entry.entry_date}
-                  title={entry.spent_on ?? (entry.amount_in > 0 ? "Money in" : "Uncategorised")}
-                  subtitle={
-                    [
-                      entry.merchant,
-                      entry.household_id ? (entry.is_split ? "split" : "shared") : null,
-                    ]
-                      .filter(Boolean)
-                      .join(" · ") || undefined
-                  }
-                  amount={entry.amount_in > 0 ? entry.amount_in : -entry.amount_out}
-                  meta={entry.receipt_path ? <ReceiptThumb path={entry.receipt_path} /> : undefined}
-                  trailing={
-                    <span className={ROW_ACTIONS}>
-                      <ReceiptAttachButton entryId={entry.id} currentPath={entry.receipt_path} />
-                      {household?.household ? (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon-sm"
-                          className={entry.household_id ? "text-brand" : undefined}
-                          disabled={toggleShare.isPending}
-                          onClick={() =>
-                            toggleShare.mutate({
-                              entry_id: entry.id,
-                              mode: !entry.household_id
-                                ? "visible"
-                                : entry.is_split
-                                  ? "private"
-                                  : "split",
-                            })
-                          }
-                          aria-label="Change who can see this entry"
-                          title={
-                            !entry.household_id
-                              ? "Share with household"
-                              : entry.is_split
-                                ? "Make private again"
-                                : "Split this one evenly"
-                          }
-                        >
-                          <Users className="size-4" aria-hidden="true" />
-                        </Button>
-                      ) : null}
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        className="hover:bg-danger-soft hover:text-danger"
-                        disabled={remove.isPending}
-                        onClick={() => {
-                          if (window.confirm("Delete this entry? This can't be undone.")) {
-                            remove.mutate(entry.id);
-                          }
-                        }}
-                        aria-label="Delete entry"
-                        title="Delete entry"
-                      >
-                        <Trash2 className="size-4" aria-hidden="true" />
-                      </Button>
-                    </span>
-                  }
-                />
-              ))}
-            </div>
-          )}
-        </section>
+        <RecentEntries
+          entries={entries}
+          isLoading={isLoading}
+          error={entriesError as Error | null}
+          canShare={Boolean(household?.household)}
+          busy={remove.isPending || toggleShare.isPending}
+          onToggleShare={(entry) =>
+            toggleShare.mutate({
+              entry_id: entry.id,
+              mode: !entry.household_id ? "visible" : entry.is_split ? "private" : "split",
+            })
+          }
+          onDelete={(entry) => remove.mutate(entry.id)}
+          // No receipt on this entry yet: the full form is where photos get
+          // attached, so send them there rather than duplicating the uploader.
+          onViewReceipt={() => navigate({ to: "/add" })}
+        />
       ) : null}
 
       {show("streaks") ? <StreaksCard /> : null}
