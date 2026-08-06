@@ -8,9 +8,8 @@
 import { Link } from "@tanstack/react-router";
 
 import { WordMark } from "@/components/brand-mark";
-
-/** The one address on the page. Change it here and the footer follows. */
-const CONTACT_EMAIL = "support@simplebooks.app";
+// Shared with the Privacy and Terms pages, so the three can't drift apart.
+import { CONTACT_EMAIL } from "@/lib/contact";
 
 export function LandingFooter() {
   const linkClass =
