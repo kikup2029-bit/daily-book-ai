@@ -70,6 +70,7 @@ function buildNav(t: (path: string) => string): Item[] {
         { to: "/tax", label: t("nav.tax") },
         { to: "/reminders", label: t("nav.reminder") },
         { to: "/lock", label: t("nav.lock") },
+        { to: "/billing", label: t("nav.billing") },
       ],
     },
     {

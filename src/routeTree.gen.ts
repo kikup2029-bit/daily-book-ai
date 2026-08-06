@@ -12,32 +12,37 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
-import { Route as AuthenticatedExportRouteImport } from './routes/_authenticated/export'
-import { Route as AuthenticatedMonthlyRouteImport } from './routes/_authenticated/monthly'
-import { Route as AuthenticatedToolsRouteImport } from './routes/_authenticated/tools'
-import { Route as AuthenticatedHouseholdRouteImport } from './routes/_authenticated/household'
-import { Route as AuthenticatedMarginsRouteImport } from './routes/_authenticated/margins'
-import { Route as AuthenticatedDrawerRouteImport } from './routes/_authenticated/drawer'
-import { Route as AuthenticatedTaxRouteImport } from './routes/_authenticated/tax'
-import { Route as AuthenticatedLockRouteImport } from './routes/_authenticated/lock'
-import { Route as AuthenticatedCategoriesRouteImport } from './routes/_authenticated/categories'
-import { Route as AuthenticatedDaybydayRouteImport } from './routes/_authenticated/daybyday'
-import { Route as AuthenticatedWeekRouteImport } from './routes/_authenticated/week'
-import { Route as AuthenticatedOutlookRouteImport } from './routes/_authenticated/outlook'
-import { Route as AuthenticatedBusydaysRouteImport } from './routes/_authenticated/busydays'
-import { Route as AuthenticatedBudgetsRouteImport } from './routes/_authenticated/budgets'
-import { Route as AuthenticatedGoalsRouteImport } from './routes/_authenticated/goals'
-import { Route as AuthenticatedBillsRouteImport } from './routes/_authenticated/bills'
+import { Route as BillingCancelledRouteImport } from './routes/billing.cancelled'
+import { Route as BillingSuccessRouteImport } from './routes/billing.success'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AuthenticatedAddRouteImport } from './routes/_authenticated/add'
-import { Route as AuthenticatedStreaksRouteImport } from './routes/_authenticated/streaks'
 import { Route as AuthenticatedAskRouteImport } from './routes/_authenticated/ask'
-import { Route as AuthenticatedHelpRouteImport } from './routes/_authenticated/help'
+import { Route as AuthenticatedBillingRouteImport } from './routes/_authenticated/billing'
+import { Route as AuthenticatedBillsRouteImport } from './routes/_authenticated/bills'
+import { Route as AuthenticatedBudgetsRouteImport } from './routes/_authenticated/budgets'
+import { Route as AuthenticatedBusydaysRouteImport } from './routes/_authenticated/busydays'
+import { Route as AuthenticatedCategoriesRouteImport } from './routes/_authenticated/categories'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedDaybydayRouteImport } from './routes/_authenticated/daybyday'
+import { Route as AuthenticatedDrawerRouteImport } from './routes/_authenticated/drawer'
 import { Route as AuthenticatedEntriesRouteImport } from './routes/_authenticated/entries'
-import { Route as AuthenticatedRemindersRouteImport } from './routes/_authenticated/reminders'
+import { Route as AuthenticatedExportRouteImport } from './routes/_authenticated/export'
+import { Route as AuthenticatedGoalsRouteImport } from './routes/_authenticated/goals'
+import { Route as AuthenticatedHelpRouteImport } from './routes/_authenticated/help'
+import { Route as AuthenticatedHouseholdRouteImport } from './routes/_authenticated/household'
 import { Route as AuthenticatedInvoiceRouteImport } from './routes/_authenticated/invoice'
 import { Route as AuthenticatedInvoiceNewRouteImport } from './routes/_authenticated/invoice-new'
 import { Route as AuthenticatedInvoicesRouteImport } from './routes/_authenticated/invoices'
+import { Route as AuthenticatedLockRouteImport } from './routes/_authenticated/lock'
+import { Route as AuthenticatedMarginsRouteImport } from './routes/_authenticated/margins'
+import { Route as AuthenticatedMonthlyRouteImport } from './routes/_authenticated/monthly'
+import { Route as AuthenticatedOutlookRouteImport } from './routes/_authenticated/outlook'
+import { Route as AuthenticatedRemindersRouteImport } from './routes/_authenticated/reminders'
+import { Route as AuthenticatedStreaksRouteImport } from './routes/_authenticated/streaks'
+import { Route as AuthenticatedTaxRouteImport } from './routes/_authenticated/tax'
+import { Route as AuthenticatedToolsRouteImport } from './routes/_authenticated/tools'
+import { Route as AuthenticatedWeekRouteImport } from './routes/_authenticated/week'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -53,99 +58,29 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => AuthenticatedRouteRoute,
+const BillingCancelledRoute = BillingCancelledRouteImport.update({
+  id: '/billing/cancelled',
+  path: '/billing/cancelled',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedExportRoute = AuthenticatedExportRouteImport.update({
-  id: '/export',
-  path: '/export',
-  getParentRoute: () => AuthenticatedRouteRoute,
+const BillingSuccessRoute = BillingSuccessRouteImport.update({
+  id: '/billing/success',
+  path: '/billing/success',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedMonthlyRoute = AuthenticatedMonthlyRouteImport.update({
-  id: '/monthly',
-  path: '/monthly',
-  getParentRoute: () => AuthenticatedRouteRoute,
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedToolsRoute = AuthenticatedToolsRouteImport.update({
-  id: '/tools',
-  path: '/tools',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedHouseholdRoute = AuthenticatedHouseholdRouteImport.update({
-  id: '/household',
-  path: '/household',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedMarginsRoute = AuthenticatedMarginsRouteImport.update({
-  id: '/margins',
-  path: '/margins',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedDrawerRoute = AuthenticatedDrawerRouteImport.update({
-  id: '/drawer',
-  path: '/drawer',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedTaxRoute = AuthenticatedTaxRouteImport.update({
-  id: '/tax',
-  path: '/tax',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedLockRoute = AuthenticatedLockRouteImport.update({
-  id: '/lock',
-  path: '/lock',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedCategoriesRoute = AuthenticatedCategoriesRouteImport.update({
-  id: '/categories',
-  path: '/categories',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedDaybydayRoute = AuthenticatedDaybydayRouteImport.update({
-  id: '/daybyday',
-  path: '/daybyday',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedWeekRoute = AuthenticatedWeekRouteImport.update({
-  id: '/week',
-  path: '/week',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedOutlookRoute = AuthenticatedOutlookRouteImport.update({
-  id: '/outlook',
-  path: '/outlook',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedBusydaysRoute = AuthenticatedBusydaysRouteImport.update({
-  id: '/busydays',
-  path: '/busydays',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedBudgetsRoute = AuthenticatedBudgetsRouteImport.update({
-  id: '/budgets',
-  path: '/budgets',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedGoalsRoute = AuthenticatedGoalsRouteImport.update({
-  id: '/goals',
-  path: '/goals',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedBillsRoute = AuthenticatedBillsRouteImport.update({
-  id: '/bills',
-  path: '/bills',
-  getParentRoute: () => AuthenticatedRouteRoute,
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAddRoute = AuthenticatedAddRouteImport.update({
   id: '/add',
   path: '/add',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedStreaksRoute = AuthenticatedStreaksRouteImport.update({
-  id: '/streaks',
-  path: '/streaks',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAskRoute = AuthenticatedAskRouteImport.update({
@@ -153,29 +88,44 @@ const AuthenticatedAskRoute = AuthenticatedAskRouteImport.update({
   path: '/ask',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedHelpRoute = AuthenticatedHelpRouteImport.update({
-  id: '/help',
-  path: '/help',
+const AuthenticatedBillingRoute = AuthenticatedBillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedInvoicesRoute = AuthenticatedInvoicesRouteImport.update({
-  id: '/invoices',
-  path: '/invoices',
+const AuthenticatedBillsRoute = AuthenticatedBillsRouteImport.update({
+  id: '/bills',
+  path: '/bills',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedInvoiceNewRoute = AuthenticatedInvoiceNewRouteImport.update({
-  id: '/invoice-new',
-  path: '/invoice-new',
+const AuthenticatedBudgetsRoute = AuthenticatedBudgetsRouteImport.update({
+  id: '/budgets',
+  path: '/budgets',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedInvoiceRoute = AuthenticatedInvoiceRouteImport.update({
-  id: '/invoice',
-  path: '/invoice',
+const AuthenticatedBusydaysRoute = AuthenticatedBusydaysRouteImport.update({
+  id: '/busydays',
+  path: '/busydays',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedRemindersRoute = AuthenticatedRemindersRouteImport.update({
-  id: '/reminders',
-  path: '/reminders',
+const AuthenticatedCategoriesRoute = AuthenticatedCategoriesRouteImport.update({
+  id: '/categories',
+  path: '/categories',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDaybydayRoute = AuthenticatedDaybydayRouteImport.update({
+  id: '/daybyday',
+  path: '/daybyday',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDrawerRoute = AuthenticatedDrawerRouteImport.update({
+  id: '/drawer',
+  path: '/drawer',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedEntriesRoute = AuthenticatedEntriesRouteImport.update({
@@ -183,141 +133,311 @@ const AuthenticatedEntriesRoute = AuthenticatedEntriesRouteImport.update({
   path: '/entries',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedExportRoute = AuthenticatedExportRouteImport.update({
+  id: '/export',
+  path: '/export',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedGoalsRoute = AuthenticatedGoalsRouteImport.update({
+  id: '/goals',
+  path: '/goals',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedHelpRoute = AuthenticatedHelpRouteImport.update({
+  id: '/help',
+  path: '/help',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedHouseholdRoute = AuthenticatedHouseholdRouteImport.update({
+  id: '/household',
+  path: '/household',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedInvoiceRoute = AuthenticatedInvoiceRouteImport.update({
+  id: '/invoice',
+  path: '/invoice',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedInvoiceNewRoute = AuthenticatedInvoiceNewRouteImport.update({
+  id: '/invoice-new',
+  path: '/invoice-new',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedInvoicesRoute = AuthenticatedInvoicesRouteImport.update({
+  id: '/invoices',
+  path: '/invoices',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedLockRoute = AuthenticatedLockRouteImport.update({
+  id: '/lock',
+  path: '/lock',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedMarginsRoute = AuthenticatedMarginsRouteImport.update({
+  id: '/margins',
+  path: '/margins',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedMonthlyRoute = AuthenticatedMonthlyRouteImport.update({
+  id: '/monthly',
+  path: '/monthly',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedOutlookRoute = AuthenticatedOutlookRouteImport.update({
+  id: '/outlook',
+  path: '/outlook',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRemindersRoute = AuthenticatedRemindersRouteImport.update({
+  id: '/reminders',
+  path: '/reminders',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedStreaksRoute = AuthenticatedStreaksRouteImport.update({
+  id: '/streaks',
+  path: '/streaks',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedTaxRoute = AuthenticatedTaxRouteImport.update({
+  id: '/tax',
+  path: '/tax',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedToolsRoute = AuthenticatedToolsRouteImport.update({
+  id: '/tools',
+  path: '/tools',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedWeekRoute = AuthenticatedWeekRouteImport.update({
+  id: '/week',
+  path: '/week',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/dashboard': typeof AuthenticatedDashboardRoute
-  '/export': typeof AuthenticatedExportRoute
-  '/tools': typeof AuthenticatedToolsRoute
-  '/household': typeof AuthenticatedHouseholdRoute
-  '/margins': typeof AuthenticatedMarginsRoute
-  '/drawer': typeof AuthenticatedDrawerRoute
-  '/tax': typeof AuthenticatedTaxRoute
-  '/lock': typeof AuthenticatedLockRoute
-  '/categories': typeof AuthenticatedCategoriesRoute
-  '/daybyday': typeof AuthenticatedDaybydayRoute
-  '/week': typeof AuthenticatedWeekRoute
-  '/outlook': typeof AuthenticatedOutlookRoute
-  '/busydays': typeof AuthenticatedBusydaysRoute
-  '/budgets': typeof AuthenticatedBudgetsRoute
-  '/goals': typeof AuthenticatedGoalsRoute
-  '/bills': typeof AuthenticatedBillsRoute
+  '/billing/cancelled': typeof BillingCancelledRoute
+  '/billing/success': typeof BillingSuccessRoute
+  '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/add': typeof AuthenticatedAddRoute
-  '/streaks': typeof AuthenticatedStreaksRoute
   '/ask': typeof AuthenticatedAskRoute
-  '/help': typeof AuthenticatedHelpRoute
-  '/invoices': typeof AuthenticatedInvoicesRoute
-  '/invoice-new': typeof AuthenticatedInvoiceNewRoute
-  '/invoice': typeof AuthenticatedInvoiceRoute
-  '/reminders': typeof AuthenticatedRemindersRoute
+  '/billing': typeof AuthenticatedBillingRoute
+  '/bills': typeof AuthenticatedBillsRoute
+  '/budgets': typeof AuthenticatedBudgetsRoute
+  '/busydays': typeof AuthenticatedBusydaysRoute
+  '/categories': typeof AuthenticatedCategoriesRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/daybyday': typeof AuthenticatedDaybydayRoute
+  '/drawer': typeof AuthenticatedDrawerRoute
   '/entries': typeof AuthenticatedEntriesRoute
+  '/export': typeof AuthenticatedExportRoute
+  '/goals': typeof AuthenticatedGoalsRoute
+  '/help': typeof AuthenticatedHelpRoute
+  '/household': typeof AuthenticatedHouseholdRoute
+  '/invoice': typeof AuthenticatedInvoiceRoute
+  '/invoice-new': typeof AuthenticatedInvoiceNewRoute
+  '/invoices': typeof AuthenticatedInvoicesRoute
+  '/lock': typeof AuthenticatedLockRoute
+  '/margins': typeof AuthenticatedMarginsRoute
   '/monthly': typeof AuthenticatedMonthlyRoute
+  '/outlook': typeof AuthenticatedOutlookRoute
+  '/reminders': typeof AuthenticatedRemindersRoute
+  '/streaks': typeof AuthenticatedStreaksRoute
+  '/tax': typeof AuthenticatedTaxRoute
+  '/tools': typeof AuthenticatedToolsRoute
+  '/week': typeof AuthenticatedWeekRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/dashboard': typeof AuthenticatedDashboardRoute
-  '/export': typeof AuthenticatedExportRoute
-  '/tools': typeof AuthenticatedToolsRoute
-  '/household': typeof AuthenticatedHouseholdRoute
-  '/margins': typeof AuthenticatedMarginsRoute
-  '/drawer': typeof AuthenticatedDrawerRoute
-  '/tax': typeof AuthenticatedTaxRoute
-  '/lock': typeof AuthenticatedLockRoute
-  '/categories': typeof AuthenticatedCategoriesRoute
-  '/daybyday': typeof AuthenticatedDaybydayRoute
-  '/week': typeof AuthenticatedWeekRoute
-  '/outlook': typeof AuthenticatedOutlookRoute
-  '/busydays': typeof AuthenticatedBusydaysRoute
-  '/budgets': typeof AuthenticatedBudgetsRoute
-  '/goals': typeof AuthenticatedGoalsRoute
-  '/bills': typeof AuthenticatedBillsRoute
+  '/billing/cancelled': typeof BillingCancelledRoute
+  '/billing/success': typeof BillingSuccessRoute
+  '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/add': typeof AuthenticatedAddRoute
-  '/streaks': typeof AuthenticatedStreaksRoute
   '/ask': typeof AuthenticatedAskRoute
-  '/help': typeof AuthenticatedHelpRoute
-  '/invoices': typeof AuthenticatedInvoicesRoute
-  '/invoice-new': typeof AuthenticatedInvoiceNewRoute
-  '/invoice': typeof AuthenticatedInvoiceRoute
-  '/reminders': typeof AuthenticatedRemindersRoute
+  '/billing': typeof AuthenticatedBillingRoute
+  '/bills': typeof AuthenticatedBillsRoute
+  '/budgets': typeof AuthenticatedBudgetsRoute
+  '/busydays': typeof AuthenticatedBusydaysRoute
+  '/categories': typeof AuthenticatedCategoriesRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/daybyday': typeof AuthenticatedDaybydayRoute
+  '/drawer': typeof AuthenticatedDrawerRoute
   '/entries': typeof AuthenticatedEntriesRoute
+  '/export': typeof AuthenticatedExportRoute
+  '/goals': typeof AuthenticatedGoalsRoute
+  '/help': typeof AuthenticatedHelpRoute
+  '/household': typeof AuthenticatedHouseholdRoute
+  '/invoice': typeof AuthenticatedInvoiceRoute
+  '/invoice-new': typeof AuthenticatedInvoiceNewRoute
+  '/invoices': typeof AuthenticatedInvoicesRoute
+  '/lock': typeof AuthenticatedLockRoute
+  '/margins': typeof AuthenticatedMarginsRoute
   '/monthly': typeof AuthenticatedMonthlyRoute
+  '/outlook': typeof AuthenticatedOutlookRoute
+  '/reminders': typeof AuthenticatedRemindersRoute
+  '/streaks': typeof AuthenticatedStreaksRoute
+  '/tax': typeof AuthenticatedTaxRoute
+  '/tools': typeof AuthenticatedToolsRoute
+  '/week': typeof AuthenticatedWeekRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
-  '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
-  '/_authenticated/export': typeof AuthenticatedExportRoute
-  '/_authenticated/tools': typeof AuthenticatedToolsRoute
-  '/_authenticated/household': typeof AuthenticatedHouseholdRoute
-  '/_authenticated/margins': typeof AuthenticatedMarginsRoute
-  '/_authenticated/drawer': typeof AuthenticatedDrawerRoute
-  '/_authenticated/tax': typeof AuthenticatedTaxRoute
-  '/_authenticated/lock': typeof AuthenticatedLockRoute
-  '/_authenticated/categories': typeof AuthenticatedCategoriesRoute
-  '/_authenticated/daybyday': typeof AuthenticatedDaybydayRoute
-  '/_authenticated/week': typeof AuthenticatedWeekRoute
-  '/_authenticated/outlook': typeof AuthenticatedOutlookRoute
-  '/_authenticated/busydays': typeof AuthenticatedBusydaysRoute
-  '/_authenticated/budgets': typeof AuthenticatedBudgetsRoute
-  '/_authenticated/goals': typeof AuthenticatedGoalsRoute
-  '/_authenticated/bills': typeof AuthenticatedBillsRoute
+  '/billing/cancelled': typeof BillingCancelledRoute
+  '/billing/success': typeof BillingSuccessRoute
+  '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/_authenticated/add': typeof AuthenticatedAddRoute
-  '/_authenticated/streaks': typeof AuthenticatedStreaksRoute
   '/_authenticated/ask': typeof AuthenticatedAskRoute
-  '/_authenticated/help': typeof AuthenticatedHelpRoute
-  '/_authenticated/invoices': typeof AuthenticatedInvoicesRoute
-  '/_authenticated/invoice-new': typeof AuthenticatedInvoiceNewRoute
-  '/_authenticated/invoice': typeof AuthenticatedInvoiceRoute
-  '/_authenticated/reminders': typeof AuthenticatedRemindersRoute
+  '/_authenticated/billing': typeof AuthenticatedBillingRoute
+  '/_authenticated/bills': typeof AuthenticatedBillsRoute
+  '/_authenticated/budgets': typeof AuthenticatedBudgetsRoute
+  '/_authenticated/busydays': typeof AuthenticatedBusydaysRoute
+  '/_authenticated/categories': typeof AuthenticatedCategoriesRoute
+  '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/daybyday': typeof AuthenticatedDaybydayRoute
+  '/_authenticated/drawer': typeof AuthenticatedDrawerRoute
   '/_authenticated/entries': typeof AuthenticatedEntriesRoute
+  '/_authenticated/export': typeof AuthenticatedExportRoute
+  '/_authenticated/goals': typeof AuthenticatedGoalsRoute
+  '/_authenticated/help': typeof AuthenticatedHelpRoute
+  '/_authenticated/household': typeof AuthenticatedHouseholdRoute
+  '/_authenticated/invoice': typeof AuthenticatedInvoiceRoute
+  '/_authenticated/invoice-new': typeof AuthenticatedInvoiceNewRoute
+  '/_authenticated/invoices': typeof AuthenticatedInvoicesRoute
+  '/_authenticated/lock': typeof AuthenticatedLockRoute
+  '/_authenticated/margins': typeof AuthenticatedMarginsRoute
   '/_authenticated/monthly': typeof AuthenticatedMonthlyRoute
+  '/_authenticated/outlook': typeof AuthenticatedOutlookRoute
+  '/_authenticated/reminders': typeof AuthenticatedRemindersRoute
+  '/_authenticated/streaks': typeof AuthenticatedStreaksRoute
+  '/_authenticated/tax': typeof AuthenticatedTaxRoute
+  '/_authenticated/tools': typeof AuthenticatedToolsRoute
+  '/_authenticated/week': typeof AuthenticatedWeekRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/dashboard' | '/export' | '/monthly' | '/tools' | '/household' | '/margins' | '/drawer' | '/tax' | '/lock' | '/categories' | '/daybyday' | '/week' | '/outlook' | '/busydays' | '/budgets' | '/goals' | '/bills' | '/add' | '/streaks' | '/ask' | '/help' | '/invoices' | '/invoice-new' | '/invoice' | '/reminders' | '/entries'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/billing/cancelled'
+    | '/billing/success'
+    | '/privacy'
+    | '/terms'
+    | '/add'
+    | '/ask'
+    | '/billing'
+    | '/bills'
+    | '/budgets'
+    | '/busydays'
+    | '/categories'
+    | '/dashboard'
+    | '/daybyday'
+    | '/drawer'
+    | '/entries'
+    | '/export'
+    | '/goals'
+    | '/help'
+    | '/household'
+    | '/invoice'
+    | '/invoice-new'
+    | '/invoices'
+    | '/lock'
+    | '/margins'
+    | '/monthly'
+    | '/outlook'
+    | '/reminders'
+    | '/streaks'
+    | '/tax'
+    | '/tools'
+    | '/week'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/dashboard' | '/export' | '/monthly' | '/tools' | '/household' | '/margins' | '/drawer' | '/tax' | '/lock' | '/categories' | '/daybyday' | '/week' | '/outlook' | '/busydays' | '/budgets' | '/goals' | '/bills' | '/add' | '/streaks' | '/ask' | '/help' | '/invoices' | '/invoice-new' | '/invoice' | '/reminders' | '/entries'
+  to:
+    | '/'
+    | '/auth'
+    | '/billing/cancelled'
+    | '/billing/success'
+    | '/privacy'
+    | '/terms'
+    | '/add'
+    | '/ask'
+    | '/billing'
+    | '/bills'
+    | '/budgets'
+    | '/busydays'
+    | '/categories'
+    | '/dashboard'
+    | '/daybyday'
+    | '/drawer'
+    | '/entries'
+    | '/export'
+    | '/goals'
+    | '/help'
+    | '/household'
+    | '/invoice'
+    | '/invoice-new'
+    | '/invoices'
+    | '/lock'
+    | '/margins'
+    | '/monthly'
+    | '/outlook'
+    | '/reminders'
+    | '/streaks'
+    | '/tax'
+    | '/tools'
+    | '/week'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
-    | '/_authenticated/dashboard'
-    | '/_authenticated/export'
-    | '/_authenticated/tools'
-    | '/_authenticated/household'
-    | '/_authenticated/margins'
-    | '/_authenticated/drawer'
-    | '/_authenticated/tax'
-    | '/_authenticated/lock'
-    | '/_authenticated/categories'
-    | '/_authenticated/daybyday'
-    | '/_authenticated/week'
-    | '/_authenticated/outlook'
-    | '/_authenticated/busydays'
-    | '/_authenticated/budgets'
-    | '/_authenticated/goals'
-    | '/_authenticated/bills'
+    | '/billing/cancelled'
+    | '/billing/success'
+    | '/privacy'
+    | '/terms'
     | '/_authenticated/add'
-    | '/_authenticated/streaks'
     | '/_authenticated/ask'
-    | '/_authenticated/help'
-    | '/_authenticated/invoices'
-    | '/_authenticated/invoice-new'
-    | '/_authenticated/invoice'
-    | '/_authenticated/reminders'
+    | '/_authenticated/billing'
+    | '/_authenticated/bills'
+    | '/_authenticated/budgets'
+    | '/_authenticated/busydays'
+    | '/_authenticated/categories'
+    | '/_authenticated/dashboard'
+    | '/_authenticated/daybyday'
+    | '/_authenticated/drawer'
     | '/_authenticated/entries'
+    | '/_authenticated/export'
+    | '/_authenticated/goals'
+    | '/_authenticated/help'
+    | '/_authenticated/household'
+    | '/_authenticated/invoice'
+    | '/_authenticated/invoice-new'
+    | '/_authenticated/invoices'
+    | '/_authenticated/lock'
+    | '/_authenticated/margins'
     | '/_authenticated/monthly'
+    | '/_authenticated/outlook'
+    | '/_authenticated/reminders'
+    | '/_authenticated/streaks'
+    | '/_authenticated/tax'
+    | '/_authenticated/tools'
+    | '/_authenticated/week'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  BillingCancelledRoute: typeof BillingCancelledRoute
+  BillingSuccessRoute: typeof BillingSuccessRoute
+  PrivacyRoute: typeof PrivacyRoute
+  TermsRoute: typeof TermsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -343,137 +463,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/dashboard': {
-      id: '/_authenticated/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+    '/billing/cancelled': {
+      id: '/billing/cancelled'
+      path: '/billing/cancelled'
+      fullPath: '/billing/cancelled'
+      preLoaderRoute: typeof BillingCancelledRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/export': {
-      id: '/_authenticated/export'
-      path: '/export'
-      fullPath: '/export'
-      preLoaderRoute: typeof AuthenticatedExportRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+    '/billing/success': {
+      id: '/billing/success'
+      path: '/billing/success'
+      fullPath: '/billing/success'
+      preLoaderRoute: typeof BillingSuccessRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/monthly': {
-      id: '/_authenticated/monthly'
-      path: '/monthly'
-      fullPath: '/monthly'
-      preLoaderRoute: typeof AuthenticatedMonthlyRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/tools': {
-      id: '/_authenticated/tools'
-      path: '/tools'
-      fullPath: '/tools'
-      preLoaderRoute: typeof AuthenticatedToolsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/household': {
-      id: '/_authenticated/household'
-      path: '/household'
-      fullPath: '/household'
-      preLoaderRoute: typeof AuthenticatedHouseholdRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/margins': {
-      id: '/_authenticated/margins'
-      path: '/margins'
-      fullPath: '/margins'
-      preLoaderRoute: typeof AuthenticatedMarginsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/drawer': {
-      id: '/_authenticated/drawer'
-      path: '/drawer'
-      fullPath: '/drawer'
-      preLoaderRoute: typeof AuthenticatedDrawerRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/tax': {
-      id: '/_authenticated/tax'
-      path: '/tax'
-      fullPath: '/tax'
-      preLoaderRoute: typeof AuthenticatedTaxRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/lock': {
-      id: '/_authenticated/lock'
-      path: '/lock'
-      fullPath: '/lock'
-      preLoaderRoute: typeof AuthenticatedLockRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/categories': {
-      id: '/_authenticated/categories'
-      path: '/categories'
-      fullPath: '/categories'
-      preLoaderRoute: typeof AuthenticatedCategoriesRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/daybyday': {
-      id: '/_authenticated/daybyday'
-      path: '/daybyday'
-      fullPath: '/daybyday'
-      preLoaderRoute: typeof AuthenticatedDaybydayRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/week': {
-      id: '/_authenticated/week'
-      path: '/week'
-      fullPath: '/week'
-      preLoaderRoute: typeof AuthenticatedWeekRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/outlook': {
-      id: '/_authenticated/outlook'
-      path: '/outlook'
-      fullPath: '/outlook'
-      preLoaderRoute: typeof AuthenticatedOutlookRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/busydays': {
-      id: '/_authenticated/busydays'
-      path: '/busydays'
-      fullPath: '/busydays'
-      preLoaderRoute: typeof AuthenticatedBusydaysRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/budgets': {
-      id: '/_authenticated/budgets'
-      path: '/budgets'
-      fullPath: '/budgets'
-      preLoaderRoute: typeof AuthenticatedBudgetsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/goals': {
-      id: '/_authenticated/goals'
-      path: '/goals'
-      fullPath: '/goals'
-      preLoaderRoute: typeof AuthenticatedGoalsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/bills': {
-      id: '/_authenticated/bills'
-      path: '/bills'
-      fullPath: '/bills'
-      preLoaderRoute: typeof AuthenticatedBillsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/add': {
       id: '/_authenticated/add'
       path: '/add'
       fullPath: '/add'
       preLoaderRoute: typeof AuthenticatedAddRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/streaks': {
-      id: '/_authenticated/streaks'
-      path: '/streaks'
-      fullPath: '/streaks'
-      preLoaderRoute: typeof AuthenticatedStreaksRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/ask': {
@@ -483,39 +505,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAskRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/help': {
-      id: '/_authenticated/help'
-      path: '/help'
-      fullPath: '/help'
-      preLoaderRoute: typeof AuthenticatedHelpRouteImport
+    '/_authenticated/billing': {
+      id: '/_authenticated/billing'
+      path: '/billing'
+      fullPath: '/billing'
+      preLoaderRoute: typeof AuthenticatedBillingRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/invoices': {
-      id: '/_authenticated/invoices'
-      path: '/invoices'
-      fullPath: '/invoices'
-      preLoaderRoute: typeof AuthenticatedInvoicesRouteImport
+    '/_authenticated/bills': {
+      id: '/_authenticated/bills'
+      path: '/bills'
+      fullPath: '/bills'
+      preLoaderRoute: typeof AuthenticatedBillsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/invoice-new': {
-      id: '/_authenticated/invoice-new'
-      path: '/invoice-new'
-      fullPath: '/invoice-new'
-      preLoaderRoute: typeof AuthenticatedInvoiceNewRouteImport
+    '/_authenticated/budgets': {
+      id: '/_authenticated/budgets'
+      path: '/budgets'
+      fullPath: '/budgets'
+      preLoaderRoute: typeof AuthenticatedBudgetsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/invoice': {
-      id: '/_authenticated/invoice'
-      path: '/invoice'
-      fullPath: '/invoice'
-      preLoaderRoute: typeof AuthenticatedInvoiceRouteImport
+    '/_authenticated/busydays': {
+      id: '/_authenticated/busydays'
+      path: '/busydays'
+      fullPath: '/busydays'
+      preLoaderRoute: typeof AuthenticatedBusydaysRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/reminders': {
-      id: '/_authenticated/reminders'
-      path: '/reminders'
-      fullPath: '/reminders'
-      preLoaderRoute: typeof AuthenticatedRemindersRouteImport
+    '/_authenticated/categories': {
+      id: '/_authenticated/categories'
+      path: '/categories'
+      fullPath: '/categories'
+      preLoaderRoute: typeof AuthenticatedCategoriesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/dashboard': {
+      id: '/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/daybyday': {
+      id: '/_authenticated/daybyday'
+      path: '/daybyday'
+      fullPath: '/daybyday'
+      preLoaderRoute: typeof AuthenticatedDaybydayRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/drawer': {
+      id: '/_authenticated/drawer'
+      path: '/drawer'
+      fullPath: '/drawer'
+      preLoaderRoute: typeof AuthenticatedDrawerRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/entries': {
@@ -525,65 +568,179 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedEntriesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/export': {
+      id: '/_authenticated/export'
+      path: '/export'
+      fullPath: '/export'
+      preLoaderRoute: typeof AuthenticatedExportRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/goals': {
+      id: '/_authenticated/goals'
+      path: '/goals'
+      fullPath: '/goals'
+      preLoaderRoute: typeof AuthenticatedGoalsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/help': {
+      id: '/_authenticated/help'
+      path: '/help'
+      fullPath: '/help'
+      preLoaderRoute: typeof AuthenticatedHelpRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/household': {
+      id: '/_authenticated/household'
+      path: '/household'
+      fullPath: '/household'
+      preLoaderRoute: typeof AuthenticatedHouseholdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/invoice': {
+      id: '/_authenticated/invoice'
+      path: '/invoice'
+      fullPath: '/invoice'
+      preLoaderRoute: typeof AuthenticatedInvoiceRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/invoice-new': {
+      id: '/_authenticated/invoice-new'
+      path: '/invoice-new'
+      fullPath: '/invoice-new'
+      preLoaderRoute: typeof AuthenticatedInvoiceNewRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/invoices': {
+      id: '/_authenticated/invoices'
+      path: '/invoices'
+      fullPath: '/invoices'
+      preLoaderRoute: typeof AuthenticatedInvoicesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/lock': {
+      id: '/_authenticated/lock'
+      path: '/lock'
+      fullPath: '/lock'
+      preLoaderRoute: typeof AuthenticatedLockRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/margins': {
+      id: '/_authenticated/margins'
+      path: '/margins'
+      fullPath: '/margins'
+      preLoaderRoute: typeof AuthenticatedMarginsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/monthly': {
+      id: '/_authenticated/monthly'
+      path: '/monthly'
+      fullPath: '/monthly'
+      preLoaderRoute: typeof AuthenticatedMonthlyRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/outlook': {
+      id: '/_authenticated/outlook'
+      path: '/outlook'
+      fullPath: '/outlook'
+      preLoaderRoute: typeof AuthenticatedOutlookRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/reminders': {
+      id: '/_authenticated/reminders'
+      path: '/reminders'
+      fullPath: '/reminders'
+      preLoaderRoute: typeof AuthenticatedRemindersRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/streaks': {
+      id: '/_authenticated/streaks'
+      path: '/streaks'
+      fullPath: '/streaks'
+      preLoaderRoute: typeof AuthenticatedStreaksRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/tax': {
+      id: '/_authenticated/tax'
+      path: '/tax'
+      fullPath: '/tax'
+      preLoaderRoute: typeof AuthenticatedTaxRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/tools': {
+      id: '/_authenticated/tools'
+      path: '/tools'
+      fullPath: '/tools'
+      preLoaderRoute: typeof AuthenticatedToolsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/week': {
+      id: '/_authenticated/week'
+      path: '/week'
+      fullPath: '/week'
+      preLoaderRoute: typeof AuthenticatedWeekRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
-  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
-  AuthenticatedExportRoute: typeof AuthenticatedExportRoute
-  AuthenticatedMonthlyRoute: typeof AuthenticatedMonthlyRoute
-  AuthenticatedToolsRoute: typeof AuthenticatedToolsRoute
-  AuthenticatedHouseholdRoute: typeof AuthenticatedHouseholdRoute
-  AuthenticatedMarginsRoute: typeof AuthenticatedMarginsRoute
-  AuthenticatedDrawerRoute: typeof AuthenticatedDrawerRoute
-  AuthenticatedTaxRoute: typeof AuthenticatedTaxRoute
-  AuthenticatedLockRoute: typeof AuthenticatedLockRoute
-  AuthenticatedCategoriesRoute: typeof AuthenticatedCategoriesRoute
-  AuthenticatedDaybydayRoute: typeof AuthenticatedDaybydayRoute
-  AuthenticatedWeekRoute: typeof AuthenticatedWeekRoute
-  AuthenticatedOutlookRoute: typeof AuthenticatedOutlookRoute
-  AuthenticatedBusydaysRoute: typeof AuthenticatedBusydaysRoute
-  AuthenticatedBudgetsRoute: typeof AuthenticatedBudgetsRoute
-  AuthenticatedGoalsRoute: typeof AuthenticatedGoalsRoute
-  AuthenticatedBillsRoute: typeof AuthenticatedBillsRoute
   AuthenticatedAddRoute: typeof AuthenticatedAddRoute
-  AuthenticatedStreaksRoute: typeof AuthenticatedStreaksRoute
   AuthenticatedAskRoute: typeof AuthenticatedAskRoute
-  AuthenticatedHelpRoute: typeof AuthenticatedHelpRoute
-  AuthenticatedInvoicesRoute: typeof AuthenticatedInvoicesRoute
-  AuthenticatedInvoiceNewRoute: typeof AuthenticatedInvoiceNewRoute
-  AuthenticatedInvoiceRoute: typeof AuthenticatedInvoiceRoute
-  AuthenticatedRemindersRoute: typeof AuthenticatedRemindersRoute
+  AuthenticatedBillingRoute: typeof AuthenticatedBillingRoute
+  AuthenticatedBillsRoute: typeof AuthenticatedBillsRoute
+  AuthenticatedBudgetsRoute: typeof AuthenticatedBudgetsRoute
+  AuthenticatedBusydaysRoute: typeof AuthenticatedBusydaysRoute
+  AuthenticatedCategoriesRoute: typeof AuthenticatedCategoriesRoute
+  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedDaybydayRoute: typeof AuthenticatedDaybydayRoute
+  AuthenticatedDrawerRoute: typeof AuthenticatedDrawerRoute
   AuthenticatedEntriesRoute: typeof AuthenticatedEntriesRoute
+  AuthenticatedExportRoute: typeof AuthenticatedExportRoute
+  AuthenticatedGoalsRoute: typeof AuthenticatedGoalsRoute
+  AuthenticatedHelpRoute: typeof AuthenticatedHelpRoute
+  AuthenticatedHouseholdRoute: typeof AuthenticatedHouseholdRoute
+  AuthenticatedInvoiceRoute: typeof AuthenticatedInvoiceRoute
+  AuthenticatedInvoiceNewRoute: typeof AuthenticatedInvoiceNewRoute
+  AuthenticatedInvoicesRoute: typeof AuthenticatedInvoicesRoute
+  AuthenticatedLockRoute: typeof AuthenticatedLockRoute
+  AuthenticatedMarginsRoute: typeof AuthenticatedMarginsRoute
+  AuthenticatedMonthlyRoute: typeof AuthenticatedMonthlyRoute
+  AuthenticatedOutlookRoute: typeof AuthenticatedOutlookRoute
+  AuthenticatedRemindersRoute: typeof AuthenticatedRemindersRoute
+  AuthenticatedStreaksRoute: typeof AuthenticatedStreaksRoute
+  AuthenticatedTaxRoute: typeof AuthenticatedTaxRoute
+  AuthenticatedToolsRoute: typeof AuthenticatedToolsRoute
+  AuthenticatedWeekRoute: typeof AuthenticatedWeekRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
-  AuthenticatedExportRoute: AuthenticatedExportRoute,
-  AuthenticatedMonthlyRoute: AuthenticatedMonthlyRoute,
-  AuthenticatedToolsRoute: AuthenticatedToolsRoute,
-  AuthenticatedHouseholdRoute: AuthenticatedHouseholdRoute,
-  AuthenticatedMarginsRoute: AuthenticatedMarginsRoute,
-  AuthenticatedDrawerRoute: AuthenticatedDrawerRoute,
-  AuthenticatedTaxRoute: AuthenticatedTaxRoute,
-  AuthenticatedLockRoute: AuthenticatedLockRoute,
-  AuthenticatedCategoriesRoute: AuthenticatedCategoriesRoute,
-  AuthenticatedDaybydayRoute: AuthenticatedDaybydayRoute,
-  AuthenticatedWeekRoute: AuthenticatedWeekRoute,
-  AuthenticatedOutlookRoute: AuthenticatedOutlookRoute,
-  AuthenticatedBusydaysRoute: AuthenticatedBusydaysRoute,
-  AuthenticatedBudgetsRoute: AuthenticatedBudgetsRoute,
-  AuthenticatedGoalsRoute: AuthenticatedGoalsRoute,
-  AuthenticatedBillsRoute: AuthenticatedBillsRoute,
   AuthenticatedAddRoute: AuthenticatedAddRoute,
-  AuthenticatedStreaksRoute: AuthenticatedStreaksRoute,
   AuthenticatedAskRoute: AuthenticatedAskRoute,
-  AuthenticatedHelpRoute: AuthenticatedHelpRoute,
-  AuthenticatedInvoicesRoute: AuthenticatedInvoicesRoute,
-  AuthenticatedInvoiceNewRoute: AuthenticatedInvoiceNewRoute,
-  AuthenticatedInvoiceRoute: AuthenticatedInvoiceRoute,
-  AuthenticatedRemindersRoute: AuthenticatedRemindersRoute,
+  AuthenticatedBillingRoute: AuthenticatedBillingRoute,
+  AuthenticatedBillsRoute: AuthenticatedBillsRoute,
+  AuthenticatedBudgetsRoute: AuthenticatedBudgetsRoute,
+  AuthenticatedBusydaysRoute: AuthenticatedBusydaysRoute,
+  AuthenticatedCategoriesRoute: AuthenticatedCategoriesRoute,
+  AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedDaybydayRoute: AuthenticatedDaybydayRoute,
+  AuthenticatedDrawerRoute: AuthenticatedDrawerRoute,
   AuthenticatedEntriesRoute: AuthenticatedEntriesRoute,
+  AuthenticatedExportRoute: AuthenticatedExportRoute,
+  AuthenticatedGoalsRoute: AuthenticatedGoalsRoute,
+  AuthenticatedHelpRoute: AuthenticatedHelpRoute,
+  AuthenticatedHouseholdRoute: AuthenticatedHouseholdRoute,
+  AuthenticatedInvoiceRoute: AuthenticatedInvoiceRoute,
+  AuthenticatedInvoiceNewRoute: AuthenticatedInvoiceNewRoute,
+  AuthenticatedInvoicesRoute: AuthenticatedInvoicesRoute,
+  AuthenticatedLockRoute: AuthenticatedLockRoute,
+  AuthenticatedMarginsRoute: AuthenticatedMarginsRoute,
+  AuthenticatedMonthlyRoute: AuthenticatedMonthlyRoute,
+  AuthenticatedOutlookRoute: AuthenticatedOutlookRoute,
+  AuthenticatedRemindersRoute: AuthenticatedRemindersRoute,
+  AuthenticatedStreaksRoute: AuthenticatedStreaksRoute,
+  AuthenticatedTaxRoute: AuthenticatedTaxRoute,
+  AuthenticatedToolsRoute: AuthenticatedToolsRoute,
+  AuthenticatedWeekRoute: AuthenticatedWeekRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -593,6 +750,10 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  BillingCancelledRoute: BillingCancelledRoute,
+  BillingSuccessRoute: BillingSuccessRoute,
+  PrivacyRoute: PrivacyRoute,
+  TermsRoute: TermsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

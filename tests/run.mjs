@@ -14,6 +14,7 @@ const checks = [
   ["reminders", ["--experimental-strip-types", "tests/reminders.test.ts"]],
   ["entry formatting", ["--experimental-strip-types", "tests/recent-entries.test.ts"]],
   ["translations", ["--experimental-strip-types", "tests/i18n.test.ts"]],
+  ["payments", ["--experimental-strip-types", "tests/stripe.test.ts"]],
   ["service worker", ["tests/sw.test.mjs"]],
   ["money signs", ["tests/money.test.mjs"]],
   ["colour contrast", ["tests/contrast.mjs"]],

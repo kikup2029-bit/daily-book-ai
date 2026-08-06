@@ -79,6 +79,7 @@ export const en = {
     tax: "Tax set-aside",
     reminder: "Daily reminder",
     lock: "Lock this app",
+    billing: "Billing",
     pickDates: "Pick dates",
     downloadCsv: "Download CSV",
     downloadPdf: "Download PDF",
