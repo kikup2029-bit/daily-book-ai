@@ -135,6 +135,40 @@ ok(!needsAttention("active"), "a healthy subscription doesn't nag");
      "a missing status defaults to the safe end, not to active");
 }
 
+// --- the renewal date moved between API versions
+// Up to 2025-03-31 `current_period_end` sat on the subscription; after that it
+// sits on each subscription item. The webhook endpoint's pinned version decides
+// which shape arrives, and that's a dashboard setting nobody would think to
+// check. Both must work, or the renewal date silently becomes null.
+{
+  const older = readSubscription({
+    id: "sub_old", customer: "cus_1", status: "active",
+    current_period_end: 1_770_000_000,
+    items: { data: [{ price: { id: "price_1" } }] },
+  });
+  eq(older?.currentPeriodEnd, new Date(1_770_000_000_000).toISOString(),
+     "reads the period end from the subscription (API <= 2025-03-31)");
+
+  const newer = readSubscription({
+    id: "sub_new", customer: "cus_1", status: "active",
+    items: { data: [{ price: { id: "price_1" }, current_period_end: 1_770_000_000 }] },
+  });
+  eq(newer?.currentPeriodEnd, new Date(1_770_000_000_000).toISOString(),
+     "reads the period end from the item (API >= 2025-04-30)");
+
+  // If both are present the item wins, since that's the newer authority.
+  const both = readSubscription({
+    id: "sub_both", customer: "cus_1", status: "active",
+    current_period_end: 1_700_000_000,
+    items: { data: [{ price: { id: "price_1" }, current_period_end: 1_770_000_000 }] },
+  });
+  eq(both?.currentPeriodEnd, new Date(1_770_000_000_000).toISOString(),
+     "the item's period end wins over the subscription's");
+
+  const neither = readSubscription({ id: "sub_none", customer: "cus_1", status: "active" });
+  eq(neither?.currentPeriodEnd, null, "no period end anywhere stays null rather than becoming a date");
+}
+
 // --- pricing config is the single source of truth
 eq(PLANS.pro.priceCents, 999, "Pro price lives in one place");
 eq(formatPrice(999), "$9.99", "formats the price");

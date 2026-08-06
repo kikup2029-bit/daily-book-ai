@@ -197,13 +197,27 @@ export function readSubscription(object: Record<string, unknown>): {
         : null;
   if (!id || !customer) return null;
 
-  const items = object.items as { data?: Array<{ price?: { id?: string } }> } | undefined;
-  const priceId = items?.data?.[0]?.price?.id ?? null;
+  const items = object.items as
+    | { data?: Array<{ price?: { id?: string }; current_period_end?: unknown }> }
+    | undefined;
+  const firstItem = items?.data?.[0];
+  const priceId = firstItem?.price?.id ?? null;
 
-  const periodEnd =
-    typeof object.current_period_end === "number"
-      ? new Date(object.current_period_end * 1000).toISOString()
-      : null;
+  // Where the renewal date lives depends on the API version the webhook
+  // endpoint is pinned to. Up to 2025-03-31 it sat on the subscription; after
+  // that Stripe moved it onto each subscription item, because items can now be
+  // billed on different cycles. Read both, newest shape first, so the stored
+  // date doesn't silently become null if the endpoint's version is changed in
+  // the dashboard — nothing in this app would throw, the renewal date would
+  // just quietly stop appearing.
+  const rawPeriodEnd =
+    typeof firstItem?.current_period_end === "number"
+      ? firstItem.current_period_end
+      : typeof object.current_period_end === "number"
+        ? object.current_period_end
+        : null;
+
+  const periodEnd = rawPeriodEnd === null ? null : new Date(rawPeriodEnd * 1000).toISOString();
 
   return {
     subscriptionId: id,
