@@ -9,7 +9,9 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "test": "node tests/run.mjs",
+    "check": "tsc --noEmit && eslint . && node tests/run.mjs"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^3.0.17",

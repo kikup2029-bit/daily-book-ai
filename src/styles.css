@@ -419,6 +419,68 @@
     }
   }
 
+  /* ---- print --------------------------------------------------------- */
+  /*
+   * An invoice is the one thing here a customer sees on paper. Printing gives
+   * black on white with the app's chrome stripped out — and critically, the
+   * + and − signs and every amount survive, because a printed statement can't
+   * rely on colour to say which way the money went.
+   */
+  @media print {
+    .no-print,
+    header,
+    nav,
+    footer {
+      display: none !important;
+    }
+
+    :root,
+    .light {
+      --background: #fff;
+      --surface-1: #fff;
+      --surface-2: #fff;
+      --surface-3: #fff;
+      --foreground: #000;
+      --muted-foreground: #333;
+      --border: #bbb;
+      --border-strong: #888;
+      --success: #000;
+      --danger: #000;
+      --brand: #000;
+    }
+
+    body {
+      background: #fff !important;
+      color: #000 !important;
+    }
+
+    main {
+      padding: 0 !important;
+      max-width: none !important;
+    }
+
+    .invoice-print {
+      border: none !important;
+      box-shadow: none !important;
+      padding: 0 !important;
+      break-inside: avoid;
+    }
+
+    .invoice-print table {
+      width: 100% !important;
+    }
+
+    /* Keep amounts legible rather than washed out. */
+    .num,
+    .figure {
+      color: #000 !important;
+    }
+
+    a[href]::after {
+      content: "";
+    }
+  }
+
   /* Anyone who asks for less motion gets none of it. */
   @media (prefers-reduced-motion: reduce) {
     *,

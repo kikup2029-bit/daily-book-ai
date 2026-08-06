@@ -85,6 +85,10 @@ export type Settings = {
   /** Whether an app lock PIN is set. The hash itself never leaves the server. */
   lock_enabled: boolean;
   lock_timeout_minutes: number;
+  /** Daily nudge to log the day's takings. */
+  reminder_enabled: boolean;
+  reminder_time: string | null;
+  reminder_last_shown: string | null;
 };
 
 export async function fetchSettings(supabase: Client, userId: string): Promise<Settings> {
@@ -94,12 +98,76 @@ export async function fetchSettings(supabase: Client, userId: string): Promise<S
     .eq("user_id", userId)
     .maybeSingle();
   if (error) throw new Error(error.message);
+
+  // The reminder columns arrived after the lock ones. Reading them separately
+  // means the whole settings screen doesn't fail for anyone who hasn't run the
+  // newer migration yet — they just see reminders switched off.
+  const reminder = await fetchReminderColumns(supabase, userId);
+
   return {
     tax_rate_percent: Number(data?.tax_rate_percent ?? 0),
     opening_float: Number(data?.opening_float ?? 0),
     lock_enabled: Boolean(data?.lock_pin_hash),
     lock_timeout_minutes: Number(data?.lock_timeout_minutes ?? 5),
+    ...reminder,
   };
+}
+
+async function fetchReminderColumns(supabase: Client, userId: string) {
+  const fallback = {
+    reminder_enabled: false,
+    reminder_time: null as string | null,
+    reminder_last_shown: null as string | null,
+  };
+  try {
+    const { data, error } = await supabase
+      .from("user_settings")
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .select("reminder_enabled, reminder_time, reminder_last_shown" as any)
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (error) return fallback;
+    const row = data as unknown as {
+      reminder_enabled?: boolean;
+      reminder_time?: string | null;
+      reminder_last_shown?: string | null;
+    } | null;
+    return {
+      reminder_enabled: Boolean(row?.reminder_enabled),
+      reminder_time: row?.reminder_time ?? null,
+      reminder_last_shown: row?.reminder_last_shown ?? null,
+    };
+  } catch {
+    return fallback;
+  }
+}
+
+/** Saves the reminder preference. Separate from the tax settings on purpose. */
+export async function saveReminder(
+  supabase: Client,
+  userId: string,
+  input: { enabled: boolean; time: string | null; last_shown?: string | null },
+) {
+  const patch: Record<string, unknown> = {
+    user_id: userId,
+    reminder_enabled: input.enabled,
+    reminder_time: input.time,
+  };
+  if (input.last_shown !== undefined) patch.reminder_last_shown = input.last_shown;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await supabase.from("user_settings").upsert(patch as any, {
+    onConflict: "user_id",
+  });
+  if (error) {
+    if (/reminder_/.test(error.message)) {
+      throw new Error(
+        "Reminders aren't set up on your database yet. Run supabase/add-invoices.sql in the Supabase SQL Editor, then reload.",
+      );
+    }
+    throw new Error(error.message);
+  }
+  return { ok: true };
 }
 
 // --- app lock -------------------------------------------------------------

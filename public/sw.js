@@ -38,7 +38,10 @@ self.addEventListener("activate", (event) => {
       const names = await caches.keys();
       await Promise.all(
         names
-          .filter((name) => name.startsWith("simplebooks-") && name !== SHELL_CACHE && name !== DATA_CACHE)
+          .filter(
+            (name) =>
+              name.startsWith("simplebooks-") && name !== SHELL_CACHE && name !== DATA_CACHE,
+          )
           .map((name) => caches.delete(name)),
       );
       await self.clients.claim();

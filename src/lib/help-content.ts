@@ -349,6 +349,50 @@ export const HELP: HelpGroup[] = [
   },
 
   {
+    id: "invoices",
+    label: "Invoices",
+    topics: [
+      {
+        id: "invoice-create",
+        title: "Billing a customer",
+        where: "Invoices → New invoice",
+        summary: "Make an invoice, then send it and chase it from one list.",
+        to: "/invoice-new",
+        keywords: "invoice bill customer client charge create send draft number",
+        steps: [
+          "Enter who it's for, the dates, and one line per thing you're charging for.",
+          "The total works itself out as you type.",
+          "Create it — it starts as a draft, so nothing is final.",
+          "When you've actually sent it to the customer, open it and tap Mark as sent.",
+        ],
+        notes: [
+          "Numbers run in sequence and are never reused, even if you cancel one. Gaps are normal; two invoices sharing a number would not be.",
+          "A draft can be edited or deleted. Once sent, it can be edited or cancelled but not deleted, so the numbering trail stays intact.",
+          "Print or save as PDF gives you a clean copy with none of the app around it.",
+        ],
+      },
+      {
+        id: "invoice-paid",
+        title: "Getting paid, and what it does to your books",
+        where: "Invoices → open one",
+        summary: "Marking an invoice paid is what turns it into income.",
+        to: "/invoices",
+        keywords: "paid payment mark unpaid income books entry outstanding overdue owed",
+        steps: [
+          "Open the invoice and tap Mark as paid.",
+          "Choose the date the money actually arrived — not today, if they're different.",
+        ],
+        notes: [
+          "This creates a normal income entry in your books on that date, so it flows into your totals, your month, your tax set-aside and your export like any other money in.",
+          "Until it's marked paid it stays out of your figures completely. An unpaid invoice isn't income, and counting it would inflate your profit and your tax.",
+          "Changed your mind? Mark as unpaid removes that entry again.",
+          "Anything past its due date shows as overdue automatically — that's worked out from the date, so it's never stale.",
+        ],
+      },
+    ],
+  },
+
+  {
     id: "tools",
     label: "Tools",
     topics: [
@@ -410,6 +454,25 @@ export const HELP: HelpGroup[] = [
         notes: [
           "Log tax payments with “tax” in the category and they count against the total.",
           "This isn't tax advice — confirm the right percentage with an accountant.",
+        ],
+      },
+      {
+        id: "reminder",
+        title: "Daily reminder",
+        where: "Tools → Daily reminder",
+        summary: "A nudge at a time you pick, so logging becomes a habit.",
+        to: "/reminders",
+        keywords: "reminder notification nudge daily alert time habit notify",
+        steps: [
+          "Pick the time that suits your day — after closing usually works.",
+          "Tap Turn on reminders and allow notifications when your browser asks.",
+        ],
+        notes: [
+          "Worth being clear about how it works: the app shows the reminder when it notices the time has passed. It isn't an alarm clock sent from a server, so it won't fire on a phone that hasn't opened the app all day.",
+          "On iPhone you have to add the app to your home screen first — Apple doesn't allow notifications otherwise.",
+          "It stays quiet if you've already logged something that day. The point is the habit, not the notification.",
+          "It only ever appears once a day, even if you open the app several times.",
+          "If you've blocked notifications for the site, the app will say so rather than pretending it's on.",
         ],
       },
       {

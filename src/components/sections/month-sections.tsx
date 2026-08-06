@@ -98,6 +98,24 @@ const TOOLTIP_LABEL_STYLE = { color: "var(--color-muted-foreground)", fontSize: 
 const TOOLTIP_ITEM_STYLE = { color: "var(--color-foreground)" };
 const AXIS_TICK = { fontSize: 10, fill: "var(--color-muted-foreground)" };
 
+/**
+ * Short axis labels: "$1.2k" rather than "$1,234.00".
+ *
+ * Axis gutters are narrow and a long label either clips or eats the chart.
+ * Full precision still appears in the tooltip and everywhere else on the page,
+ * so nothing is actually lost.
+ */
+function abbreviateMoney(value: number): string {
+  if (!Number.isFinite(value)) return "";
+  const sign = value < 0 ? "−" : "";
+  const size = Math.abs(value);
+  if (size >= 1000) {
+    const thousands = size / 1000;
+    return `${sign}$${thousands >= 10 ? Math.round(thousands) : thousands.toFixed(1)}k`;
+  }
+  return `${sign}$${Math.round(size)}`;
+}
+
 /** A small square of colour beside a chart legend entry. */
 function Swatch({ color }: { color: string }) {
   return (
@@ -333,15 +351,21 @@ export function MonthlyPage({ parts = ALL_PARTS }: { parts?: MonthPart[] } = {})
               description="Every expense this month, biggest first."
             />
             <PanelBody>
-              <div className="h-56 w-full">
+              {/* Fixed height, fluid width: ResponsiveContainer needs a sized
+                  ancestor or it collapses to nothing. Taller on wider screens
+                  so the donut isn't lost in the middle of a big panel. */}
+              <div className="h-56 w-full sm:h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
                       data={byCategory}
                       dataKey="amount"
                       nameKey="name"
-                      outerRadius={78}
-                      innerRadius={44}
+                      // Percentages rather than pixels, so the donut scales
+                      // with the panel instead of overflowing a narrow one or
+                      // floating in a wide one.
+                      outerRadius="88%"
+                      innerRadius="52%"
                       paddingAngle={1}
                       stroke="var(--color-surface-1)"
                       strokeWidth={2}
@@ -387,17 +411,31 @@ export function MonthlyPage({ parts = ALL_PARTS }: { parts?: MonthPart[] } = {})
             description="Each bar is that day's net. Bars above the line are days you came out ahead, below the line are days you didn't."
           />
           <PanelBody>
-            <div className="h-48 w-full">
+            <div className="h-48 w-full sm:h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={dailyNet} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
                   <XAxis
                     dataKey="day"
                     tick={AXIS_TICK}
-                    interval={4}
+                    // "preserveStartEnd" lets Recharts drop labels only as far
+                    // as it needs to for the actual width, instead of a fixed
+                    // every-fifth-day rule that's too sparse on a wide screen
+                    // and still crowded on a narrow one.
+                    interval="preserveStartEnd"
+                    minTickGap={12}
                     axisLine={false}
                     tickLine={false}
                   />
-                  <YAxis tick={AXIS_TICK} width={44} axisLine={false} tickLine={false} />
+                  <YAxis
+                    tick={AXIS_TICK}
+                    // Abbreviated so a four-figure day fits the gutter. At 10px
+                    // "$1,234.00" needs roughly 52px and would have been
+                    // clipped by the old fixed 44px width.
+                    tickFormatter={abbreviateMoney}
+                    width={52}
+                    axisLine={false}
+                    tickLine={false}
+                  />
                   <Tooltip
                     formatter={(value: number) => formatMoney(value)}
                     labelFormatter={(label) => `Day ${label}`}

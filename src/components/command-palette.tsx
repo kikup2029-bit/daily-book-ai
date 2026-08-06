@@ -46,7 +46,26 @@ const PAGES: Array<{ to: string; label: string; group: string; keywords?: string
   { to: "/goals", label: "Savings goals", group: "This month", keywords: "saving target" },
   { to: "/bills", label: "Bills", group: "This month", keywords: "due recurring subscriptions" },
 
+  {
+    to: "/invoices",
+    label: "Invoices",
+    group: "Invoices",
+    keywords: "invoice bill customer owed outstanding overdue unpaid client",
+  },
+  {
+    to: "/invoice-new",
+    label: "New invoice",
+    group: "Invoices",
+    keywords: "create invoice bill customer new charge",
+  },
+
   { to: "/household", label: "Household", group: "Tools", keywords: "share partner split invite" },
+  {
+    to: "/reminders",
+    label: "Daily reminder",
+    group: "Tools",
+    keywords: "reminder notification nudge alert daily habit time",
+  },
   {
     to: "/margins",
     label: "Item margins",

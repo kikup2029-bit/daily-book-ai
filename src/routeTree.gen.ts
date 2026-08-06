@@ -34,6 +34,10 @@ import { Route as AuthenticatedStreaksRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedAskRouteImport } from './routes/_authenticated/ask'
 import { Route as AuthenticatedHelpRouteImport } from './routes/_authenticated/help'
 import { Route as AuthenticatedEntriesRouteImport } from './routes/_authenticated/entries'
+import { Route as AuthenticatedRemindersRouteImport } from './routes/_authenticated/reminders'
+import { Route as AuthenticatedInvoiceRouteImport } from './routes/_authenticated/invoice'
+import { Route as AuthenticatedInvoiceNewRouteImport } from './routes/_authenticated/invoice-new'
+import { Route as AuthenticatedInvoicesRouteImport } from './routes/_authenticated/invoices'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -154,6 +158,26 @@ const AuthenticatedHelpRoute = AuthenticatedHelpRouteImport.update({
   path: '/help',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedInvoicesRoute = AuthenticatedInvoicesRouteImport.update({
+  id: '/invoices',
+  path: '/invoices',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedInvoiceNewRoute = AuthenticatedInvoiceNewRouteImport.update({
+  id: '/invoice-new',
+  path: '/invoice-new',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedInvoiceRoute = AuthenticatedInvoiceRouteImport.update({
+  id: '/invoice',
+  path: '/invoice',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRemindersRoute = AuthenticatedRemindersRouteImport.update({
+  id: '/reminders',
+  path: '/reminders',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedEntriesRoute = AuthenticatedEntriesRouteImport.update({
   id: '/entries',
   path: '/entries',
@@ -183,6 +207,10 @@ export interface FileRoutesByFullPath {
   '/streaks': typeof AuthenticatedStreaksRoute
   '/ask': typeof AuthenticatedAskRoute
   '/help': typeof AuthenticatedHelpRoute
+  '/invoices': typeof AuthenticatedInvoicesRoute
+  '/invoice-new': typeof AuthenticatedInvoiceNewRoute
+  '/invoice': typeof AuthenticatedInvoiceRoute
+  '/reminders': typeof AuthenticatedRemindersRoute
   '/entries': typeof AuthenticatedEntriesRoute
   '/monthly': typeof AuthenticatedMonthlyRoute
 }
@@ -209,6 +237,10 @@ export interface FileRoutesByTo {
   '/streaks': typeof AuthenticatedStreaksRoute
   '/ask': typeof AuthenticatedAskRoute
   '/help': typeof AuthenticatedHelpRoute
+  '/invoices': typeof AuthenticatedInvoicesRoute
+  '/invoice-new': typeof AuthenticatedInvoiceNewRoute
+  '/invoice': typeof AuthenticatedInvoiceRoute
+  '/reminders': typeof AuthenticatedRemindersRoute
   '/entries': typeof AuthenticatedEntriesRoute
   '/monthly': typeof AuthenticatedMonthlyRoute
 }
@@ -237,14 +269,18 @@ export interface FileRoutesById {
   '/_authenticated/streaks': typeof AuthenticatedStreaksRoute
   '/_authenticated/ask': typeof AuthenticatedAskRoute
   '/_authenticated/help': typeof AuthenticatedHelpRoute
+  '/_authenticated/invoices': typeof AuthenticatedInvoicesRoute
+  '/_authenticated/invoice-new': typeof AuthenticatedInvoiceNewRoute
+  '/_authenticated/invoice': typeof AuthenticatedInvoiceRoute
+  '/_authenticated/reminders': typeof AuthenticatedRemindersRoute
   '/_authenticated/entries': typeof AuthenticatedEntriesRoute
   '/_authenticated/monthly': typeof AuthenticatedMonthlyRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/dashboard' | '/export' | '/monthly' | '/tools' | '/household' | '/margins' | '/drawer' | '/tax' | '/lock' | '/categories' | '/daybyday' | '/week' | '/outlook' | '/busydays' | '/budgets' | '/goals' | '/bills' | '/add' | '/streaks' | '/ask' | '/help' | '/entries'
+  fullPaths: '/' | '/auth' | '/dashboard' | '/export' | '/monthly' | '/tools' | '/household' | '/margins' | '/drawer' | '/tax' | '/lock' | '/categories' | '/daybyday' | '/week' | '/outlook' | '/busydays' | '/budgets' | '/goals' | '/bills' | '/add' | '/streaks' | '/ask' | '/help' | '/invoices' | '/invoice-new' | '/invoice' | '/reminders' | '/entries'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/dashboard' | '/export' | '/monthly' | '/tools' | '/household' | '/margins' | '/drawer' | '/tax' | '/lock' | '/categories' | '/daybyday' | '/week' | '/outlook' | '/busydays' | '/budgets' | '/goals' | '/bills' | '/add' | '/streaks' | '/ask' | '/help' | '/entries'
+  to: '/' | '/auth' | '/dashboard' | '/export' | '/monthly' | '/tools' | '/household' | '/margins' | '/drawer' | '/tax' | '/lock' | '/categories' | '/daybyday' | '/week' | '/outlook' | '/busydays' | '/budgets' | '/goals' | '/bills' | '/add' | '/streaks' | '/ask' | '/help' | '/invoices' | '/invoice-new' | '/invoice' | '/reminders' | '/entries'
   id:
     | '__root__'
     | '/'
@@ -270,6 +306,10 @@ export interface FileRouteTypes {
     | '/_authenticated/streaks'
     | '/_authenticated/ask'
     | '/_authenticated/help'
+    | '/_authenticated/invoices'
+    | '/_authenticated/invoice-new'
+    | '/_authenticated/invoice'
+    | '/_authenticated/reminders'
     | '/_authenticated/entries'
     | '/_authenticated/monthly'
   fileRoutesById: FileRoutesById
@@ -450,6 +490,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedHelpRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/invoices': {
+      id: '/_authenticated/invoices'
+      path: '/invoices'
+      fullPath: '/invoices'
+      preLoaderRoute: typeof AuthenticatedInvoicesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/invoice-new': {
+      id: '/_authenticated/invoice-new'
+      path: '/invoice-new'
+      fullPath: '/invoice-new'
+      preLoaderRoute: typeof AuthenticatedInvoiceNewRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/invoice': {
+      id: '/_authenticated/invoice'
+      path: '/invoice'
+      fullPath: '/invoice'
+      preLoaderRoute: typeof AuthenticatedInvoiceRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/reminders': {
+      id: '/_authenticated/reminders'
+      path: '/reminders'
+      fullPath: '/reminders'
+      preLoaderRoute: typeof AuthenticatedRemindersRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/entries': {
       id: '/_authenticated/entries'
       path: '/entries'
@@ -482,6 +550,10 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedStreaksRoute: typeof AuthenticatedStreaksRoute
   AuthenticatedAskRoute: typeof AuthenticatedAskRoute
   AuthenticatedHelpRoute: typeof AuthenticatedHelpRoute
+  AuthenticatedInvoicesRoute: typeof AuthenticatedInvoicesRoute
+  AuthenticatedInvoiceNewRoute: typeof AuthenticatedInvoiceNewRoute
+  AuthenticatedInvoiceRoute: typeof AuthenticatedInvoiceRoute
+  AuthenticatedRemindersRoute: typeof AuthenticatedRemindersRoute
   AuthenticatedEntriesRoute: typeof AuthenticatedEntriesRoute
 }
 
@@ -507,6 +579,10 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedStreaksRoute: AuthenticatedStreaksRoute,
   AuthenticatedAskRoute: AuthenticatedAskRoute,
   AuthenticatedHelpRoute: AuthenticatedHelpRoute,
+  AuthenticatedInvoicesRoute: AuthenticatedInvoicesRoute,
+  AuthenticatedInvoiceNewRoute: AuthenticatedInvoiceNewRoute,
+  AuthenticatedInvoiceRoute: AuthenticatedInvoiceRoute,
+  AuthenticatedRemindersRoute: AuthenticatedRemindersRoute,
   AuthenticatedEntriesRoute: AuthenticatedEntriesRoute,
 }
 

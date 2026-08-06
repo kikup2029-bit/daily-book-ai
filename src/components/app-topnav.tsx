@@ -6,6 +6,7 @@ import { ChevronDown, Menu, Moon, Search, Sun, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { BrandMark } from "@/components/brand-mark";
 import { CommandPalette } from "@/components/command-palette";
+import { ReminderRunner } from "@/components/daily-reminder";
 import { OfflineBar } from "@/components/offline-bar";
 import { HELP_NAV } from "@/lib/help-content";
 import { clearOfflineData } from "@/lib/register-sw";
@@ -42,6 +43,14 @@ const NAV: Item[] = [
     ],
   },
   {
+    label: "Invoices",
+    to: "/invoices",
+    children: [
+      { to: "/invoices", label: "All invoices" },
+      { to: "/invoice-new", label: "New invoice" },
+    ],
+  },
+  {
     label: "Tools",
     to: "/household",
     children: [
@@ -49,6 +58,7 @@ const NAV: Item[] = [
       { to: "/margins", label: "Item margins" },
       { to: "/drawer", label: "Cash drawer" },
       { to: "/tax", label: "Tax set-aside" },
+      { to: "/reminders", label: "Daily reminder" },
       { to: "/lock", label: "Lock this app" },
     ],
   },
@@ -235,7 +245,7 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
           </Link>
 
           {/* desktop nav */}
-          <nav className="hidden items-center gap-1 md:flex">
+          <nav className="hidden items-center gap-1 lg:flex">
             {NAV.map((item) => {
               const active = isActive(item);
               return (
@@ -354,7 +364,7 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
             <button
               type="button"
               onClick={signOut}
-              className="hidden rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground md:block"
+              className="hidden rounded-[var(--radius-8)] px-3 py-2 text-[13.5px] font-medium text-muted-foreground transition-colors duration-[var(--dur-fast)] hover:bg-accent hover:text-foreground lg:block"
             >
               Sign out
             </button>
@@ -362,7 +372,7 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
             <button
               type="button"
               onClick={openMobile}
-              className="rounded-lg p-2 text-muted-foreground transition-colors hover:text-foreground md:hidden"
+              className="flex size-9 items-center justify-center rounded-[var(--radius-8)] text-muted-foreground transition-colors duration-[var(--dur-fast)] hover:bg-accent hover:text-foreground lg:hidden"
               aria-label="Open menu"
             >
               <Menu className="size-5" />
@@ -373,7 +383,7 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
 
       {/* ---------- mobile menu ---------- */}
       {mobileOpen ? (
-        <div className="fixed inset-0 z-50 md:hidden">
+        <div className="fixed inset-0 z-50 lg:hidden">
           <button
             type="button"
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
@@ -473,6 +483,9 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
       </main>
 
       <CommandPalette />
+      {/* Renders nothing; watches the clock so the daily nudge can fire from
+          whichever page happens to be open. */}
+      <ReminderRunner />
     </div>
   );
 }

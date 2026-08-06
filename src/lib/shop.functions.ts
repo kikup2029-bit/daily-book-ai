@@ -46,6 +46,29 @@ export const getSettings = createServerFn({ method: "GET" })
     return fetchSettings(context.supabase, context.userId);
   });
 
+export const putReminder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        enabled: z.boolean(),
+        time: z
+          .string()
+          .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Pick a time.")
+          .nullable(),
+        last_shown: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .nullable()
+          .optional(),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const { saveReminder } = await import("./shop.server");
+    return saveReminder(context.supabase, context.userId, data);
+  });
+
 export const putSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>

@@ -6,7 +6,9 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist", ".output", ".vinxi"] },
+  // The test scripts run under Node with type stripping, not through Vite, and
+// use terse assertion helpers that the app-code rules would object to.
+{ ignores: ["dist", ".output", ".vinxi", "tests"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],
