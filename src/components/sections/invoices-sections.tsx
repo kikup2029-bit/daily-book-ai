@@ -13,7 +13,6 @@ import { useServerFn } from "@tanstack/react-start";
 import { ArrowLeft, FileText, Plus, Printer, Search, Send, Trash2, X } from "lucide-react";
 
 import {
-  STATUS_LABELS,
   allowedActions,
   blankDraft,
   daysOverdue,
@@ -41,6 +40,7 @@ import {
   setInvoiceStatusFn,
   updateInvoiceFn,
 } from "@/lib/invoices.functions";
+import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -69,6 +69,37 @@ const BADGE_TONE: Record<DisplayStatus, "neutral" | "positive" | "negative" | "w
   void: "neutral",
 };
 
+/**
+ * The status chip's wording, per language.
+ *
+ * src/lib/invoices.ts keeps STATUS_LABELS in English because it's pure logic
+ * with no access to the reader's language. The mapping to a translation key
+ * belongs here, where there's a `t`.
+ */
+const STATUS_KEY: Record<DisplayStatus, string> = {
+  draft: "invoices.statusDraft",
+  sent: "invoices.statusSent",
+  overdue: "invoices.statusOverdue",
+  paid: "invoices.statusPaid",
+  void: "invoices.statusVoid",
+};
+
+/**
+ * validateInvoice() reports problems in English, for the same reason: it's a
+ * pure function shared with the server. Each message maps to exactly one key.
+ */
+const PROBLEM_KEY: Record<string, string> = {
+  "Who is this invoice for?": "invoices.errCustomer",
+  "That name is too long.": "invoices.errNameLong",
+  "That doesn't look like an email address.": "invoices.errEmail",
+  "Pick a date.": "invoices.errDate",
+  "Due date can't be before the issue date.": "invoices.errDueBeforeIssue",
+  "Add at least one item.": "invoices.errNoLines",
+  "Describe what this is for.": "invoices.errLineDescription",
+  "Quantity must be more than zero.": "invoices.errLineQuantity",
+  "Price can't be negative.": "invoices.errLinePrice",
+};
+
 function useInvoices() {
   const fetchInvoices = useServerFn(getInvoices);
   return useQuery({ queryKey: ["invoices"], queryFn: () => fetchInvoices() });
@@ -87,6 +118,7 @@ function useInvalidate() {
 /* ============================================================ list ======= */
 
 export function InvoicesList() {
+  const { t, formatDate } = useI18n();
   const { data: invoices = [], isLoading, error } = useInvoices();
   const [filter, setFilter] = useState<InvoiceFilter>("all");
   const [search, setSearch] = useState("");
@@ -101,60 +133,61 @@ export function InvoicesList() {
   return (
     <div className="rise mx-auto w-full max-w-5xl">
       <PageHeader
-        eyebrow="Invoices"
-        title="Money you're owed"
-        description="Bill a customer, then mark it paid when the money lands — that's when it reaches your books."
+        eyebrow={t("invoices.eyebrow")}
+        title={t("invoices.title")}
+        description={t("invoices.blurb")}
         actions={
           <Button asChild variant="brand">
             <Link to="/invoice-new">
-              <Plus aria-hidden="true" /> New invoice
+              <Plus aria-hidden="true" /> {t("invoices.newInvoice")}
             </Link>
           </Button>
         }
       />
 
       {error ? (
-        <Alert tone="negative" title="Invoices aren't available yet">
+        <Alert tone="negative" title={t("invoices.notAvailable")}>
           {(error as Error).message}
         </Alert>
       ) : null}
 
       <div className="grid grid-cols-2 gap-x-6 gap-y-6 border-b pb-8 lg:grid-cols-4">
         <Metric
-          label="Outstanding"
+          label={t("invoices.outstanding")}
           value={<Money value={totals.outstanding} />}
-          hint={`${totals.outstandingCount} ${totals.outstandingCount === 1 ? "invoice" : "invoices"} awaiting payment`}
+          hint={t("invoices.awaitingPayment", { count: totals.outstandingCount })}
           emphasis="hero"
           loading={isLoading}
           className="col-span-2"
         />
         <Metric
-          label="Overdue"
+          label={t("invoices.overdue")}
           value={<Money value={totals.overdue} />}
           tone={totals.overdue > 0 ? "negative" : "neutral"}
-          hint={`${totals.overdueCount} past the due date`}
+          hint={t("invoices.pastDue", { count: totals.overdueCount })}
           loading={isLoading}
         />
         <Metric
-          label="Paid this month"
+          label={t("invoices.paidThisMonth")}
           value={<Money value={totals.paidThisMonth} />}
           tone={totals.paidThisMonth > 0 ? "positive" : "neutral"}
-          hint={`${totals.paidThisMonthCount} settled`}
+          hint={t("invoices.settled", { count: totals.paidThisMonthCount })}
           loading={isLoading}
         />
       </div>
 
       <div className="flex flex-wrap items-center gap-3 py-6">
         <Segmented
+          // No key in en.ts for this group's accessible name — see the handover note.
           name="Show"
           value={filter}
           onChange={setFilter}
           options={[
-            { value: "all", label: "All" },
-            { value: "outstanding", label: "Outstanding" },
-            { value: "overdue", label: "Overdue" },
-            { value: "draft", label: "Drafts" },
-            { value: "paid", label: "Paid" },
+            { value: "all", label: t("invoices.all") },
+            { value: "outstanding", label: t("invoices.outstanding") },
+            { value: "overdue", label: t("invoices.overdue") },
+            { value: "draft", label: t("invoices.drafts") },
+            { value: "paid", label: t("invoices.paid") },
           ]}
           className="max-w-full overflow-x-auto"
         />
@@ -166,9 +199,9 @@ export function InvoicesList() {
           <Input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Customer or number"
+            placeholder={t("invoices.searchPlaceholder")}
             className="pl-9"
-            aria-label="Search invoices"
+            aria-label={t("invoices.searchLabel")}
           />
         </div>
       </div>
@@ -185,14 +218,13 @@ export function InvoicesList() {
             <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-brand-soft text-brand">
               <FileText className="size-6" aria-hidden="true" />
             </span>
-            <h2 className="mt-4 text-lg">No invoices yet</h2>
+            <h2 className="mt-4 text-lg">{t("invoices.none")}</h2>
             <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
-              Create one for a customer, send it, and mark it paid when the money arrives. Only then
-              does it count as income.
+              {t("invoices.noneBlurb")}
             </p>
             <Button asChild variant="brand" className="mt-6">
               <Link to="/invoice-new">
-                <Plus aria-hidden="true" /> Create your first invoice
+                <Plus aria-hidden="true" /> {t("invoices.createFirst")}
               </Link>
             </Button>
           </PanelBody>
@@ -200,7 +232,7 @@ export function InvoicesList() {
       ) : rows.length === 0 ? (
         <Panel>
           <PanelBody className="pt-5 text-center text-sm text-muted-foreground">
-            Nothing matches that.{" "}
+            {t("common.noMatch")}{" "}
             <button
               type="button"
               onClick={() => {
@@ -209,7 +241,7 @@ export function InvoicesList() {
               }}
               className="font-medium text-brand underline underline-offset-4"
             >
-              Show everything
+              {t("common.showEverything")}
             </button>
           </PanelBody>
         </Panel>
@@ -220,19 +252,19 @@ export function InvoicesList() {
             <thead>
               <tr className="border-b">
                 <th scope="col" className="eyebrow px-5 py-3 font-semibold">
-                  Invoice
+                  {t("invoices.invoice")}
                 </th>
                 <th scope="col" className="eyebrow px-5 py-3 font-semibold">
-                  Customer
+                  {t("invoices.customer")}
                 </th>
                 <th scope="col" className="eyebrow px-5 py-3 font-semibold">
-                  Due
+                  {t("invoices.due")}
                 </th>
                 <th scope="col" className="eyebrow px-5 py-3 font-semibold">
-                  Status
+                  {t("invoices.status")}
                 </th>
                 <th scope="col" className="eyebrow px-5 py-3 text-right font-semibold">
-                  Amount
+                  {t("common.amount")}
                 </th>
               </tr>
             </thead>
@@ -255,15 +287,15 @@ export function InvoicesList() {
                       {invoice.customer_name}
                     </td>
                     <td className="num px-5 py-3 text-[13px] text-muted-foreground">
-                      {invoice.due_date}
+                      {formatDate(invoice.due_date)}
                       {late > 0 ? (
-                        <span className="ml-1.5 text-danger">
-                          <span className="num">{late}</span> {late === 1 ? "day" : "days"} late
+                        <span className="num ml-1.5 text-danger">
+                          {t("invoices.daysLate", { count: late })}
                         </span>
                       ) : null}
                     </td>
                     <td className="px-5 py-3">
-                      <Badge tone={BADGE_TONE[status]}>{STATUS_LABELS[status]}</Badge>
+                      <Badge tone={BADGE_TONE[status]}>{t(STATUS_KEY[status])}</Badge>
                     </td>
                     <td className="px-5 py-3 text-right text-sm font-medium">
                       <Money value={invoiceTotal(invoice)} />
@@ -289,7 +321,8 @@ export function InvoicesList() {
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium">{invoice.customer_name}</p>
                       <p className="num mt-0.5 text-[12px] text-muted-foreground">
-                        {invoice.number} · due {invoice.due_date}
+                        {invoice.number} ·{" "}
+                        {t("invoices.dueOn", { date: formatDate(invoice.due_date) })}
                       </p>
                     </div>
                     <p className="shrink-0 text-sm font-medium">
@@ -297,10 +330,10 @@ export function InvoicesList() {
                     </p>
                   </div>
                   <div className="mt-2 flex items-center gap-2">
-                    <Badge tone={BADGE_TONE[status]}>{STATUS_LABELS[status]}</Badge>
+                    <Badge tone={BADGE_TONE[status]}>{t(STATUS_KEY[status])}</Badge>
                     {late > 0 ? (
-                      <span className="text-[12px] text-danger">
-                        <span className="num">{late}</span> {late === 1 ? "day" : "days"} late
+                      <span className="num text-[12px] text-danger">
+                        {t("invoices.daysLate", { count: late })}
                       </span>
                     ) : null}
                   </div>
@@ -317,6 +350,7 @@ export function InvoicesList() {
 /* ========================================================== editor ======= */
 
 export function InvoiceEditor({ invoice }: { invoice?: Invoice }) {
+  const { t } = useI18n();
   const navigate = useNavigate();
   const invalidate = useInvalidate();
   const create = useServerFn(createInvoiceFn);
@@ -340,6 +374,9 @@ export function InvoiceEditor({ invoice }: { invoice?: Invoice }) {
   const totals = useMemo(() => invoiceTotals(draft.lines), [draft.lines]);
   const lineError = (index: number) =>
     problems.lineErrors?.find((item) => item.index === index)?.message;
+
+  // validateInvoice() speaks English; this is where it gets translated.
+  const say = (message?: string) => (message ? t(PROBLEM_KEY[message] ?? message) : undefined);
 
   const setLine = (index: number, patch: Partial<InvoiceDraft["lines"][number]>) =>
     setDraft((current) => ({
@@ -379,50 +416,52 @@ export function InvoiceEditor({ invoice }: { invoice?: Invoice }) {
     <div className="rise mx-auto w-full max-w-3xl">
       <Button asChild variant="ghost" size="sm" className="mb-4 -ml-2">
         <Link to={invoice ? "/invoice" : "/invoices"} search={invoice ? { id: invoice.id } : {}}>
-          <ArrowLeft aria-hidden="true" /> Back
+          <ArrowLeft aria-hidden="true" /> {t("common.back")}
         </Link>
       </Button>
 
       <PageHeader
-        eyebrow={invoice ? `Invoice ${invoice.number}` : "New invoice"}
-        title={invoice ? "Edit this invoice" : "Create an invoice"}
-        description={
-          invoice
-            ? "Changes are saved to the invoice only. Nothing reaches your books until it's marked paid."
-            : "It starts as a draft, so nothing is final until you send it."
-        }
+        // No key pairs the word with a number, so this is a label beside data
+        // rather than a sentence — see the handover note.
+        eyebrow={invoice ? `${t("invoices.invoice")} ${invoice.number}` : t("invoices.newInvoice")}
+        title={invoice ? t("invoices.editTitle") : t("invoices.createTitle")}
+        description={invoice ? t("invoices.editBlurb") : t("invoices.createBlurb")}
       />
 
       <form onSubmit={onSubmit} className="space-y-6" noValidate>
         <Panel>
-          <PanelHeader title="Who it's for" />
+          <PanelHeader title={t("invoices.whoFor")} />
           <PanelBody className="grid gap-4 sm:grid-cols-2">
-            <Field id="customer" label="Customer name" error={problems.customer_name}>
+            <Field
+              id="customer"
+              label={t("invoices.customerName")}
+              error={say(problems.customer_name)}
+            >
               <Input
                 value={draft.customer_name}
                 invalid={Boolean(problems.customer_name)}
-                placeholder="Acme Cafe"
+                placeholder={t("invoices.customerNamePlaceholder")}
                 onChange={(event) => setDraft((c) => ({ ...c, customer_name: event.target.value }))}
               />
             </Field>
             <Field
               id="customer-email"
-              label="Email"
-              hint="Optional — for your own records."
-              error={problems.customer_email}
+              label={t("invoices.customerEmail")}
+              hint={t("invoices.customerEmailHint")}
+              error={say(problems.customer_email)}
             >
               <Input
                 type="email"
                 inputMode="email"
                 value={draft.customer_email ?? ""}
                 invalid={Boolean(problems.customer_email)}
-                placeholder="billing@acme.com"
+                placeholder={t("invoices.customerEmailPlaceholder")}
                 onChange={(event) =>
                   setDraft((c) => ({ ...c, customer_email: event.target.value || null }))
                 }
               />
             </Field>
-            <Field id="issue-date" label="Issue date" error={problems.issue_date}>
+            <Field id="issue-date" label={t("invoices.issueDate")} error={say(problems.issue_date)}>
               <Input
                 type="date"
                 className="num"
@@ -433,9 +472,9 @@ export function InvoiceEditor({ invoice }: { invoice?: Invoice }) {
             </Field>
             <Field
               id="due-date"
-              label="Due date"
-              hint="Two weeks is a common default."
-              error={problems.due_date}
+              label={t("invoices.dueDate")}
+              hint={t("invoices.dueDateHint")}
+              error={say(problems.due_date)}
             >
               <Input
                 type="date"
@@ -450,29 +489,29 @@ export function InvoiceEditor({ invoice }: { invoice?: Invoice }) {
 
         <Panel>
           <PanelHeader
-            title="What you're charging for"
-            description="One line per item. The total works itself out."
+            title={t("invoices.whatCharging")}
+            description={t("invoices.whatChargingBlurb")}
           />
           <PanelBody className="space-y-4">
-            {problems.lines ? <Alert tone="negative">{problems.lines}</Alert> : null}
+            {problems.lines ? <Alert tone="negative">{say(problems.lines)}</Alert> : null}
 
             {draft.lines.map((line, index) => (
               <div key={index} className="rounded-[var(--radius-12)] bg-surface-2 p-3">
                 <div className="grid gap-3 sm:grid-cols-[1fr_5rem_7rem_auto] sm:items-end">
                   <Field
                     id={`line-desc-${index}`}
-                    label="Description"
-                    error={lineError(index)}
+                    label={t("invoices.description")}
+                    error={say(lineError(index))}
                     className="min-w-0"
                   >
                     <Input
                       value={line.description}
                       invalid={Boolean(lineError(index))}
-                      placeholder="Six hours of design work"
+                      placeholder={t("invoices.descriptionPlaceholder")}
                       onChange={(event) => setLine(index, { description: event.target.value })}
                     />
                   </Field>
-                  <Field id={`line-qty-${index}`} label="Qty">
+                  <Field id={`line-qty-${index}`} label={t("invoices.quantity")}>
                     <Input
                       type="number"
                       inputMode="decimal"
@@ -483,7 +522,7 @@ export function InvoiceEditor({ invoice }: { invoice?: Invoice }) {
                       onChange={(event) => setLine(index, { quantity: Number(event.target.value) })}
                     />
                   </Field>
-                  <Field id={`line-price-${index}`} label="Price each">
+                  <Field id={`line-price-${index}`} label={t("invoices.priceEach")}>
                     <Input
                       type="number"
                       inputMode="decimal"
@@ -504,7 +543,7 @@ export function InvoiceEditor({ invoice }: { invoice?: Invoice }) {
                       type="button"
                       variant="ghost"
                       size="icon-sm"
-                      aria-label={`Remove line ${index + 1}`}
+                      aria-label={t("invoices.removeLine", { number: index + 1 })}
                       disabled={draft.lines.length === 1}
                       onClick={() =>
                         setDraft((c) => ({
@@ -518,7 +557,7 @@ export function InvoiceEditor({ invoice }: { invoice?: Invoice }) {
                   </div>
                 </div>
                 <p className="num mt-2 hidden text-right text-[13px] text-muted-foreground sm:block">
-                  Line total {formatMoney(lineTotal(line))}
+                  {t("invoices.lineTotal", { amount: formatMoney(lineTotal(line)) })}
                 </p>
               </div>
             ))}
@@ -529,11 +568,11 @@ export function InvoiceEditor({ invoice }: { invoice?: Invoice }) {
               size="sm"
               onClick={() => setDraft((c) => ({ ...c, lines: [...c.lines, emptyLine()] }))}
             >
-              <Plus aria-hidden="true" /> Add another line
+              <Plus aria-hidden="true" /> {t("invoices.addLine")}
             </Button>
 
             <div className="flex items-baseline justify-between border-t pt-4">
-              <span className="eyebrow">Total</span>
+              <span className="eyebrow">{t("invoices.total")}</span>
               <span className="figure text-[28px]">
                 <Money value={totals.subtotal} />
               </span>
@@ -542,20 +581,17 @@ export function InvoiceEditor({ invoice }: { invoice?: Invoice }) {
         </Panel>
 
         <Panel>
-          <PanelHeader
-            title="Notes"
-            description="Shown on the invoice. Payment terms, a thank you."
-          />
+          <PanelHeader title={t("invoices.notes")} description={t("invoices.notesBlurb")} />
           <PanelBody>
             <label htmlFor="notes" className="sr-only">
-              Notes
+              {t("invoices.notes")}
             </label>
             <textarea
               id="notes"
               rows={3}
               value={draft.notes ?? ""}
               onChange={(event) => setDraft((c) => ({ ...c, notes: event.target.value || null }))}
-              placeholder="Payment by bank transfer within 14 days. Thank you!"
+              placeholder={t("invoices.notesPlaceholder")}
               className="w-full rounded-[var(--radius-10)] border border-input bg-surface-1 px-3 py-2 text-sm text-foreground transition-[border-color,box-shadow] duration-[var(--dur-fast)] ease-[var(--ease)] placeholder:text-muted-foreground hover:border-border-strong focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/25"
             />
           </PanelBody>
@@ -565,14 +601,14 @@ export function InvoiceEditor({ invoice }: { invoice?: Invoice }) {
 
         <div className="flex flex-wrap gap-2">
           <Button type="submit" variant="brand" size="lg" loading={save.isPending}>
-            {invoice ? "Save changes" : "Create invoice"}
+            {invoice ? t("entries.saveChanges") : t("invoices.createButton")}
           </Button>
           <Button asChild variant="outline" size="lg">
             <Link
               to={invoice ? "/invoice" : "/invoices"}
               search={invoice ? { id: invoice.id } : {}}
             >
-              Cancel
+              {t("common.cancel")}
             </Link>
           </Button>
         </div>
@@ -584,6 +620,7 @@ export function InvoiceEditor({ invoice }: { invoice?: Invoice }) {
 /* ========================================================== detail ======= */
 
 export function InvoiceDetail({ id, edit = false }: { id: string; edit?: boolean }) {
+  const { t, formatDate } = useI18n();
   const navigate = useNavigate();
   const invalidate = useInvalidate();
   const { data: invoices = [], isLoading } = useInvoices();
@@ -631,10 +668,10 @@ export function InvoiceDetail({ id, edit = false }: { id: string; edit?: boolean
   if (!invoice) {
     return (
       <div className="mx-auto w-full max-w-3xl">
-        <Alert tone="negative" title="That invoice isn't here">
-          It may have been deleted.{" "}
+        <Alert tone="negative" title={t("invoices.notFound")}>
+          {t("invoices.notFoundBlurb")}{" "}
           <Link to="/invoices" className="font-medium underline underline-offset-4">
-            Back to invoices
+            {t("invoices.backToInvoices")}
           </Link>
         </Alert>
       </div>
@@ -653,19 +690,21 @@ export function InvoiceDetail({ id, edit = false }: { id: string; edit?: boolean
       <div className="no-print">
         <Button asChild variant="ghost" size="sm" className="mb-4 -ml-2">
           <Link to="/invoices">
-            <ArrowLeft aria-hidden="true" /> All invoices
+            <ArrowLeft aria-hidden="true" /> {t("invoices.allInvoices")}
           </Link>
         </Button>
 
         <div className="flex flex-wrap items-center gap-3 pb-5">
-          <Badge tone={BADGE_TONE[status]}>{STATUS_LABELS[status]}</Badge>
+          <Badge tone={BADGE_TONE[status]}>{t(STATUS_KEY[status])}</Badge>
           {late > 0 ? (
-            <span className="text-[13px] text-danger">
-              <span className="num">{late}</span> {late === 1 ? "day" : "days"} past the due date
+            <span className="num text-[13px] text-danger">
+              {t("invoices.pastDueBy", { count: late })}
             </span>
           ) : null}
           {invoice.status === "paid" && invoice.paid_date ? (
-            <span className="num text-[13px] text-muted-foreground">Paid {invoice.paid_date}</span>
+            <span className="num text-[13px] text-muted-foreground">
+              {t("invoices.paidOn", { date: formatDate(invoice.paid_date) })}
+            </span>
           ) : null}
         </div>
 
@@ -682,14 +721,14 @@ export function InvoiceDetail({ id, edit = false }: { id: string; edit?: boolean
               loading={act.isPending && act.variables === "send"}
               onClick={() => act.mutate("send")}
             >
-              <Send aria-hidden="true" /> Mark as sent
+              <Send aria-hidden="true" /> {t("invoices.markSent")}
             </Button>
           ) : null}
 
           {can.canMarkPaid ? (
             showPaid ? (
               <div className="flex w-full flex-wrap items-end gap-2 rounded-[var(--radius-12)] bg-surface-2 p-3">
-                <Field id="paid-date" label="Date the money arrived" className="w-44">
+                <Field id="paid-date" label={t("invoices.moneyArrivedOn")} className="w-44">
                   <Input
                     type="date"
                     className="num"
@@ -698,15 +737,15 @@ export function InvoiceDetail({ id, edit = false }: { id: string; edit?: boolean
                   />
                 </Field>
                 <Button variant="brand" loading={act.isPending} onClick={() => act.mutate("paid")}>
-                  Record payment
+                  {t("invoices.recordPayment")}
                 </Button>
                 <Button variant="ghost" onClick={() => setShowPaid(false)}>
-                  Cancel
+                  {t("common.cancel")}
                 </Button>
               </div>
             ) : (
               <Button variant="brand" onClick={() => setShowPaid(true)}>
-                Mark as paid
+                {t("invoices.markPaid")}
               </Button>
             )
           ) : null}
@@ -716,39 +755,33 @@ export function InvoiceDetail({ id, edit = false }: { id: string; edit?: boolean
               variant="outline"
               loading={act.isPending && act.variables === "unpaid"}
               onClick={() => {
-                if (
-                  window.confirm(
-                    "Mark this unpaid? The income entry it created will be removed from your books.",
-                  )
-                )
-                  act.mutate("unpaid");
+                if (window.confirm(t("invoices.confirmUnpaid"))) act.mutate("unpaid");
               }}
             >
-              Mark as unpaid
+              {t("invoices.markUnpaid")}
             </Button>
           ) : null}
 
           {can.canEdit ? (
             <Button asChild variant="outline">
               <Link to="/invoice" search={{ id: invoice.id, edit: "1" }}>
-                Edit
+                {t("common.edit")}
               </Link>
             </Button>
           ) : null}
 
           <Button variant="outline" onClick={() => window.print()}>
-            <Printer aria-hidden="true" /> Print or save as PDF
+            <Printer aria-hidden="true" /> {t("invoices.printOrPdf")}
           </Button>
 
           {can.canVoid ? (
             <Button
               variant="ghost"
               onClick={() => {
-                if (window.confirm("Cancel this invoice? It stays on record but is marked void."))
-                  act.mutate("void");
+                if (window.confirm(t("invoices.confirmVoid"))) act.mutate("void");
               }}
             >
-              Cancel invoice
+              {t("invoices.cancelInvoice")}
             </Button>
           ) : null}
 
@@ -757,21 +790,20 @@ export function InvoiceDetail({ id, edit = false }: { id: string; edit?: boolean
               variant="ghost"
               className="text-muted-foreground hover:text-danger"
               onClick={() => {
-                if (window.confirm("Delete this draft? This can't be undone."))
-                  act.mutate("delete");
+                if (window.confirm(t("invoices.confirmDeleteDraft"))) act.mutate("delete");
               }}
             >
-              <Trash2 aria-hidden="true" /> Delete draft
+              <Trash2 aria-hidden="true" /> {t("invoices.deleteDraft")}
             </Button>
           ) : null}
         </div>
 
         {invoice.status === "sent" ? (
           <div className="pb-6">
+            {/* One whole sentence with the amount substituted in: the figure
+                sits in a different place per language. */}
             <Alert tone="brand">
-              Marking this paid adds{" "}
-              <span className="num font-medium">{formatMoney(invoiceTotal(invoice))}</span> to your
-              books as income on the date you choose. Until then it stays out of your totals.
+              {t("invoices.willRecord", { amount: formatMoney(invoiceTotal(invoice)) })}
             </Alert>
           </div>
         ) : null}
@@ -781,11 +813,11 @@ export function InvoiceDetail({ id, edit = false }: { id: string; edit?: boolean
       <article className="invoice-print panel p-6 sm:p-8">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-[22px]">Invoice</h1>
+            <h1 className="text-[22px]">{t("invoices.invoice")}</h1>
             <p className="num mt-1 text-sm text-muted-foreground">{invoice.number}</p>
           </div>
           <div className="text-right">
-            <p className="eyebrow">Amount due</p>
+            <p className="eyebrow">{t("invoices.amountDue")}</p>
             <p className="figure mt-1 text-[30px]">
               <Money value={totals.subtotal} />
             </p>
@@ -794,16 +826,20 @@ export function InvoiceDetail({ id, edit = false }: { id: string; edit?: boolean
 
         <div className="mt-8 grid gap-6 sm:grid-cols-2">
           <div>
-            <p className="eyebrow">Billed to</p>
+            <p className="eyebrow">{t("invoices.billedTo")}</p>
             <p className="mt-1.5 text-sm font-medium">{invoice.customer_name}</p>
             {invoice.customer_email ? (
               <p className="text-sm text-muted-foreground">{invoice.customer_email}</p>
             ) : null}
           </div>
           <div className="sm:text-right">
-            <p className="eyebrow">Dates</p>
-            <p className="num mt-1.5 text-sm">Issued {invoice.issue_date}</p>
-            <p className="num text-sm text-muted-foreground">Due {invoice.due_date}</p>
+            <p className="eyebrow">{t("invoices.dates")}</p>
+            <p className="num mt-1.5 text-sm">
+              {t("invoices.issued", { date: formatDate(invoice.issue_date, "long") })}
+            </p>
+            <p className="num text-sm text-muted-foreground">
+              {t("invoices.dueOn", { date: formatDate(invoice.due_date, "long") })}
+            </p>
           </div>
         </div>
 
@@ -812,16 +848,17 @@ export function InvoiceDetail({ id, edit = false }: { id: string; edit?: boolean
             <thead>
               <tr className="border-b">
                 <th scope="col" className="eyebrow pb-2 font-semibold">
-                  Description
+                  {t("invoices.description")}
                 </th>
                 <th scope="col" className="eyebrow pb-2 text-right font-semibold">
-                  Qty
+                  {t("invoices.quantity")}
                 </th>
                 <th scope="col" className="eyebrow pb-2 text-right font-semibold">
-                  Each
+                  {/* en.ts has no bare "Each" — the fuller label is the closest fit. */}
+                  {t("invoices.priceEach")}
                 </th>
                 <th scope="col" className="eyebrow pb-2 text-right font-semibold">
-                  Total
+                  {t("invoices.total")}
                 </th>
               </tr>
             </thead>
@@ -844,7 +881,7 @@ export function InvoiceDetail({ id, edit = false }: { id: string; edit?: boolean
             <tfoot>
               <tr className="border-t">
                 <td colSpan={3} className="pt-3 text-right text-sm font-semibold">
-                  Total
+                  {t("invoices.total")}
                 </td>
                 <td className="num pl-3 pt-3 text-right text-base font-semibold">
                   {formatMoney(totals.subtotal)}
@@ -856,7 +893,7 @@ export function InvoiceDetail({ id, edit = false }: { id: string; edit?: boolean
 
         {invoice.notes ? (
           <div className="mt-8 border-t pt-5">
-            <p className="eyebrow">Notes</p>
+            <p className="eyebrow">{t("invoices.notes")}</p>
             <p className="mt-1.5 whitespace-pre-wrap text-sm text-muted-foreground">
               {invoice.notes}
             </p>

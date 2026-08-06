@@ -14,6 +14,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { getPublicConfig } from "../lib/public-config.functions";
 import { setSupabaseRuntimeConfig } from "../integrations/supabase/client";
 import { registerServiceWorker } from "../lib/register-sw";
+import { I18nProvider } from "../lib/i18n";
 
 function NotFoundComponent() {
   return (
@@ -121,8 +122,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
+        // Inter covers Latin. The Noto families cover the scripts it doesn't:
+        // without them, Gujarati, Devanagari, Urdu and Chinese fall back to
+        // whatever the device happens to have, which on many machines is
+        // nothing at all — rows of empty boxes instead of words.
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Inter+Tight:wght@500;600;700&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Inter+Tight:wght@500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600&family=Noto+Sans+Gujarati:wght@400;500;600&family=Noto+Naskh+Arabic:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600&display=swap",
       },
       {
         rel: "stylesheet",
@@ -168,8 +173,12 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      {/* Language wraps everything, including the sign-in screen — someone who
+          doesn't read English needs it before they have an account. */}
+      <I18nProvider>
+        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+        <Outlet />
+      </I18nProvider>
     </QueryClientProvider>
   );
 }

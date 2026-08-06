@@ -6,79 +6,90 @@ import { ChevronDown, Menu, Moon, Search, Sun, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { BrandMark } from "@/components/brand-mark";
 import { CommandPalette } from "@/components/command-palette";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import { ReminderRunner } from "@/components/daily-reminder";
 import { OfflineBar } from "@/components/offline-bar";
 import { HELP_NAV } from "@/lib/help-content";
+import { useI18n } from "@/lib/i18n";
 import { clearOfflineData } from "@/lib/register-sw";
 import { browserQueueStorage, counts } from "@/lib/offline-queue";
 
 type Leaf = { to: string; label: string };
 type Item = { label: string; to: string; children?: Leaf[] };
 
-const NAV: Item[] = [
-  {
-    label: "Today",
-    to: "/dashboard",
-    children: [
-      { to: "/dashboard", label: "Overview" },
-      { to: "/add", label: "Add an entry" },
-      { to: "/entries", label: "Find an entry" },
-      { to: "/streaks", label: "Your streaks" },
-      { to: "/ask", label: "Ask about your money" },
-    ],
-  },
-  {
-    label: "This month",
-    to: "/monthly",
-    children: [
-      { to: "/monthly", label: "Overview" },
-      { to: "/categories", label: "Where money went" },
-      { to: "/daybyday", label: "Day by day" },
-      { to: "/week", label: "Your week" },
-      { to: "/outlook", label: "Can you cover it" },
-      { to: "/busydays", label: "Busy and quiet days" },
-      { to: "/budgets", label: "Budgets" },
-      { to: "/goals", label: "Savings goals" },
-      { to: "/bills", label: "Bills" },
-    ],
-  },
-  {
-    label: "Invoices",
-    to: "/invoices",
-    children: [
-      { to: "/invoices", label: "All invoices" },
-      { to: "/invoice-new", label: "New invoice" },
-    ],
-  },
-  {
-    label: "Tools",
-    to: "/household",
-    children: [
-      { to: "/household", label: "Household" },
-      { to: "/margins", label: "Item margins" },
-      { to: "/drawer", label: "Cash drawer" },
-      { to: "/tax", label: "Tax set-aside" },
-      { to: "/reminders", label: "Daily reminder" },
-      { to: "/lock", label: "Lock this app" },
-    ],
-  },
-  {
-    label: "Export",
-    to: "/export",
-    children: [
-      { to: "/export", label: "Pick dates" },
-      { to: "/export?download=csv", label: "Download CSV" },
-      { to: "/export?download=pdf", label: "Download PDF" },
-    ],
-  },
-  {
-    label: "Help",
-    to: "/help",
-    // Sections come from the help content itself, so adding a topic there
-    // shows up here without touching this file.
-    children: [{ to: "/help", label: "All topics" }, ...HELP_NAV],
-  },
-];
+/**
+ * The nav, built from translation keys.
+ *
+ * A function rather than a constant because the labels change with the
+ * language, and a module-level constant would freeze whichever language
+ * happened to load first.
+ */
+function buildNav(t: (path: string) => string): Item[] {
+  return [
+    {
+      label: t("nav.today"),
+      to: "/dashboard",
+      children: [
+        { to: "/dashboard", label: t("nav.overview") },
+        { to: "/add", label: t("nav.addEntry") },
+        { to: "/entries", label: t("nav.findEntry") },
+        { to: "/streaks", label: t("nav.streaks") },
+        { to: "/ask", label: t("nav.ask") },
+      ],
+    },
+    {
+      label: t("nav.thisMonth"),
+      to: "/monthly",
+      children: [
+        { to: "/monthly", label: t("nav.overview") },
+        { to: "/categories", label: t("nav.whereMoneyWent") },
+        { to: "/daybyday", label: t("nav.dayByDay") },
+        { to: "/week", label: t("nav.yourWeek") },
+        { to: "/outlook", label: t("nav.canYouCover") },
+        { to: "/busydays", label: t("nav.busyDays") },
+        { to: "/budgets", label: t("nav.budgets") },
+        { to: "/goals", label: t("nav.goals") },
+        { to: "/bills", label: t("nav.bills") },
+      ],
+    },
+    {
+      label: t("nav.invoices"),
+      to: "/invoices",
+      children: [
+        { to: "/invoices", label: t("nav.allInvoices") },
+        { to: "/invoice-new", label: t("nav.newInvoice") },
+      ],
+    },
+    {
+      label: t("nav.tools"),
+      to: "/household",
+      children: [
+        { to: "/household", label: t("nav.household") },
+        { to: "/margins", label: t("nav.margins") },
+        { to: "/drawer", label: t("nav.drawer") },
+        { to: "/tax", label: t("nav.tax") },
+        { to: "/reminders", label: t("nav.reminder") },
+        { to: "/lock", label: t("nav.lock") },
+      ],
+    },
+    {
+      label: t("nav.export"),
+      to: "/export",
+      children: [
+        { to: "/export", label: t("nav.pickDates") },
+        { to: "/export?download=csv", label: t("nav.downloadCsv") },
+        { to: "/export?download=pdf", label: t("nav.downloadPdf") },
+      ],
+    },
+    {
+      label: t("nav.help"),
+      to: "/help",
+      // Help sections come from the help content itself, which is still
+      // English-only — see the note in the handoff.
+      children: [{ to: "/help", label: t("nav.allTopics") }, ...HELP_NAV],
+    },
+  ];
+}
 
 /**
  * True on phones and tablets — anything without a mouse.
@@ -156,6 +167,8 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
   const { user } = useRouteContext({ from: "/_authenticated" });
   const userId = user?.id;
   const { light, toggle } = useTheme();
+  const { t } = useI18n();
+  const NAV = buildNav(t);
 
   // Which group's menu is showing. Hover on desktop, tap on touch.
   const [openMenu, setOpenMenu] = useState<string | null>(null);
@@ -197,10 +210,9 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
     const { waiting, stuck } = counts(browserQueueStorage(userId));
     const held = waiting + stuck;
     if (held > 0) {
-      const noun = held === 1 ? "entry" : "entries";
-      const proceed = window.confirm(
-        `${held} ${noun} haven't been sent yet. They'll stay on this device and go through next time you sign in on it. Sign out anyway?`,
-      );
+      // One whole translated sentence rather than English glued around a
+      // count — the noun and the number sit in different places per language.
+      const proceed = window.confirm(t("offline.signOutPending", { count: held }));
       if (!proceed) return;
     }
 
@@ -236,7 +248,7 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
           <Link
             to="/dashboard"
             className="mr-5 flex items-center gap-2.5 rounded-[var(--radius-8)]"
-            aria-label="SimpleBooks home"
+            aria-label={t("nav.home")}
           >
             <BrandMark size={30} />
             <span className="font-display text-[15px] font-semibold tracking-[-0.02em] text-foreground">
@@ -312,7 +324,7 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
                           onClick={() => setOpenMenu(null)}
                           className="block rounded-lg px-3 py-2 text-[13px] text-muted-foreground"
                         >
-                          Go to {item.label}
+                          {t("nav.goTo", { section: item.label })}
                         </Link>
                       ) : null}
                       {item.children.map((child) => (
@@ -344,8 +356,8 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
                 )
               }
               className="hidden h-9 items-center gap-2 rounded-[var(--radius-10)] border border-border bg-surface-1 px-2.5 text-[13px] text-muted-foreground transition-colors duration-[var(--dur-fast)] hover:border-border-strong hover:text-foreground sm:flex"
-              aria-label="Search or jump to a page"
-              title="Search or jump to a page (⌘K)"
+              aria-label={t("common.searchLong")}
+              title={`${t("common.searchLong")} (⌘K)`}
             >
               <Search className="size-3.5 shrink-0" aria-hidden="true" />
               {/*
@@ -354,17 +366,26 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
                 "Search…" and the button never becomes a bare icon to anyone
                 relying on the accessible name.
               */}
-              <span className="sr-only navlabel:not-sr-only navkbd:pr-6">Search…</span>
+              <span className="sr-only navlabel:not-sr-only navkbd:pr-6">{t("common.search")}</span>
               <kbd className="hidden rounded-[6px] border border-border bg-surface-2 px-1.5 py-0.5 font-sans text-[11px] font-medium navkbd:block">
                 ⌘K
               </kbd>
             </button>
+            {/* Compact on narrow screens: the language name is the first thing
+                to go, since the globe icon still says what it does. */}
+            <span className="hidden sm:block">
+              <LanguageSwitcher />
+            </span>
+            <span className="sm:hidden">
+              <LanguageSwitcher compact />
+            </span>
+
             <button
               type="button"
               onClick={toggle}
               className="flex size-9 items-center justify-center rounded-[var(--radius-8)] text-muted-foreground transition-colors duration-[var(--dur-fast)] hover:bg-accent hover:text-foreground"
-              aria-label={light ? "Switch to dark" : "Switch to light"}
-              title={light ? "Switch to dark" : "Switch to light"}
+              aria-label={light ? t("nav.switchToDark") : t("nav.switchToLight")}
+              title={light ? t("nav.switchToDark") : t("nav.switchToLight")}
             >
               {light ? <Moon className="size-4" /> : <Sun className="size-4" />}
             </button>
@@ -374,14 +395,14 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
               onClick={signOut}
               className="hidden rounded-[var(--radius-8)] px-3 py-2 text-[13.5px] font-medium text-muted-foreground transition-colors duration-[var(--dur-fast)] hover:bg-accent hover:text-foreground navbar:block"
             >
-              Sign out
+              {t("common.signOut")}
             </button>
 
             <button
               type="button"
               onClick={openMobile}
               className="flex size-9 items-center justify-center rounded-[var(--radius-8)] text-muted-foreground transition-colors duration-[var(--dur-fast)] hover:bg-accent hover:text-foreground navbar:hidden"
-              aria-label="Open menu"
+              aria-label={t("nav.openMenu")}
             >
               <Menu className="size-5" />
             </button>
@@ -396,7 +417,7 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
             type="button"
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             onClick={() => setMobileOpen(false)}
-            aria-label="Close menu"
+            aria-label={t("nav.closeMenu")}
           />
           <div className="pt-safe pb-safe absolute inset-x-0 top-0 max-h-full overflow-y-auto bg-background px-5">
             <div className="flex h-16 items-center justify-between">
@@ -410,7 +431,7 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
                 type="button"
                 onClick={() => setMobileOpen(false)}
                 className="-mr-2 rounded-lg p-2 text-muted-foreground"
-                aria-label="Close menu"
+                aria-label={t("nav.closeMenu")}
               >
                 <X className="size-5" />
               </button>
@@ -475,7 +496,7 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
                 onClick={signOut}
                 className="mt-6 text-[15px] text-muted-foreground"
               >
-                Sign out
+                {t("common.signOut")}
               </button>
             </nav>
           </div>

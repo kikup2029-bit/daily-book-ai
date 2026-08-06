@@ -20,6 +20,7 @@ import {
   totalsFor,
   type EntryFilters,
 } from "@/lib/entry-filter";
+import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -37,6 +38,7 @@ import {
 import { EmptyState, SampleRows } from "@/components/empty-state";
 
 export function EntriesSearch() {
+  const { t, formatDate } = useI18n();
   const queryClient = useQueryClient();
   const fetchEntries = useServerFn(getEntries);
   const { data: entries = [], isLoading } = useQuery({
@@ -59,9 +61,9 @@ export function EntriesSearch() {
   return (
     <div className="rise mx-auto w-full max-w-3xl">
       <PageHeader
-        eyebrow="Your entries"
-        title="Find an entry"
-        description="Search everything you've logged, then tap one to fix it."
+        eyebrow={t("entries.eyebrow")}
+        title={t("entries.title")}
+        description={t("entries.blurb")}
       />
 
       <div className="space-y-3">
@@ -74,16 +76,16 @@ export function EntriesSearch() {
           <Input
             value={filters.text}
             onChange={(event) => set("text", event.target.value)}
-            placeholder="Try “costco”, “rent”, or 42.50"
+            placeholder={t("entries.searchPlaceholder")}
             className="h-12 rounded-[var(--radius-12)] bg-surface-1 pl-10 pr-11 md:h-12 md:text-base"
-            aria-label="Search your entries"
+            aria-label={t("entries.searchLabel")}
           />
           {filters.text ? (
             <button
               type="button"
               onClick={() => set("text", "")}
               className="absolute right-1 top-1/2 flex size-10 -translate-y-1/2 items-center justify-center rounded-[var(--radius-10)] text-muted-foreground transition-colors duration-[var(--dur-fast)] ease-[var(--ease)] hover:bg-accent hover:text-foreground"
-              aria-label="Clear search"
+              aria-label={t("entries.clearSearch")}
             >
               <X className="size-4" aria-hidden="true" />
             </button>
@@ -93,13 +95,14 @@ export function EntriesSearch() {
         {/* Direction + filter toggle */}
         <div className="flex flex-wrap items-center gap-2">
           <Segmented
+            // No key in en.ts for this group's accessible name — see the handover note.
             name="Direction"
             value={filters.direction}
             onChange={(value) => set("direction", value)}
             options={[
-              { value: "all", label: "Everything" },
-              { value: "in", label: "Money in" },
-              { value: "out", label: "Money out" },
+              { value: "all", label: t("entries.everything") },
+              { value: "in", label: t("common.moneyIn") },
+              { value: "out", label: t("common.moneyOut") },
             ]}
           />
 
@@ -112,15 +115,15 @@ export function EntriesSearch() {
             className="ml-auto h-10"
           >
             <SlidersHorizontal aria-hidden="true" />
-            {showFilters ? "Fewer filters" : "More filters"}
+            {showFilters ? t("entries.fewerFilters") : t("entries.moreFilters")}
           </Button>
         </div>
 
         {showFilters ? (
           <Panel className="pop">
             <PanelHeader
-              title="Narrow it down"
-              description="Every filter is optional."
+              title={t("entries.narrowDown")}
+              description={t("entries.allOptional")}
               action={
                 <Button
                   type="button"
@@ -129,17 +132,17 @@ export function EntriesSearch() {
                   onClick={() => setFilters(EMPTY_FILTERS)}
                   disabled={!filtering}
                 >
-                  Clear all
+                  {t("entries.clearAll")}
                 </Button>
               }
             />
             <PanelBody className="grid gap-4 sm:grid-cols-2">
-              <Field id="f-category" label="Category">
+              <Field id="f-category" label={t("common.category")}>
                 <Select
                   value={filters.category}
                   onChange={(event) => set("category", event.target.value)}
                 >
-                  <option value="">Any category</option>
+                  <option value="">{t("entries.anyCategory")}</option>
                   {categories.map((name) => (
                     <option key={name} value={name}>
                       {name}
@@ -148,21 +151,21 @@ export function EntriesSearch() {
                 </Select>
               </Field>
 
-              <Field id="f-payment" label="Paid with">
+              <Field id="f-payment" label={t("entryForm.paidWith")}>
                 <Select
                   value={filters.payment}
                   onChange={(event) =>
                     set("payment", event.target.value as EntryFilters["payment"])
                   }
                 >
-                  <option value="all">Any way</option>
-                  <option value="cash">Cash</option>
-                  <option value="card">Card</option>
-                  <option value="other">Other</option>
+                  <option value="all">{t("entries.anyWay")}</option>
+                  <option value="cash">{t("entryForm.cash")}</option>
+                  <option value="card">{t("entryForm.card")}</option>
+                  <option value="other">{t("entryForm.other")}</option>
                 </Select>
               </Field>
 
-              <Field id="f-from" label="From date">
+              <Field id="f-from" label={t("entries.fromDate")}>
                 <Input
                   type="date"
                   className="num"
@@ -171,7 +174,7 @@ export function EntriesSearch() {
                 />
               </Field>
 
-              <Field id="f-to" label="To date">
+              <Field id="f-to" label={t("entries.toDate")}>
                 <Input
                   type="date"
                   className="num"
@@ -180,41 +183,41 @@ export function EntriesSearch() {
                 />
               </Field>
 
-              <Field id="f-min" label="Amount at least">
+              <Field id="f-min" label={t("entries.amountAtLeast")}>
                 <Input
                   type="number"
                   inputMode="decimal"
                   min="0"
                   step="0.01"
-                  placeholder="any"
+                  placeholder={t("entries.any")}
                   className="num"
                   value={filters.min}
                   onChange={(event) => set("min", event.target.value)}
                 />
               </Field>
 
-              <Field id="f-max" label="Amount at most">
+              <Field id="f-max" label={t("entries.amountAtMost")}>
                 <Input
                   type="number"
                   inputMode="decimal"
                   min="0"
                   step="0.01"
-                  placeholder="any"
+                  placeholder={t("entries.any")}
                   className="num"
                   value={filters.max}
                   onChange={(event) => set("max", event.target.value)}
                 />
               </Field>
 
-              <Field id="f-sort" label="Order" className="sm:col-span-2">
+              <Field id="f-sort" label={t("entries.order")} className="sm:col-span-2">
                 <Select
                   value={filters.sort}
                   onChange={(event) => set("sort", event.target.value as EntryFilters["sort"])}
                 >
-                  <option value="newest">Newest first</option>
-                  <option value="oldest">Oldest first</option>
-                  <option value="biggest">Biggest amount first</option>
-                  <option value="smallest">Smallest amount first</option>
+                  <option value="newest">{t("entries.newestFirst")}</option>
+                  <option value="oldest">{t("entries.oldestFirst")}</option>
+                  <option value="biggest">{t("entries.biggestFirst")}</option>
+                  <option value="smallest">{t("entries.smallestFirst")}</option>
                 </Select>
               </Field>
             </PanelBody>
@@ -234,22 +237,24 @@ export function EntriesSearch() {
         ) : (
           <>
             <p className="eyebrow">
-              <span className="num">{totals.count}</span> {totals.count === 1 ? "entry" : "entries"}
+              <span className="num">{t("entries.count", { count: totals.count })}</span>
+              {/* describeFilters() is still English — there are no keys for the
+                  filter description in en.ts. See the handover note. */}
               {filtering ? ` · ${describeFilters(filters)}` : ""}
             </p>
 
             <div className="mt-3 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-sm">
               <span className="inline-flex items-baseline gap-1.5">
                 <Money value={totals.totalIn} tone="positive" className="font-medium" />
-                <span className="text-muted-foreground">in</span>
+                <span className="text-muted-foreground">{t("common.moneyIn")}</span>
               </span>
               <span className="inline-flex items-baseline gap-1.5">
                 <Money value={totals.totalOut} tone="negative" className="font-medium" />
-                <span className="text-muted-foreground">out</span>
+                <span className="text-muted-foreground">{t("common.moneyOut")}</span>
               </span>
               <span className="inline-flex items-baseline gap-1.5">
                 <Money value={totals.net} className="font-semibold" />
-                <span className="text-muted-foreground">net</span>
+                <span className="text-muted-foreground">{t("common.net")}</span>
               </span>
             </div>
 
@@ -257,7 +262,8 @@ export function EntriesSearch() {
               <div className="mt-6">
                 {entries.length === 0 ? (
                   <EmptyState
-                    title="Nothing logged yet"
+                    title={t("dashboard.nothingLogged")}
+                    // No key in en.ts for this blurb — see the handover note.
                     blurb="Once you start logging, everything you've entered shows up here to search and correct."
                     sample={<SampleRows rows={4} />}
                   />
@@ -269,7 +275,8 @@ export function EntriesSearch() {
                     >
                       <SearchX className="size-5" />
                     </span>
-                    <p className="mt-4 text-[15px] font-semibold">No entries match that</p>
+                    <p className="mt-4 text-[15px] font-semibold">{t("common.noMatch")}</p>
+                    {/* No key in en.ts for this hint — see the handover note. */}
                     <p className="mt-1.5 max-w-xs text-balance text-[13px] leading-relaxed text-muted-foreground">
                       Try fewer words, a wider date range, or start again with everything.
                     </p>
@@ -279,7 +286,7 @@ export function EntriesSearch() {
                       onClick={() => setFilters(EMPTY_FILTERS)}
                       className="mt-5"
                     >
-                      Clear the filters
+                      {t("entries.clearAll")}
                     </Button>
                   </div>
                 )}
@@ -301,8 +308,11 @@ export function EntriesSearch() {
                   ) : (
                     <TxRow
                       key={entry.id}
-                      date={entry.entry_date}
-                      title={entry.spent_on ?? (entry.amount_in > 0 ? "Money in" : "Uncategorised")}
+                      date={formatDate(entry.entry_date)}
+                      title={
+                        entry.spent_on ??
+                        (entry.amount_in > 0 ? t("common.moneyIn") : t("dashboard.uncategorised"))
+                      }
                       subtitle={entry.merchant ?? undefined}
                       amount={entry.amount_in > 0 ? entry.amount_in : -entry.amount_out}
                       onClick={() => setEditingId(entry.id)}
@@ -340,6 +350,7 @@ function EditRow({
   onDone: () => void;
   onSaved: () => void;
 }) {
+  const { t } = useI18n();
   const runEdit = useServerFn(editEntry);
   const runRemove = useServerFn(removeEntry);
   const queryClient = useQueryClient();
@@ -389,11 +400,11 @@ function EditRow({
     const inAmount = Number(amountIn || 0);
     const outAmount = Number(amountOut || 0);
     if (!Number.isFinite(inAmount) || !Number.isFinite(outAmount)) {
-      setError("Those amounts don't look right.");
+      setError(t("entryForm.errAmounts"));
       return;
     }
     if (inAmount === 0 && outAmount === 0) {
-      setError("An entry needs money in or money out. Use Delete to remove it.");
+      setError(t("entries.errNeedsAmount"));
       return;
     }
     save.mutate();
@@ -402,10 +413,10 @@ function EditRow({
   return (
     <form onSubmit={submit} className="py-3">
       <div className="pop rounded-[var(--radius-12)] border border-border bg-surface-2 p-4 shadow-[var(--shadow-sm)] sm:p-5">
-        <p className="eyebrow">Editing this entry</p>
+        <p className="eyebrow">{t("entries.editing")}</p>
 
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <Field id={`d-${entry.id}`} label="Date">
+          <Field id={`d-${entry.id}`} label={t("common.date")}>
             <Input
               type="date"
               className="num"
@@ -415,18 +426,18 @@ function EditRow({
             />
           </Field>
 
-          <Field id={`p-${entry.id}`} label="Paid with">
+          <Field id={`p-${entry.id}`} label={t("entryForm.paidWith")}>
             <Select
               value={payment}
               onChange={(event) => setPayment(event.target.value as "cash" | "card" | "other")}
             >
-              <option value="cash">Cash</option>
-              <option value="card">Card</option>
-              <option value="other">Other</option>
+              <option value="cash">{t("entryForm.cash")}</option>
+              <option value="card">{t("entryForm.card")}</option>
+              <option value="other">{t("entryForm.other")}</option>
             </Select>
           </Field>
 
-          <Field id={`in-${entry.id}`} label="Money made">
+          <Field id={`in-${entry.id}`} label={t("entryForm.moneyMade")}>
             <Input
               type="number"
               inputMode="decimal"
@@ -439,7 +450,7 @@ function EditRow({
             />
           </Field>
 
-          <Field id={`out-${entry.id}`} label="Money spent">
+          <Field id={`out-${entry.id}`} label={t("entryForm.moneySpent")}>
             <Input
               type="number"
               inputMode="decimal"
@@ -452,19 +463,19 @@ function EditRow({
             />
           </Field>
 
-          <Field id={`c-${entry.id}`} label="What for">
+          <Field id={`c-${entry.id}`} label={t("entryForm.whatFor")}>
             <Input
               value={spentOn}
               onChange={(event) => setSpentOn(event.target.value)}
-              placeholder="Supplies"
+              placeholder={t("entryForm.whatForPlaceholder")}
             />
           </Field>
 
-          <Field id={`m-${entry.id}`} label="Where">
+          <Field id={`m-${entry.id}`} label={t("entryForm.where")}>
             <Input
               value={merchant}
               onChange={(event) => setMerchant(event.target.value)}
-              placeholder="Costco"
+              placeholder={t("entryForm.wherePlaceholder")}
             />
           </Field>
         </div>
@@ -481,21 +492,22 @@ function EditRow({
         <div className="mt-5 flex flex-wrap items-center gap-2">
           <Button type="submit" variant="brand" loading={save.isPending}>
             {save.isPending ? null : <Check aria-hidden="true" />}
-            {save.isPending ? "Saving…" : "Save changes"}
+            {save.isPending ? t("common.saving") : t("entries.saveChanges")}
           </Button>
           <Button type="button" variant="outline" onClick={onDone}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button
             type="button"
             variant="ghost"
             onClick={() => {
-              if (window.confirm("Delete this entry? This can't be undone.")) remove.mutate();
+              if (window.confirm(t("dashboard.deleteConfirm"))) remove.mutate();
             }}
             disabled={remove.isPending}
             className="ml-auto hover:bg-danger-soft hover:text-danger"
           >
-            <Trash2 aria-hidden="true" /> {remove.isPending ? "Deleting…" : "Delete"}
+            <Trash2 aria-hidden="true" />{" "}
+            {remove.isPending ? t("common.deleting") : t("common.delete")}
           </Button>
         </div>
       </div>

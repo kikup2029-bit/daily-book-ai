@@ -25,6 +25,7 @@ import {
   toLocalISODate,
   type PermissionState,
 } from "@/lib/reminders";
+import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, Badge, Field, Panel, PanelBody, PanelHeader } from "@/components/ui/kit";
@@ -32,6 +33,7 @@ import { Alert, Badge, Field, Panel, PanelBody, PanelHeader } from "@/components
 /* ------------------------------------------------------------- settings -- */
 
 export function ReminderSettings() {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const fetchSettings = useServerFn(getSettings);
   const save = useServerFn(putReminder);
@@ -72,12 +74,12 @@ export function ReminderSettings() {
   const turnOn = async () => {
     setError(null);
     if (!isValidTime(time)) {
-      setError("Pick a time first.");
+      setError(t("reminder.errPickTime"));
       return;
     }
 
     if (permission === "unsupported") {
-      setError("This browser can't show notifications.");
+      setError(t("reminder.unsupported"));
       return;
     }
 
@@ -85,11 +87,7 @@ export function ReminderSettings() {
       const result = await Notification.requestPermission();
       setPermission(result as PermissionState);
       if (result !== "granted") {
-        setError(
-          result === "denied"
-            ? "Your browser is blocking notifications for this site. Allow them in your browser settings, then try again."
-            : "Notifications weren't allowed, so the reminder can't be shown.",
-        );
+        setError(result === "denied" ? t("reminder.errDenied") : t("reminder.errNotAllowed"));
         return;
       }
     }
@@ -100,7 +98,7 @@ export function ReminderSettings() {
   if (isLoading) {
     return (
       <Panel>
-        <PanelHeader title="Daily reminder" />
+        <PanelHeader title={t("reminder.title")} />
         <PanelBody>
           <span className="skeleton block h-5 w-48" />
           <span className="skeleton mt-3 block h-11 w-40" />
@@ -112,15 +110,16 @@ export function ReminderSettings() {
   return (
     <Panel>
       <PanelHeader
-        title="Daily reminder"
-        description="A nudge to log the day, so the habit sticks."
+        title={t("reminder.title")}
+        description={t("reminder.cardBlurb")}
         action={
           enabled ? (
             <Badge tone="positive">
-              <Check className="size-3" aria-hidden="true" /> On at {formatTime(time)}
+              <Check className="size-3" aria-hidden="true" />{" "}
+              {t("reminder.onAt", { time: formatTime(time) })}
             </Badge>
           ) : (
-            <Badge tone="neutral">Off</Badge>
+            <Badge tone="neutral">{t("reminder.off")}</Badge>
           )
         }
       />
@@ -132,34 +131,29 @@ export function ReminderSettings() {
           it didn't fire.
         */}
         <p className="text-[13px] leading-relaxed text-muted-foreground">
-          Once the time you pick has passed, the app shows a notification the next time it&apos;s
-          open or running in the background. It won&apos;t fire on a phone that hasn&apos;t opened
-          the app all day — there&apos;s no server sending these, which is also why they cost
-          nothing and no one else sees your data.
+          {t("reminder.howItWorks")}
         </p>
 
         {mustInstall ? (
-          <Alert tone="warning" title="Add it to your home screen first">
-            iPhone only allows notifications for apps added to the home screen. Tap Share, then Add
-            to Home Screen, open it from the new icon, and come back here.
+          <Alert tone="warning" title={t("reminder.installFirst")}>
+            {t("reminder.installFirstBody")}
           </Alert>
         ) : null}
 
         {permission === "denied" ? (
-          <Alert tone="negative" title="Notifications are blocked">
-            Your browser is blocking notifications for this site. You&apos;ll need to allow them in
-            your browser settings before this can work.
+          <Alert tone="negative" title={t("reminder.blocked")}>
+            {t("reminder.blockedBody")}
           </Alert>
         ) : null}
 
         {permission === "unsupported" ? (
-          <Alert tone="warning" title="This browser can't show notifications">
-            Everything else still works — you just won&apos;t get the nudge here.
+          <Alert tone="warning" title={t("reminder.unsupported")}>
+            {t("reminder.unsupportedBody")}
           </Alert>
         ) : null}
 
         <div className="flex flex-wrap items-end gap-3">
-          <Field id="reminder-time" label="Remind me at" className="w-40">
+          <Field id="reminder-time" label={t("reminder.remindMeAt")} className="w-40">
             <Input
               type="time"
               className="num"
@@ -177,14 +171,14 @@ export function ReminderSettings() {
                 onClick={() => store.mutate({ enabled: true, time })}
                 disabled={time === settings?.reminder_time}
               >
-                Save time
+                {t("reminder.saveTime")}
               </Button>
               <Button
                 variant="ghost"
                 loading={store.isPending && store.variables?.enabled === false}
                 onClick={() => store.mutate({ enabled: false, time })}
               >
-                <BellOff aria-hidden="true" /> Turn off
+                <BellOff aria-hidden="true" /> {t("reminder.turnOff")}
               </Button>
             </>
           ) : (
@@ -194,13 +188,13 @@ export function ReminderSettings() {
               onClick={turnOn}
               disabled={permission === "unsupported"}
             >
-              <Bell aria-hidden="true" /> Turn on reminders
+              <Bell aria-hidden="true" /> {t("reminder.turnOn")}
             </Button>
           )}
         </div>
 
         {error ? <Alert tone="negative">{error}</Alert> : null}
-        {savedNote && !error ? <Alert tone="positive">Saved.</Alert> : null}
+        {savedNote && !error ? <Alert tone="positive">{t("entryForm.saved")}</Alert> : null}
 
         {enabled && permission === "granted" ? (
           <button
@@ -208,7 +202,7 @@ export function ReminderSettings() {
             onClick={() => void showReminder()}
             className="text-[13px] font-medium text-brand underline-offset-4 hover:underline"
           >
-            Send a test notification now
+            {t("reminder.sendTest")}
           </button>
         ) : null}
       </PanelBody>

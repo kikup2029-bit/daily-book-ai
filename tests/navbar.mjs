@@ -24,8 +24,43 @@ const NAVBAR = bp("navbar"), LABEL = bp("navlabel"), GAP = bp("navgap"), KBD = b
 ok(NAVBAR && LABEL && GAP && KBD, "all four breakpoints defined");
 ok(NAVBAR < LABEL && LABEL < GAP && GAP < KBD, "breakpoints ascend");
 
-const navBlock = nav.slice(nav.indexOf("const NAV"), nav.indexOf("function useCoarsePointer"));
-const labels = [...navBlock.matchAll(/^  \{\n    label: "([^"]+)"/gm)].map((m) => m[1]);
+/*
+ * Nav labels live in the dictionaries now, and they are not the same length in
+ * every language — Spanish in particular runs longer than English. The bar has
+ * to fit the WIDEST language, not the one the developer happens to read, so
+ * this measures every locale and reports the worst case.
+ */
+const navKeys = [
+  "nav.today", "nav.thisMonth", "nav.invoices",
+  "nav.tools", "nav.export", "nav.help",
+];
+
+function labelsFor(file) {
+  const src = fs.readFileSync(`src/lib/i18n/${file}.ts`, "utf8");
+  return navKeys.map((key) => {
+    const name = key.split(".")[1];
+    // Grab the nav section, then the key inside it.
+    const navSection = src.slice(src.indexOf("nav:"), src.indexOf("auth:"));
+    const match = navSection.match(new RegExp(`\\b${name}:\\s*"([^"]*)"`));
+    return match ? match[1] : "";
+  });
+}
+
+// Latin scripts cost roughly one CHAR per character; Devanagari, Gujarati and
+// Arabic run wider per glyph, and Chinese is wider still but far shorter.
+const SCRIPT_WIDTH = { en: 1, es: 1, hi: 1.15, gu: 1.15, ur: 1.1, zh: 1.9 };
+
+let widest = { locale: "en", labels: labelsFor("en"), cost: 0 };
+for (const code of ["en", "es", "hi", "gu", "ur", "zh"]) {
+  const ls = labelsFor(code);
+  if (ls.some((l) => !l)) { console.log(`  (skipping ${code}: could not read all nav labels)`); continue; }
+  const cost = ls.reduce((sum, l) => sum + l.length * (SCRIPT_WIDTH[code] ?? 1), 0);
+  console.log(`  ${code}: ${ls.join(" | ")}  → ${Math.round(cost)} char-units`);
+  if (cost > widest.cost) widest = { locale: code, labels: ls, cost };
+}
+console.log(`\n  widest language: ${widest.locale}\n`);
+const labels = widest.labels;
+const SCRIPT = SCRIPT_WIDTH[widest.locale] ?? 1;
 
 const CHAR = 7.8, CHEV = 14, BRAND = 150, THEME = 36, SIGNOUT = 86, GUTTERS = 48;
 
@@ -43,7 +78,7 @@ function stateAt(w) {
 function widthNeeded(s) {
   const itemPad = s.looseGaps ? 24 : 20;
   const itemGap = s.looseGaps ? 4 : 2;
-  const groups = labels.reduce((sum, l) => sum + l.length * CHAR + itemPad + CHEV + itemGap, 0);
+  const groups = labels.reduce((sum, l) => sum + l.length * CHAR * SCRIPT + itemPad + CHEV + itemGap, 0);
   const search = 14 + 8 + 20 + (s.searchLabelVisible ? 55 : 0) + (s.kbdVisible ? 56 : 0);
   return Math.round(groups + BRAND + search + THEME + SIGNOUT + GUTTERS);
 }
@@ -58,7 +93,7 @@ const describe = (s) =>
         s.kbdVisible ? "⌘K" : "no ⌘K",
       ].join(" · ");
 
-console.log(`  groups: ${labels.join(" | ")}\n`);
+
 console.log("  Both sides of every boundary:\n");
 
 for (const edge of [NAVBAR, LABEL, GAP, KBD]) {
@@ -99,8 +134,10 @@ ok(/navkbd:block/.test(nav), "⌘K chip gated on navkbd");
 ok(/navgap:gap-1/.test(nav) && /navgap:px-3/.test(nav), "gap and padding both step at navgap");
 ok(/sr-only navlabel:not-sr-only/.test(nav),
    "search word is sr-only below navlabel and visible above — never removed from the DOM");
-ok(/aria-label="Search or jump to a page"/.test(nav), "search has an explicit aria-label");
-ok(/title="Search or jump to a page \(⌘K\)"/.test(nav), "…and a tooltip naming the shortcut");
+ok(/aria-label=\{t\("common\.searchLong"\)\}/.test(nav),
+   "search has an explicit aria-label, and it is translated");
+ok(/title=\{`\$\{t\("common\.searchLong"\)\} \(⌘K\)`\}/.test(nav),
+   "…and a translated tooltip that still names the shortcut");
 ok((nav.match(/navbar:(flex|hidden|block)/g) ?? []).length === 4,
    "all four nav controls switch together");
 ok(!/\blg:(flex|hidden|block)\b/.test(nav), "no stray lg: controlling the switch");

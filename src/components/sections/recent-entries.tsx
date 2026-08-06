@@ -32,14 +32,9 @@ import { Badge, Money, SkeletonRows } from "@/components/ui/kit";
 import { Button } from "@/components/ui/button";
 import { EmptyState, SampleRows } from "@/components/empty-state";
 import { ReceiptThumb } from "@/components/receipt-controls";
+import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import {
-  nextShareMode,
-  readableDate,
-  sharingLabel,
-  signedAmount,
-  tidyLabel,
-} from "@/lib/entry-format";
+import { nextShareMode, sharingLabel, signedAmount, tidyLabel } from "@/lib/entry-format";
 
 export type RecentEntry = {
   id: string;
@@ -70,6 +65,43 @@ function iconFor(entry: RecentEntry) {
   return CATEGORY_ICONS.find((row) => row.match.test(text))?.icon ?? ArrowUpRight;
 }
 
+/**
+ * What the overflow menu offers next, as a translation key.
+ *
+ * `nextShareMode` still decides *which* action is offered; only the wording
+ * moves here, keyed off the mode so the sentence comes out of the dictionary.
+ */
+const SHARE_ACTION_KEYS = {
+  visible: "dashboard.shareWithHousehold",
+  private: "dashboard.makePrivate",
+  split: "dashboard.splitEvenly",
+} as const;
+
+/**
+ * The date as a row shows it.
+ *
+ * Same rule as `readableDate`: today and yesterday are named rather than dated,
+ * because that's how people talk about them. The difference is that both halves
+ * now come from the reader's language instead of English plus whatever locale
+ * the browser happened to be in.
+ */
+function useEntryDate() {
+  const { t, formatDate } = useI18n();
+
+  return (iso: string) => {
+    const date = new Date(`${iso}T00:00:00`);
+    if (Number.isNaN(date.getTime())) return iso;
+
+    const startOf = (value: Date) =>
+      new Date(value.getFullYear(), value.getMonth(), value.getDate()).getTime();
+    const dayDiff = Math.round((startOf(new Date()) - startOf(date)) / 86_400_000);
+
+    if (dayDiff === 0) return t("common.today");
+    if (dayDiff === 1) return t("common.yesterday");
+    return formatDate(iso);
+  };
+}
+
 /* ------------------------------------------------------------------ row */
 
 function EntryRow({
@@ -87,6 +119,8 @@ function EntryRow({
   onDelete: () => void;
   onViewReceipt: () => void;
 }) {
+  const { t } = useI18n();
+  const entryDate = useEntryDate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const Icon = iconFor(entry);
@@ -96,7 +130,7 @@ function EntryRow({
   const title =
     tidyLabel(entry.spent_on) ??
     tidyLabel(entry.merchant) ??
-    (isIncome ? "Money in" : "Uncategorised");
+    (isIncome ? t("common.moneyIn") : t("dashboard.uncategorised"));
   const where = tidyLabel(entry.merchant);
   const sharing = sharingLabel(entry);
 
@@ -138,7 +172,7 @@ function EntryRow({
 
         <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-muted-foreground">
           <span className="num whitespace-nowrap tracking-normal">
-            {readableDate(entry.entry_date)}
+            {entryDate(entry.entry_date)}
           </span>
           {where && where !== title ? (
             <>
@@ -149,13 +183,13 @@ function EntryRow({
           {sharing ? (
             <Badge tone="brand" className="px-1.5 py-0 text-[10.5px]">
               <Users className="size-2.5" aria-hidden="true" />
-              {sharing}
+              {sharing === "Split" ? t("dashboard.split") : t("dashboard.shared")}
             </Badge>
           ) : null}
           {entry.receipt_path ? (
             <span className="inline-flex items-center gap-1 text-muted-foreground">
               <Receipt className="size-3" aria-hidden="true" />
-              <span className="sr-only">Has a receipt</span>
+              <span className="sr-only">{t("dashboard.hasReceipt")}</span>
             </span>
           ) : null}
         </span>
@@ -172,8 +206,8 @@ function EntryRow({
           <DropdownMenu.Trigger asChild>
             <button
               type="button"
-              aria-label={`Actions for ${title}`}
-              title="More actions"
+              aria-label={t("dashboard.actionsFor", { name: title })}
+              title={t("common.moreActions")}
               disabled={busy}
               className={cn(
                 "flex size-11 items-center justify-center rounded-[var(--radius-8)] text-muted-foreground sm:size-9",
@@ -201,7 +235,7 @@ function EntryRow({
                 className="flex cursor-pointer items-center gap-2.5 rounded-[var(--radius-8)] px-2.5 py-2 text-[13px] outline-none data-[highlighted]:bg-accent"
               >
                 <Camera className="size-4 text-muted-foreground" aria-hidden="true" />
-                {entry.receipt_path ? "View receipt" : "Add a receipt"}
+                {entry.receipt_path ? t("dashboard.viewReceipt") : t("dashboard.addReceipt")}
               </DropdownMenu.Item>
 
               {canShare ? (
@@ -210,7 +244,7 @@ function EntryRow({
                   className="flex cursor-pointer items-center gap-2.5 rounded-[var(--radius-8)] px-2.5 py-2 text-[13px] outline-none data-[highlighted]:bg-accent"
                 >
                   <Users className="size-4 text-muted-foreground" aria-hidden="true" />
-                  {nextShareMode(entry).label}
+                  {t(SHARE_ACTION_KEYS[nextShareMode(entry).mode])}
                 </DropdownMenu.Item>
               ) : null}
 
@@ -227,7 +261,7 @@ function EntryRow({
                 className="flex cursor-pointer items-center gap-2.5 rounded-[var(--radius-8)] px-2.5 py-2 text-[13px] text-danger outline-none data-[highlighted]:bg-danger-soft"
               >
                 <Trash2 className="size-4" aria-hidden="true" />
-                Delete entry
+                {t("dashboard.deleteEntry")}
               </DropdownMenu.Item>
             </DropdownMenu.Content>
           </DropdownMenu.Portal>
@@ -237,12 +271,14 @@ function EntryRow({
       {confirming ? (
         <div
           role="alertdialog"
-          aria-label={`Delete ${title}?`}
+          // The dictionary has no "Delete {name}?" sentence, and gluing the
+          // name onto "Delete" would put it in the wrong place in half these
+          // languages. The plain action reads correctly everywhere, and the row
+          // it opens on is still what says which entry it is.
+          aria-label={t("dashboard.deleteEntry")}
           className="pop col-span-3 mt-2 flex flex-wrap items-center gap-2 rounded-[var(--radius-10)] bg-danger-soft px-3 py-2.5"
         >
-          <p className="min-w-0 flex-1 text-[13px] text-danger">
-            Delete this entry? This can&apos;t be undone.
-          </p>
+          <p className="min-w-0 flex-1 text-[13px] text-danger">{t("dashboard.deleteConfirm")}</p>
           <Button
             size="sm"
             variant="destructive"
@@ -252,10 +288,10 @@ function EntryRow({
               setConfirming(false);
             }}
           >
-            Delete
+            {t("common.delete")}
           </Button>
           <Button size="sm" variant="ghost" onClick={() => setConfirming(false)} autoFocus>
-            Keep it
+            {t("common.keepIt")}
           </Button>
         </div>
       ) : null}
@@ -286,6 +322,8 @@ export function RecentEntries({
   onViewReceipt: (entry: RecentEntry) => void;
   limit?: number;
 }) {
+  const { t, formatNumber } = useI18n();
+  const entryDate = useEntryDate();
   const shown = useMemo(() => entries.slice(0, limit), [entries, limit]);
   const [openReceipt, setOpenReceipt] = useState<RecentEntry | null>(null);
 
@@ -295,22 +333,22 @@ export function RecentEntries({
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <h2 id="recent-entries-heading" className="text-[15px] font-semibold leading-tight">
-              Recent entries
+              {t("dashboard.recentEntries")}
             </h2>
             {!isLoading && entries.length > 0 ? (
               <Badge tone="neutral" className="px-1.5 py-0">
-                <span className="num">{entries.length}</span>
+                <span className="num">{formatNumber(entries.length)}</span>
               </Badge>
             ) : null}
           </div>
           <p className="mt-0.5 truncate text-[12.5px] text-muted-foreground">
-            Newest first. Tap the menu on a row to change or remove it.
+            {t("dashboard.recentBlurb")}
           </p>
         </div>
 
         {entries.length > 0 ? (
           <Button asChild variant="ghost" size="sm" className="shrink-0">
-            <Link to="/entries">View all</Link>
+            <Link to="/entries">{t("common.viewAll")}</Link>
           </Button>
         ) : null}
       </header>
@@ -318,7 +356,7 @@ export function RecentEntries({
       {error ? (
         <div className="px-4 py-6 sm:px-5">
           <p role="alert" className="text-sm text-danger">
-            Couldn&apos;t load your entries. {error.message}
+            {t("dashboard.loadFailed", { message: error.message })}
           </p>
         </div>
       ) : isLoading ? (
@@ -328,8 +366,8 @@ export function RecentEntries({
       ) : entries.length === 0 ? (
         <div className="px-4 sm:px-5">
           <EmptyState
-            title="Nothing logged yet"
-            blurb="Add what came in and what went out, and it appears here straight away."
+            title={t("dashboard.nothingLogged")}
+            blurb={t("dashboard.nothingLoggedBlurb")}
             sample={<SampleRows rows={3} />}
           />
         </div>
@@ -358,7 +396,9 @@ export function RecentEntries({
                 to="/entries"
                 className="text-[13px] font-medium text-brand underline-offset-4 hover:underline"
               >
-                <span className="num">{entries.length - shown.length}</span> more — see everything
+                {/* One string, count and all: "3 more" puts the number first in
+                    English and elsewhere it doesn't go there at all. */}
+                {t("dashboard.moreEntries", { count: entries.length - shown.length })}
               </Link>
             </div>
           ) : null}
@@ -370,15 +410,17 @@ export function RecentEntries({
           <div className="flex items-start gap-3">
             <ReceiptThumb path={openReceipt.receipt_path} />
             <div className="min-w-0 flex-1">
-              <p className="text-[13px] font-medium">
-                Receipt for {tidyLabel(openReceipt.spent_on) ?? "this entry"}
-              </p>
+              {/* "Receipt for {name}" has no key, and half-translating it into
+                  "Receipt for" plus a name would read as nonsense in a language
+                  that puts the name first. The heading names the thing on
+                  screen instead; the row underneath still dates it. */}
+              <p className="text-[13px] font-medium">{t("dashboard.viewReceipt")}</p>
               <p className="num mt-0.5 text-[12px] text-muted-foreground">
-                {readableDate(openReceipt.entry_date)}
+                {entryDate(openReceipt.entry_date)}
               </p>
             </div>
             <Button size="sm" variant="ghost" onClick={() => setOpenReceipt(null)}>
-              Close
+              {t("common.close")}
             </Button>
           </div>
         </div>

@@ -276,9 +276,72 @@
   --sidebar-ring: var(--ring);
 }
 
+/*
+ * Script support.
+ *
+ * The font stack changes with the language rather than loading every script
+ * for every reader. Inter stays first so Latin text (amounts, dates, a
+ * customer's name) keeps its shape even inside a Gujarati sentence, with the
+ * Noto face behind it picking up the characters Inter has no glyph for.
+ */
+:root[data-locale="hi"] {
+  --font-sans: "Inter", "Noto Sans Devanagari", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Inter Tight", "Noto Sans Devanagari", ui-sans-serif, sans-serif;
+}
+
+:root[data-locale="gu"] {
+  --font-sans: "Inter", "Noto Sans Gujarati", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Inter Tight", "Noto Sans Gujarati", ui-sans-serif, sans-serif;
+}
+
+:root[data-locale="ur"] {
+  --font-sans: "Inter", "Noto Naskh Arabic", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Inter Tight", "Noto Naskh Arabic", ui-sans-serif, sans-serif;
+}
+
+:root[data-locale="zh"] {
+  --font-sans: "Inter", "Noto Sans SC", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Inter Tight", "Noto Sans SC", ui-sans-serif, sans-serif;
+}
+
+/*
+ * Urdu needs more vertical room: Naskh has deep descenders and stacked marks
+ * that collide at the line heights Latin text is comfortable with.
+ */
+:root[dir="rtl"] body {
+  line-height: 1.75;
+}
+
 @layer base {
   * {
     border-color: var(--color-border);
+  }
+
+  /*
+   * Right-to-left.
+   *
+   * Most of the layout mirrors on its own because the design uses logical
+   * properties. These are the exceptions — places where a physical direction
+   * was baked in and would otherwise point the wrong way.
+   */
+  [dir="rtl"] .rtl-flip {
+    transform: scaleX(-1);
+  }
+
+  /*
+   * Amounts stay left-to-right even in an RTL page. "−$42.50" is a number with
+   * a sign, and reversing it would render the minus on the wrong end — which
+   * is not a cosmetic problem when the subject is money.
+   */
+  [dir="rtl"] .num,
+  [dir="rtl"] .figure {
+    direction: ltr;
+    unicode-bidi: isolate;
+  }
+
+  /* Keep them on the side the layout intends, rather than following the text. */
+  [dir="rtl"] .num {
+    text-align: inherit;
   }
 
   html {

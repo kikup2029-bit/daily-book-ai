@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { CloudOff, Download, RefreshCw, Trash2, TriangleAlert, X } from "lucide-react";
 
+import { useI18n } from "@/lib/i18n";
 import { describe } from "@/lib/offline-queue";
 import { useOfflineEntries } from "@/lib/use-offline";
 
@@ -13,6 +14,7 @@ import { useOfflineEntries } from "@/lib/use-offline";
 export function OfflineBar({ userId }: { userId: string | null | undefined }) {
   const { online, waiting, stuck, items, syncing, sync, discard, retryAll } =
     useOfflineEntries(userId);
+  const { t } = useI18n();
   const [showList, setShowList] = useState(false);
 
   const nothingToSay = online && waiting === 0 && stuck === 0;
@@ -36,10 +38,8 @@ export function OfflineBar({ userId }: { userId: string | null | undefined }) {
           {!online ? (
             <>
               <CloudOff className="size-4 shrink-0 text-warning" aria-hidden="true" />
-              <span className="font-semibold">No connection</span>
-              <span className="min-w-0 text-muted-foreground">
-                You can keep logging — entries are saved on this device.
-              </span>
+              <span className="font-semibold">{t("offline.noConnection")}</span>
+              <span className="min-w-0 text-muted-foreground">{t("offline.keepLogging")}</span>
             </>
           ) : null}
 
@@ -49,26 +49,27 @@ export function OfflineBar({ userId }: { userId: string | null | undefined }) {
                 className={`size-4 shrink-0 text-muted-foreground ${syncing ? "animate-spin" : ""}`}
                 aria-hidden="true"
               />
+              {/* One whole sentence per state. The count sits inside it, since
+                  where the number falls against the noun differs per language. */}
               <span className="font-semibold">
-                {syncing ? "Sending" : "Waiting to send"} <span className="num">{waiting}</span>{" "}
-                {waiting === 1 ? "entry" : "entries"}
+                {syncing
+                  ? t("offline.sending", { count: waiting })
+                  : t("offline.waitingToSend", { count: waiting })}
               </span>
             </>
           ) : null}
 
           {!online && waiting > 0 ? (
             <span className="text-muted-foreground">
-              · <span className="num">{waiting}</span> {waiting === 1 ? "entry" : "entries"} waiting
+              <span aria-hidden="true">· </span>
+              {t("offline.waiting", { count: waiting })}
             </span>
           ) : null}
 
           {stuck > 0 ? (
             <span className="flex items-center gap-1.5 text-danger">
               <TriangleAlert className="size-4 shrink-0" aria-hidden="true" />
-              <span className="font-semibold">
-                <span className="num">{stuck}</span> {stuck === 1 ? "entry" : "entries"}{" "}
-                wouldn&apos;t save
-              </span>
+              <span className="font-semibold">{t("offline.wouldntSave", { count: stuck })}</span>
             </span>
           ) : null}
 
@@ -79,7 +80,7 @@ export function OfflineBar({ userId }: { userId: string | null | undefined }) {
               aria-expanded={showList}
               className={`${linkClass} ml-auto text-muted-foreground hover:text-foreground`}
             >
-              {showList ? "Hide" : "Show"} them
+              {showList ? t("offline.hideThem") : t("offline.showThem")}
             </button>
           ) : null}
 
@@ -89,7 +90,7 @@ export function OfflineBar({ userId }: { userId: string | null | undefined }) {
               onClick={() => void sync()}
               className={`${linkClass} font-semibold text-brand`}
             >
-              Send now
+              {t("offline.sendNow")}
             </button>
           ) : null}
         </div>
@@ -99,16 +100,18 @@ export function OfflineBar({ userId }: { userId: string | null | undefined }) {
             {waitingItems.map((item) => (
               <div key={item.id} className="flex items-start gap-3 text-[12px]">
                 <span className="min-w-0 flex-1 text-muted-foreground">{describe(item)}</span>
-                <span className="shrink-0 text-muted-foreground">waiting</span>
+                {/* One row, one entry — the count is 1 so the sentence agrees
+                    with itself in languages that inflect the noun. */}
+                <span className="shrink-0 text-muted-foreground">
+                  {t("offline.waiting", { count: 1 })}
+                </span>
               </div>
             ))}
 
             {stuckItems.length > 0 ? (
               <div className="mt-2 rounded-[var(--radius-10)] bg-danger-soft px-3 py-2.5">
                 <p className="text-[12px] leading-relaxed text-danger">
-                  These were refused <span className="num">{stuckItems[0].attempts}</span> times.
-                  Usually that means the app was updated or you were signed out — try again, and
-                  only discard one if you&apos;ve already entered it another way.
+                  {t("offline.refusedTimes", { count: stuckItems[0].attempts })}
                 </p>
                 {stuckItems.map((item) => (
                   <div key={item.id} className="mt-2 flex items-start gap-2 text-[12px]">
@@ -122,8 +125,8 @@ export function OfflineBar({ userId }: { userId: string | null | undefined }) {
                       type="button"
                       onClick={() => discard(item.id)}
                       className="flex size-10 shrink-0 items-center justify-center rounded-[var(--radius-8)] text-muted-foreground transition-colors duration-[var(--dur-fast)] ease-[var(--ease)] hover:bg-foreground/10 hover:text-danger"
-                      aria-label="Discard this entry"
-                      title="Discard this entry"
+                      aria-label={t("offline.discardEntry")}
+                      title={t("offline.discardEntry")}
                     >
                       <Trash2 className="size-4" aria-hidden="true" />
                     </button>
@@ -134,7 +137,7 @@ export function OfflineBar({ userId }: { userId: string | null | undefined }) {
                   onClick={retryAll}
                   className={`${linkClass} mt-1.5 -ml-2 font-semibold text-danger`}
                 >
-                  Try these again
+                  {t("offline.tryTheseAgain")}
                 </button>
               </div>
             ) : null}
@@ -154,6 +157,7 @@ const DISMISSED_KEY = "simplebooks.install-dismissed";
  * doesn't, so there we explain the two taps instead of pretending.
  */
 export function InstallPrompt() {
+  const { t } = useI18n();
   const [event, setEvent] = useState<InstallEvent | null>(null);
   const [iosHint, setIosHint] = useState(false);
   const [dismissed, setDismissed] = useState(true);
@@ -211,16 +215,20 @@ export function InstallPrompt() {
           <Download className="size-4" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold">Put SimpleBooks on your home screen</p>
+          <p className="text-sm font-semibold">{t("offline.installTitle")}</p>
           {event ? (
             <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
-              Opens full screen with its own icon, and keeps working when you&apos;ve got no signal.
+              {t("offline.installBody")}
             </p>
           ) : (
+            /*
+              iOS gets the two taps spelled out. Both sentences are whole
+              strings — the emphasis that used to sit on "Add to Home Screen"
+              is gone, because a fragment lifted out of the middle of a sentence
+              lands somewhere else entirely once it's translated.
+            */
             <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
-              Tap the Share button in Safari, then{" "}
-              <span className="font-semibold text-foreground">Add to Home Screen</span>. It then
-              opens full screen and keeps working with no signal.
+              {t("offline.installIos")} {t("offline.installBody")}
             </p>
           )}
           {event ? (
@@ -232,7 +240,7 @@ export function InstallPrompt() {
               }}
               className="mt-4 inline-flex h-10 items-center rounded-[var(--radius-10)] bg-brand px-4 text-sm font-medium text-brand-foreground shadow-[var(--shadow-sm)] transition-colors duration-[var(--dur-fast)] ease-[var(--ease)] hover:bg-brand-hover"
             >
-              Install
+              {t("offline.install")}
             </button>
           ) : null}
         </div>
@@ -240,7 +248,7 @@ export function InstallPrompt() {
           type="button"
           onClick={hide}
           className="-mr-1 -mt-1 flex size-10 shrink-0 items-center justify-center rounded-[var(--radius-10)] text-muted-foreground transition-colors duration-[var(--dur-fast)] ease-[var(--ease)] hover:bg-accent hover:text-foreground"
-          aria-label="Dismiss"
+          aria-label={t("offline.dismiss")}
         >
           <X className="size-4" aria-hidden="true" />
         </button>
