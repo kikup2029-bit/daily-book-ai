@@ -109,7 +109,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       // bar blends into the page instead of framing it.
       { name: "theme-color", content: "#141413" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
-      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      // "default" rather than "black-translucent": translucent forces white
+      // status bar text, which disappears against the light theme. This lets
+      // iOS colour the bar from theme-color, which the theme toggle keeps in
+      // step with whichever mode you're in.
+      { name: "apple-mobile-web-app-status-bar-style", content: "default" },
       { name: "apple-mobile-web-app-title", content: "SimpleBooks" },
       { name: "mobile-web-app-capable", content: "yes" },
     ],

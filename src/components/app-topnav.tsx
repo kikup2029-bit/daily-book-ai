@@ -69,7 +69,38 @@ const NAV: Item[] = [
   },
 ];
 
+/**
+ * True on phones and tablets — anything without a mouse.
+ *
+ * Hover menus are invisible on a touch screen: there's no way to hover, and a
+ * tap goes straight to the link. This lets the same nav open on tap instead.
+ */
+function useCoarsePointer() {
+  const [coarse, setCoarse] = useState(false);
+
+  useEffect(() => {
+    const query = window.matchMedia("(pointer: coarse)");
+    setCoarse(query.matches);
+    const onChange = (event: MediaQueryListEvent) => setCoarse(event.matches);
+    query.addEventListener("change", onChange);
+    return () => query.removeEventListener("change", onChange);
+  }, []);
+
+  return coarse;
+}
+
 const THEME_KEY = "simplebooks.theme";
+
+/**
+ * Keeps the phone's status bar the same colour as the page.
+ *
+ * Without this the bar behind the clock and battery stays dark after switching
+ * to the light theme, which looks like a bug rather than a design.
+ */
+function paintStatusBar(light: boolean) {
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute("content", light ? "#ffffff" : "#141413");
+}
 
 /** Dark by default; the choice sticks between visits. */
 function useTheme() {
@@ -85,12 +116,14 @@ function useTheme() {
     const useLight = saved === "light";
     setLight(useLight);
     document.documentElement.classList.toggle("light", useLight);
+    paintStatusBar(useLight);
   }, []);
 
   const toggle = () => {
     setLight((current) => {
       const next = !current;
       document.documentElement.classList.toggle("light", next);
+      paintStatusBar(next);
       try {
         localStorage.setItem(THEME_KEY, next ? "light" : "dark");
       } catch {
@@ -111,10 +144,16 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
   const userId = user?.id;
   const { light, toggle } = useTheme();
 
-  // Which group's menu is showing. Hover on desktop, tap on mobile.
+  // Which group's menu is showing. Hover on desktop, tap on touch.
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
+  // Which section is expanded in the phone menu.
+  const [openSection, setOpenSection] = useState<string | null>(null);
   const closeTimer = useRef<number | null>(null);
+
+  // On a touch screen there is no hover, so a menu that only opens on hover
+  // can't be opened at all. Tapping the group opens it instead.
+  const touch = useCoarsePointer();
 
   useEffect(() => {
     setOpenMenu(null);
@@ -163,10 +202,23 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
   const isActive = (item: Item) =>
     item.children ? item.children.some((c) => c.to === pathname) : pathname === item.to;
 
+  // Opening the menu on the section you're already in saves a tap and shows
+  // where you are.
+  const openMobile = () => {
+    setOpenSection(NAV.find(isActive)?.label ?? null);
+    setMobileOpen(true);
+  };
+
   return (
     <div className="min-h-screen">
       {/* ---------- top bar ---------- */}
-      <header className="sticky top-0 z-40 border-b bg-background/85 backdrop-blur">
+      {/*
+        pt-safe pushes the bar below the clock and battery on a notched iPhone.
+        The installed app draws under the status bar (that's what makes it feel
+        like an app rather than a web page), so the padding has to be added back
+        here or the nav sits underneath it.
+      */}
+      <header className="pt-safe sticky top-0 z-40 border-b bg-background/85 backdrop-blur">
         <div className="mx-auto flex h-16 w-full max-w-4xl items-center gap-1 px-5">
           <Link
             to="/dashboard"
@@ -183,35 +235,72 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
                 <div
                   key={item.label}
                   className="relative"
-                  onMouseEnter={() => item.children && openNow(item.label)}
-                  onMouseLeave={closeSoon}
+                  onMouseEnter={() => !touch && item.children && openNow(item.label)}
+                  onMouseLeave={touch ? undefined : closeSoon}
                 >
-                  <Link
-                    to={item.to}
-                    onClick={() => item.children && setOpenMenu(null)}
-                    className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm transition-colors ${
-                      active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {item.label}
-                    {item.children ? (
+                  {/*
+                    With a mouse this is a link and the menu opens on hover.
+                    On a touch screen there's nothing to hover with, so the same
+                    control becomes a button that opens the menu on tap.
+                  */}
+                  {item.children && touch ? (
+                    <button
+                      type="button"
+                      onClick={() => setOpenMenu(openMenu === item.label ? null : item.label)}
+                      aria-expanded={openMenu === item.label}
+                      className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm transition-colors ${
+                        active ? "text-foreground" : "text-muted-foreground"
+                      }`}
+                    >
+                      {item.label}
                       <ChevronDown
                         className={`size-3.5 transition-transform ${
                           openMenu === item.label ? "rotate-180" : ""
                         }`}
                       />
-                    ) : null}
-                    {active ? (
-                      <span className="absolute inset-x-3 -bottom-[1px] h-[1.5px] bg-foreground" />
-                    ) : null}
-                  </Link>
+                      {active ? (
+                        <span className="absolute inset-x-3 -bottom-[1px] h-[1.5px] bg-foreground" />
+                      ) : null}
+                    </button>
+                  ) : (
+                    <Link
+                      to={item.to}
+                      onClick={() => item.children && setOpenMenu(null)}
+                      className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm transition-colors ${
+                        active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {item.label}
+                      {item.children ? (
+                        <ChevronDown
+                          className={`size-3.5 transition-transform ${
+                            openMenu === item.label ? "rotate-180" : ""
+                          }`}
+                        />
+                      ) : null}
+                      {active ? (
+                        <span className="absolute inset-x-3 -bottom-[1px] h-[1.5px] bg-foreground" />
+                      ) : null}
+                    </Link>
+                  )}
 
                   {item.children && openMenu === item.label ? (
                     <div
                       className="absolute left-0 top-full z-50 w-56 rounded-xl border bg-popover p-1.5 shadow-xl"
-                      onMouseEnter={() => openNow(item.label)}
-                      onMouseLeave={closeSoon}
+                      onMouseEnter={() => !touch && openNow(item.label)}
+                      onMouseLeave={touch ? undefined : closeSoon}
                     >
+                      {/* On touch the group name isn't a link any more, so its
+                          own page needs a row here. */}
+                      {touch ? (
+                        <Link
+                          to={item.to}
+                          onClick={() => setOpenMenu(null)}
+                          className="block rounded-lg px-3 py-2 text-[13px] text-muted-foreground"
+                        >
+                          Go to {item.label}
+                        </Link>
+                      ) : null}
                       {item.children.map((child) => (
                         <Link
                           key={child.to}
@@ -267,7 +356,7 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
 
             <button
               type="button"
-              onClick={() => setMobileOpen(true)}
+              onClick={openMobile}
               className="rounded-lg p-2 text-muted-foreground transition-colors hover:text-foreground md:hidden"
               aria-label="Open menu"
             >
@@ -286,50 +375,75 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
             onClick={() => setMobileOpen(false)}
             aria-label="Close menu"
           />
-          <div className="absolute inset-x-0 top-0 max-h-full overflow-y-auto bg-background px-5 pb-8 pt-5">
-            <div className="flex items-center justify-between">
+          <div className="pt-safe pb-safe absolute inset-x-0 top-0 max-h-full overflow-y-auto bg-background px-5">
+            <div className="flex h-16 items-center justify-between">
               <span className="text-sm font-semibold tracking-tight">SimpleBooks</span>
               <button
                 type="button"
                 onClick={() => setMobileOpen(false)}
-                className="rounded-lg p-2 text-muted-foreground"
+                className="-mr-2 rounded-lg p-2 text-muted-foreground"
                 aria-label="Close menu"
               >
                 <X className="size-5" />
               </button>
             </div>
 
-            <nav className="mt-6 space-y-6">
-              {NAV.map((item) => (
-                <div key={item.label}>
-                  <Link to={item.to} className="eyebrow block" onClick={() => setMobileOpen(false)}>
-                    {item.label}
-                  </Link>
-                  {item.children ? (
-                    <div className="mt-2 space-y-0.5">
-                      {item.children.map((child) => (
-                        <Link
-                          key={child.to}
-                          to={child.to}
-                          onClick={() => setMobileOpen(false)}
-                          className={`block py-2 text-[15px] ${
-                            pathname === child.to
-                              ? "font-semibold text-foreground"
-                              : "text-muted-foreground"
-                          }`}
-                        >
-                          {child.label}
-                        </Link>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
-              ))}
+            {/*
+              One section at a time. Showing every sub-item at once turned this
+              into a wall of twenty-odd links with no sense of what belonged to
+              what.
+            */}
+            <nav className="mt-2 pb-8">
+              {NAV.map((item) => {
+                const expanded = openSection === item.label;
+                return (
+                  <div key={item.label} className="border-b">
+                    <button
+                      type="button"
+                      onClick={() => setOpenSection(expanded ? null : item.label)}
+                      aria-expanded={expanded}
+                      className="flex w-full items-center justify-between py-4 text-left"
+                    >
+                      <span
+                        className={`text-[17px] ${
+                          isActive(item) ? "font-semibold text-foreground" : "text-foreground"
+                        }`}
+                      >
+                        {item.label}
+                      </span>
+                      <ChevronDown
+                        className={`size-4 shrink-0 text-muted-foreground transition-transform ${
+                          expanded ? "rotate-180" : ""
+                        }`}
+                      />
+                    </button>
+
+                    {expanded && item.children ? (
+                      <div className="pb-3">
+                        {item.children.map((child) => (
+                          <Link
+                            key={child.to}
+                            to={child.to}
+                            onClick={() => setMobileOpen(false)}
+                            className={`block py-2.5 pl-3 text-[15px] ${
+                              pathname === child.to
+                                ? "font-semibold text-foreground"
+                                : "text-muted-foreground"
+                            }`}
+                          >
+                            {child.label}
+                          </Link>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })}
 
               <button
                 type="button"
                 onClick={signOut}
-                className="border-t pt-5 text-[15px] text-muted-foreground"
+                className="mt-6 text-[15px] text-muted-foreground"
               >
                 Sign out
               </button>
@@ -341,7 +455,8 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
       <OfflineBar userId={userId} />
 
       {/* ---------- page ---------- */}
-      <main className="mx-auto w-full max-w-4xl px-5 pb-28 pt-12">{children}</main>
+      {/* pb-page keeps the last row clear of the iPhone home indicator. */}
+      <main className="pb-page mx-auto w-full max-w-4xl px-5 pt-12">{children}</main>
 
       <CommandPalette />
     </div>

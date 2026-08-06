@@ -10,7 +10,7 @@
  * Bump VERSION when this file changes; old caches are deleted on activate.
  */
 
-const VERSION = "v1";
+const VERSION = "v2";
 const SHELL_CACHE = `simplebooks-shell-${VERSION}`;
 const DATA_CACHE = `simplebooks-data-${VERSION}`;
 const OFFLINE_URL = "/offline.html";
