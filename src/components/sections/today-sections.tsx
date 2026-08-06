@@ -1,6 +1,16 @@
 /**
  * The cards that make up "Today", each addressable on its own so the nav can
  * link straight to one.
+ *
+ * The page is ordered around the four questions an owner opens the app with:
+ *
+ *   1. Where do I stand today?   — one hero number, money in and out beside it
+ *   2. What needs me?            — bills due, budgets used up (only when real)
+ *   3. What do I do next?        — quick add, reachable without scrolling
+ *   4. What just happened?       — recent entries, then streaks
+ *
+ * `parts` lets each route render a slice of that, so /add gets the entry tools
+ * and /dashboard gets the numbers, without two copies of the same logic.
  */
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -19,6 +29,7 @@ import {
   MicOff,
   Trash2,
   Users,
+  Wallet,
   Zap,
 } from "lucide-react";
 
@@ -34,17 +45,44 @@ import { attachReceipt, analyzeReceipt, removeEntry } from "@/lib/books.function
 import { askBookkeeper, createEntry, getEntries } from "@/lib/books.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import {
+  Alert,
+  Badge,
+  Field,
+  Metric,
+  Money,
+  PageHeader,
+  Panel,
+  PanelBody,
+  PanelFooter,
+  PanelHeader,
+  Segmented,
+  Select,
+  SkeletonRows,
+  TxRow,
+} from "@/components/ui/kit";
+import { EmptyState, SampleRows } from "@/components/empty-state";
 import { Onboarding } from "@/components/onboarding";
 import { InstallPrompt } from "@/components/offline-bar";
 import { isNetworkError, useOfflineEntries } from "@/lib/use-offline";
 
 type ChatMessage = { role: "user" | "assistant"; text: string };
 
-const money = (value: number) =>
-  value.toLocaleString(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 2 });
-
 const todayISO = () => new Date().toLocaleDateString("en-CA");
+
+const longDate = (iso: string) =>
+  new Date(`${iso}T00:00:00`).toLocaleDateString(undefined, {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
+
+/**
+ * Row controls stay narrow enough that a 360px phone never scrolls sideways:
+ * past two buttons they wrap onto a second line instead of pushing the amount
+ * off the edge.
+ */
+const ROW_ACTIONS = "flex max-w-[80px] flex-wrap items-center justify-end gap-0.5 sm:max-w-none";
 
 export function fileToBase64(file: File): Promise<{ base64: string; mimeType: string }> {
   return new Promise((resolve, reject) => {
@@ -231,315 +269,385 @@ export function Dashboard({ parts = ALL_TODAY }: { parts?: TodayPart[] } = {}) {
   const allOut = entries.reduce((sum, entry) => sum + entry.amount_out, 0);
 
   return (
-    <div className="rise mx-auto w-full max-w-3xl">
-      {show("due") ? <InstallPrompt /> : null}
-      {show("due") ? <Onboarding /> : null}
-      {show("due") ? <DueSoonBanner /> : null}
-      {show("safe") ? <SafeToSpendCard /> : null}
-      {show("quickadd") ? <QuickAdd entries={entries} /> : null}
+    <div className="rise mx-auto w-full max-w-3xl space-y-6">
+      {/* ---------------------------------------------- 1. where you stand */}
+      {show("glance") ? (
+        <PageHeader
+          eyebrow="Today"
+          title={longDate(today)}
+          description="Everything you've logged so far, and what's worth a look."
+          className="pb-0"
+        />
+      ) : null}
 
-      {show("form") ? (
-        <section className="border-t py-8">
-          <h2 className="text-xl">Today&apos;s entry</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Jot down what came in and what went out.
-          </p>
-
-          <form onSubmit={onSubmit} className="mt-4 space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="date">Date</Label>
-              <Input
-                id="date"
-                type="date"
-                value={date}
-                onChange={(event) => setDate(event.target.value)}
-                required
-              />
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="in">Money made</Label>
-                <Input
-                  id="in"
-                  type="number"
-                  inputMode="decimal"
-                  min="0"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={amountIn}
-                  onChange={(event) => setAmountIn(event.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="out">Money spent</Label>
-                <Input
-                  id="out"
-                  type="number"
-                  inputMode="decimal"
-                  min="0"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={amountOut}
-                  onChange={(event) => setAmountOut(event.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="spent-on">What was it spent on?</Label>
-              <Input
-                id="spent-on"
-                placeholder="Supplies, Rent, Inventory…"
-                value={spentOn}
-                onChange={(event) => setSpentOn(event.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Cash or card?</Label>
-              <div className="flex gap-2">
-                {(["cash", "card", "other"] as const).map((option) => (
-                  <button
-                    key={option}
-                    type="button"
-                    onClick={() => setPaymentMethod(option)}
-                    className={`flex-1 rounded-xl border px-3 py-2 text-sm font-semibold capitalize transition-colors ${
-                      paymentMethod === option
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "text-muted-foreground hover:bg-accent"
-                    }`}
-                  >
-                    {option}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="merchant">Where? (optional)</Label>
-              <Input
-                id="merchant"
-                placeholder="Costco, Shell, Home Depot…"
-                value={merchant}
-                onChange={(event) => setMerchant(event.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="receipt">Receipt photo (optional)</Label>
-              <Input
-                key={receiptKey}
-                id="receipt"
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-2 file:py-1 file:text-sm"
-                onChange={(event) => {
-                  const file = event.target.files?.[0] ?? null;
-                  setReceiptFile(file);
-                  setReceiptNotice(null);
-                  if (file) analyze.mutate(file);
-                }}
-              />
-              {receiptFile ? (
-                <p className="text-xs text-muted-foreground">
-                  Attaching “{receiptFile.name}” — only you can see it.
-                </p>
-              ) : null}
-              {analyze.isPending ? (
-                <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Loader2 className="size-3 animate-spin" /> Reading your receipt…
-                </p>
-              ) : receiptNotice ? (
-                <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Sparkles className="size-3" /> {receiptNotice}
-                </p>
-              ) : null}
-            </div>
-
-            {household?.household ? (
-              <div className="space-y-2">
-                <Label>Who can see this?</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(
-                    [
-                      { key: "private", label: "Just me" },
-                      { key: "visible", label: "Share" },
-                      { key: "split", label: "Split it" },
-                    ] as const
-                  ).map((option) => (
-                    <button
-                      key={option.key}
-                      type="button"
-                      onClick={() => setShareMode(option.key)}
-                      className={`rounded-xl border px-2 py-2 text-sm font-semibold transition-colors ${
-                        shareMode === option.key
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "text-muted-foreground hover:bg-accent"
-                      }`}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {shareMode === "private"
-                    ? "Only you will see this."
-                    : shareMode === "visible"
-                      ? `${household.household.name} can see it, but nobody owes anybody.`
-                      : `${household.household.name} can see it and it gets divided evenly.`}
-                </p>
-              </div>
-            ) : null}
-
-            {formError ? <p className="text-sm text-danger">{formError}</p> : null}
-            {saved ? <p className="text-sm text-success">Saved! Nice work.</p> : null}
-
-            <Button type="submit" className="w-full" size="lg" disabled={save.isPending}>
-              {save.isPending ? "Saving…" : "Save entry"}
-            </Button>
-          </form>
+      {show("glance") || show("safe") ? (
+        <section className="flex flex-wrap gap-3" aria-label="Where you stand today">
+          {show("glance") ? (
+            <TodayPosition
+              loading={isLoading}
+              moneyIn={todayIn}
+              moneyOut={todayOut}
+              net={net}
+              allIn={allIn}
+              allOut={allOut}
+              count={todaysEntries.length}
+            />
+          ) : null}
+          {show("safe") ? <SafeToSpendCard /> : null}
         </section>
       ) : null}
 
+      {/* ------------------------------------------- 2. what needs you now */}
+      {show("due") ? <DueSoonBanner /> : null}
+      {show("due") ? <InstallPrompt /> : null}
+      {show("due") ? <Onboarding /> : null}
+
+      {/* -------------------------------------------- 3. the next action */}
+      {show("quickadd") ? <QuickAdd entries={entries} /> : null}
+
+      {show("form") ? (
+        <form onSubmit={onSubmit}>
+          <Panel>
+            <PanelHeader
+              title="The full entry"
+              description="When you need the date, a receipt or who it's shared with."
+            />
+
+            <PanelBody className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field id="date" label="Date">
+                  <Input
+                    type="date"
+                    className="num"
+                    value={date}
+                    onChange={(event) => setDate(event.target.value)}
+                    required
+                  />
+                </Field>
+
+                <Field id="payment" label="Cash or card?">
+                  <Select
+                    value={paymentMethod}
+                    onChange={(event) =>
+                      setPaymentMethod(event.target.value as "cash" | "card" | "other")
+                    }
+                  >
+                    <option value="cash">Cash</option>
+                    <option value="card">Card</option>
+                    <option value="other">Other</option>
+                  </Select>
+                </Field>
+
+                <Field id="in" label="Money made">
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                    className="num"
+                    value={amountIn}
+                    onChange={(event) => setAmountIn(event.target.value)}
+                  />
+                </Field>
+
+                <Field id="out" label="Money spent">
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                    className="num"
+                    value={amountOut}
+                    onChange={(event) => setAmountOut(event.target.value)}
+                  />
+                </Field>
+
+                <Field id="spent-on" label="What was it spent on?">
+                  <Input
+                    placeholder="Supplies, Rent, Inventory…"
+                    value={spentOn}
+                    onChange={(event) => setSpentOn(event.target.value)}
+                  />
+                </Field>
+
+                <Field id="merchant" label="Where?" hint="Optional.">
+                  <Input
+                    placeholder="Costco, Shell, Home Depot…"
+                    value={merchant}
+                    onChange={(event) => setMerchant(event.target.value)}
+                  />
+                </Field>
+              </div>
+
+              <Field
+                id="receipt"
+                label="Receipt photo"
+                hint={receiptFile ? undefined : "Optional — only you can see it."}
+              >
+                <Input
+                  key={receiptKey}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="file:mr-3 file:rounded-[var(--radius-8)] file:border-0 file:bg-surface-2 file:px-2 file:py-1 file:text-[13px]"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0] ?? null;
+                    setReceiptFile(file);
+                    setReceiptNotice(null);
+                    if (file) analyze.mutate(file);
+                  }}
+                />
+              </Field>
+
+              {receiptFile ? (
+                <p className="-mt-2 truncate text-[12px] text-muted-foreground">
+                  Attaching “{receiptFile.name}” — only you can see it.
+                </p>
+              ) : null}
+
+              {analyze.isPending ? (
+                <p className="-mt-2 flex items-center gap-1.5 text-[12px] text-muted-foreground">
+                  <Loader2 className="size-3 animate-spin" aria-hidden="true" /> Reading your
+                  receipt…
+                </p>
+              ) : receiptNotice ? (
+                <p className="-mt-2 flex items-start gap-1.5 text-[12px] text-muted-foreground">
+                  <Sparkles className="mt-0.5 size-3 shrink-0 text-brand" aria-hidden="true" />
+                  <span>{receiptNotice}</span>
+                </p>
+              ) : null}
+
+              {household?.household ? (
+                <div className="space-y-1.5">
+                  <p className="text-[13px] font-medium text-foreground">Who can see this?</p>
+                  <Segmented
+                    name="Who can see this?"
+                    value={shareMode}
+                    onChange={setShareMode}
+                    options={[
+                      { value: "private", label: "Just me" },
+                      { value: "visible", label: "Share" },
+                      { value: "split", label: "Split it" },
+                    ]}
+                    className="h-11 max-w-full md:h-10"
+                  />
+                  <p className="text-[12px] text-muted-foreground">
+                    {shareMode === "private"
+                      ? "Only you will see this."
+                      : shareMode === "visible"
+                        ? `${household.household.name} can see it, but nobody owes anybody.`
+                        : `${household.household.name} can see it and it gets divided evenly.`}
+                  </p>
+                </div>
+              ) : null}
+
+              {formError ? <Alert tone="negative">{formError}</Alert> : null}
+            </PanelBody>
+
+            <PanelFooter className="flex-wrap justify-between gap-3">
+              <p
+                className={
+                  saved
+                    ? "text-[13px] font-medium text-success"
+                    : "text-[12px] text-muted-foreground"
+                }
+                role={saved ? "status" : undefined}
+              >
+                {saved ? "Saved! Nice work." : "Nothing leaves your books."}
+              </p>
+              <Button
+                type="submit"
+                size="lg"
+                className="ml-auto"
+                loading={save.isPending}
+                disabled={save.isPending}
+              >
+                {save.isPending ? "Saving…" : "Save entry"}
+              </Button>
+            </PanelFooter>
+          </Panel>
+        </form>
+      ) : null}
+
+      {/* ------------------------------------------ 4. what changed lately */}
       {show("glance") ? (
-        <section className="border-t py-8">
-          <h2 className="text-xl">Today at a glance</h2>
-
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <div className="">
-              <p className="eyebrow flex items-center gap-1.5 text-success">
-                <ArrowUpCircle className="size-4" /> Money in
+        <section aria-labelledby="recent-entries-heading">
+          <div className="flex items-end justify-between gap-3 pb-3">
+            <div className="min-w-0">
+              <h2 id="recent-entries-heading" className="text-[15px] font-semibold leading-tight">
+                Recent entries
+              </h2>
+              <p className="mt-1 text-[13px] text-muted-foreground">
+                The last few things you logged, newest first.
               </p>
-              <p className="figure mt-2 text-4xl">{money(todayIn)}</p>
             </div>
-            <div className="">
-              <p className="eyebrow flex items-center gap-1.5 text-danger">
-                <ArrowDownCircle className="size-4" /> Money out
-              </p>
-              <p className="figure mt-2 text-4xl">{money(todayOut)}</p>
-            </div>
+            {!isLoading && entries.length > 0 ? (
+              <Badge tone="neutral" className="shrink-0">
+                <span className="num">{entries.length}</span> logged
+              </Badge>
+            ) : null}
           </div>
-
-          <div
-            className={`mt-3 rounded-2xl p-4 text-center ${
-              net > 0
-                ? "bg-success text-success-foreground"
-                : net < 0
-                  ? "bg-danger text-danger-foreground"
-                  : "bg-muted text-foreground"
-            }`}
-          >
-            <p className="text-sm font-semibold">
-              {net > 0
-                ? "You made money today"
-                : net < 0
-                  ? "You lost money today"
-                  : "Break even today"}
-            </p>
-            <p className="figure mt-2 text-5xl">{money(Math.abs(net))}</p>
-          </div>
-
-          <p className="mt-4 text-sm text-muted-foreground">
-            All time: {money(allIn)} in · {money(allOut)} out ·{" "}
-            <span className="font-semibold text-foreground">{money(allIn - allOut)} net</span>
-          </p>
 
           {isLoading ? (
-            <span className="skeleton mt-3 block h-4 w-40" />
+            <SkeletonRows rows={4} />
           ) : entries.length === 0 ? (
-            <p className="mt-3 text-sm text-muted-foreground">
-              No entries yet — add your first one above.
-            </p>
+            <EmptyState
+              title="Nothing logged yet"
+              blurb="Add what came in and what went out, and today's numbers fill in right here."
+              sample={<SampleRows rows={4} />}
+            />
           ) : (
-            <ul className="mt-4 divide-y">
+            <div className="divide-hairline">
               {entries.slice(0, 6).map((entry) => (
-                <li
+                <TxRow
                   key={entry.id}
-                  className="flex items-center justify-between gap-3 py-2.5 text-sm"
-                >
-                  <span className="flex min-w-0 items-center gap-2">
-                    {entry.receipt_path ? <ReceiptThumb path={entry.receipt_path} /> : null}
-                    <span className="min-w-0">
-                      <span className="font-semibold whitespace-nowrap">{entry.entry_date}</span>
-                      {entry.spent_on ? (
-                        <span className="ml-2 text-muted-foreground">{entry.spent_on}</span>
+                  date={entry.entry_date}
+                  title={entry.spent_on ?? (entry.amount_in > 0 ? "Money in" : "Uncategorised")}
+                  subtitle={
+                    [
+                      entry.merchant,
+                      entry.household_id ? (entry.is_split ? "split" : "shared") : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ") || undefined
+                  }
+                  amount={entry.amount_in > 0 ? entry.amount_in : -entry.amount_out}
+                  meta={entry.receipt_path ? <ReceiptThumb path={entry.receipt_path} /> : undefined}
+                  trailing={
+                    <span className={ROW_ACTIONS}>
+                      <ReceiptAttachButton entryId={entry.id} currentPath={entry.receipt_path} />
+                      {household?.household ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          className={entry.household_id ? "text-brand" : undefined}
+                          disabled={toggleShare.isPending}
+                          onClick={() =>
+                            toggleShare.mutate({
+                              entry_id: entry.id,
+                              mode: !entry.household_id
+                                ? "visible"
+                                : entry.is_split
+                                  ? "private"
+                                  : "split",
+                            })
+                          }
+                          aria-label="Change who can see this entry"
+                          title={
+                            !entry.household_id
+                              ? "Share with household"
+                              : entry.is_split
+                                ? "Make private again"
+                                : "Split this one evenly"
+                          }
+                        >
+                          <Users className="size-4" aria-hidden="true" />
+                        </Button>
                       ) : null}
-                      {entry.merchant ? (
-                        <span className="ml-2 text-muted-foreground">· {entry.merchant}</span>
-                      ) : null}
-                      {entry.household_id ? (
-                        <span className="ml-2 inline-flex items-center gap-0.5 text-xs text-primary">
-                          <Users className="size-3" /> {entry.is_split ? "split" : "shared"}
-                        </span>
-                      ) : null}
-                    </span>
-                  </span>
-                  <span className="flex shrink-0 items-center gap-1 tabular-nums">
-                    {entry.amount_in > 0 ? (
-                      <span className="text-success">+{money(entry.amount_in)}</span>
-                    ) : null}
-                    {entry.amount_out > 0 ? (
-                      <span className="text-danger">−{money(entry.amount_out)}</span>
-                    ) : null}
-                    <ReceiptAttachButton entryId={entry.id} currentPath={entry.receipt_path} />
-                    {household?.household ? (
                       <Button
                         type="button"
                         variant="ghost"
-                        size="sm"
-                        className={`h-8 px-2 ${
-                          entry.household_id ? "text-primary" : "text-muted-foreground"
-                        }`}
-                        disabled={toggleShare.isPending}
-                        onClick={() =>
-                          toggleShare.mutate({
-                            entry_id: entry.id,
-                            mode: !entry.household_id
-                              ? "visible"
-                              : entry.is_split
-                                ? "private"
-                                : "split",
-                          })
-                        }
-                        aria-label="Change who can see this entry"
-                        title={
-                          !entry.household_id
-                            ? "Share with household"
-                            : entry.is_split
-                              ? "Make private again"
-                              : "Split this one evenly"
-                        }
+                        size="icon-sm"
+                        className="hover:bg-danger-soft hover:text-danger"
+                        disabled={remove.isPending}
+                        onClick={() => {
+                          if (window.confirm("Delete this entry? This can't be undone.")) {
+                            remove.mutate(entry.id);
+                          }
+                        }}
+                        aria-label="Delete entry"
+                        title="Delete entry"
                       >
-                        <Users className="size-4" />
+                        <Trash2 className="size-4" aria-hidden="true" />
                       </Button>
-                    ) : null}
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 px-2 text-muted-foreground"
-                      disabled={remove.isPending}
-                      onClick={() => {
-                        if (window.confirm("Delete this entry? This can't be undone.")) {
-                          remove.mutate(entry.id);
-                        }
-                      }}
-                      aria-label="Delete entry"
-                    >
-                      <Trash2 className="size-4" />
-                    </Button>
-                  </span>
-                </li>
+                    </span>
+                  }
+                />
               ))}
-            </ul>
+            </div>
           )}
         </section>
       ) : null}
 
       {show("streaks") ? <StreaksCard /> : null}
       {show("ask") ? <AskSection /> : null}
+    </div>
+  );
+}
+
+/**
+ * The loudest thing on the page: today's net, with the two figures it's made
+ * of directly underneath so the number can be checked at a glance.
+ */
+function TodayPosition({
+  loading,
+  moneyIn,
+  moneyOut,
+  net,
+  allIn,
+  allOut,
+  count,
+}: {
+  loading: boolean;
+  moneyIn: number;
+  moneyOut: number;
+  net: number;
+  allIn: number;
+  allOut: number;
+  count: number;
+}) {
+  return (
+    <div className="panel w-full p-5 sm:w-auto sm:flex-[1.7_1_18rem]">
+      <Metric
+        label="Today's net"
+        emphasis="hero"
+        loading={loading}
+        value={<Money value={net} signed />}
+        hint={
+          count === 0
+            ? "Nothing logged today yet."
+            : net > 0
+              ? "You're ahead on the day."
+              : net < 0
+                ? "You're behind on the day."
+                : "Break even so far today."
+        }
+      />
+
+      <div className="mt-5 grid grid-cols-2 gap-4 border-t pt-4">
+        <Metric
+          label="Money in"
+          emphasis="compact"
+          loading={loading}
+          icon={<ArrowUpCircle className="size-3.5 text-success" aria-hidden="true" />}
+          value={<Money value={moneyIn} tone="positive" />}
+        />
+        <Metric
+          label="Money out"
+          emphasis="compact"
+          loading={loading}
+          icon={<ArrowDownCircle className="size-3.5 text-danger" aria-hidden="true" />}
+          value={<Money value={moneyOut} tone="negative" />}
+        />
+      </div>
+
+      {loading ? null : (
+        <p className="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1 text-[13px] text-muted-foreground">
+          <span className="eyebrow">All time</span>
+          <span className="inline-flex items-baseline gap-1">
+            <Money value={allIn} tone="positive" className="font-medium" /> in
+          </span>
+          <span className="inline-flex items-baseline gap-1">
+            <Money value={allOut} tone="negative" className="font-medium" /> out
+          </span>
+          <span className="inline-flex items-baseline gap-1">
+            <Money value={allIn - allOut} signed className="font-semibold" /> net
+          </span>
+        </p>
+      )}
     </div>
   );
 }
@@ -555,30 +663,47 @@ export function DueSoonBanner() {
   const total = soon.reduce((sum, bill) => sum + bill.amount, 0);
 
   return (
-    <section className="mb-8 border-l-2 border-danger pl-4">
-      <p className="flex items-center gap-2 text-sm font-bold text-danger">
-        <CalendarClock className="size-4" />
-        {soon.length === 1 ? "A bill is due soon" : `${soon.length} bills due soon`} ·{" "}
-        {money(total)}
-      </p>
-      <ul className="mt-2 space-y-1 text-sm">
-        {soon.slice(0, 4).map((bill, index) => (
-          <li key={index} className="flex justify-between gap-2">
-            <span>
-              {bill.category}{" "}
-              <span className="text-muted-foreground">
-                {bill.daysAway === 0
-                  ? "· today"
-                  : bill.daysAway === 1
-                    ? "· tomorrow"
-                    : `· in ${bill.daysAway} days`}
+    <Panel className="pop border-warning/40">
+      <PanelHeader
+        title={
+          <span className="flex items-center gap-2">
+            <CalendarClock className="size-4 shrink-0 text-warning" aria-hidden="true" />
+            {soon.length === 1 ? (
+              "A bill is due soon"
+            ) : (
+              <>
+                <span className="num">{soon.length}</span> bills due soon
+              </>
+            )}
+          </span>
+        }
+        description="Worth covering before it catches you out."
+        action={
+          <Badge tone="warning">
+            <Money value={total} />
+          </Badge>
+        }
+      />
+      <PanelBody>
+        <ul className="divide-hairline">
+          {soon.slice(0, 4).map((bill, index) => (
+            <li key={index} className="flex items-center justify-between gap-3 py-2 text-sm">
+              <span className="min-w-0 truncate">{bill.category}</span>
+              <span className="flex shrink-0 items-baseline gap-3">
+                <span className="num text-[12px] text-muted-foreground">
+                  {bill.daysAway === 0
+                    ? "today"
+                    : bill.daysAway === 1
+                      ? "tomorrow"
+                      : `in ${bill.daysAway} days`}
+                </span>
+                <Money value={bill.amount} className="text-sm font-medium" />
               </span>
-            </span>
-            <span className="tabular-nums">{money(bill.amount)}</span>
-          </li>
-        ))}
-      </ul>
-    </section>
+            </li>
+          ))}
+        </ul>
+      </PanelBody>
+    </Panel>
   );
 }
 
@@ -615,67 +740,86 @@ export function StreaksCard() {
   ].filter((tile) => tile.show);
 
   return (
-    <section className="border-t py-8">
-      <h2 className="flex items-center gap-2 text-xl">
-        <Flame className="size-4 text-primary" /> Your streaks
-      </h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        {s.loggingStreak >= 3
-          ? `Nice — ${s.loggingStreak} days in a row of keeping your books up to date.`
-          : "Log something every day and your streak starts building."}
-      </p>
+    <Panel>
+      <PanelHeader
+        title={
+          <span className="flex items-center gap-2">
+            <Flame className="size-4 shrink-0 text-brand" aria-hidden="true" /> Your streaks
+          </span>
+        }
+        description={
+          s.loggingStreak >= 3
+            ? `Nice — ${s.loggingStreak} days in a row of keeping your books up to date.`
+            : "Log something every day and your streak starts building."
+        }
+      />
+      <PanelBody>
+        <div className="grid gap-4 sm:grid-cols-3">
+          {tiles.map((tile) => (
+            <Metric
+              key={tile.label}
+              label={tile.label}
+              value={
+                <span className="num">
+                  {tile.value}{" "}
+                  <span className="text-sm font-normal text-muted-foreground">{tile.suffix}</span>
+                </span>
+              }
+              hint={
+                tile.best > tile.value ? (
+                  <>
+                    Best: <span className="num">{tile.best}</span>
+                  </>
+                ) : tile.value > 0 && tile.value === tile.best ? (
+                  <span className="text-success">Your best yet</span>
+                ) : undefined
+              }
+            />
+          ))}
+        </div>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-3">
-        {tiles.map((tile) => (
-          <div key={tile.label} className="">
-            <p className="eyebrow">{tile.label}</p>
-            <p className="figure mt-2 text-4xl">
-              {tile.value} <span className="text-sm font-normal">{tile.suffix}</span>
-            </p>
-            {tile.best > tile.value ? (
-              <p className="text-xs text-muted-foreground">Best: {tile.best}</p>
-            ) : tile.value > 0 && tile.value === tile.best ? (
-              <p className="text-xs text-success">Your best yet</p>
-            ) : null}
-          </div>
-        ))}
-      </div>
-
-      {s.activeDaysThisMonth > 0 ? (
-        <p className="mt-3 text-sm text-muted-foreground">
-          This month you came out ahead on{" "}
-          <span className="font-semibold text-foreground">
-            {s.profitableDaysThisMonth} of {s.activeDaysThisMonth}
-          </span>{" "}
-          days you logged.
-        </p>
-      ) : null}
-    </section>
+        {s.activeDaysThisMonth > 0 ? (
+          <p className="mt-5 border-t pt-4 text-[13px] text-muted-foreground">
+            This month you came out ahead on{" "}
+            <span className="num font-semibold text-foreground">
+              {s.profitableDaysThisMonth} of {s.activeDaysThisMonth}
+            </span>{" "}
+            days you logged.
+          </p>
+        ) : null}
+      </PanelBody>
+    </Panel>
   );
 }
 
 /** One number: what's safe to spend today without causing trouble later. */
 export function SafeToSpendCard() {
   const fetchInsights = useServerFn(getInsights);
-  const { data } = useQuery({ queryKey: ["insights"], queryFn: () => fetchInsights() });
+  const { data, isLoading } = useQuery({ queryKey: ["insights"], queryFn: () => fetchInsights() });
 
-  if (!data) return null;
-  const safe = data.safeToSpend;
+  if (!data && !isLoading) return null;
 
-  const none = safe.amount <= 0;
+  const safe = data?.safeToSpend;
+  const none = safe ? safe.amount <= 0 : false;
 
   return (
-    <section className="pb-8">
-      <p
-        className={`text-xs font-semibold uppercase tracking-wide ${
-          none ? "text-danger" : "text-primary-foreground/80"
-        }`}
-      >
-        Safe to spend today
-      </p>
-      <p className={`mt-1 text-4xl font-bold ${none ? "text-danger" : ""}`}>{money(safe.amount)}</p>
-      <p className="mt-3 max-w-md text-sm text-muted-foreground">{safe.explanation}</p>
-    </section>
+    <div
+      className={`panel w-full p-5 sm:w-auto sm:flex-[1_1_13rem] ${none ? "border-danger/40" : ""}`}
+    >
+      <Metric
+        label="Safe to spend today"
+        loading={!safe}
+        tone={none ? "negative" : "neutral"}
+        icon={<Wallet className="size-3.5" aria-hidden="true" />}
+        value={<Money value={safe?.amount ?? 0} />}
+        hint={safe ? <span className="num">{safe.explanation}</span> : undefined}
+      />
+      {none ? (
+        <p className="mt-3">
+          <Badge tone="negative">Nothing left for today</Badge>
+        </p>
+      ) : null}
+    </div>
   );
 }
 
@@ -690,6 +834,9 @@ type EntryRow = {
 /**
  * One box: type "spent 20 at costco on groceries" and it fills everything in.
  * Parsing happens locally, so it's instant and costs nothing.
+ *
+ * This is the most-used control in the app, so it gets the brand button and
+ * sits high enough to be usable on a phone without scrolling.
  */
 export function QuickAdd({ entries }: { entries: EntryRow[] }) {
   const { user } = useRouteContext({ from: "/_authenticated" });
@@ -742,77 +889,122 @@ export function QuickAdd({ entries }: { entries: EntryRow[] }) {
     onError: (err: Error) => setError(err.message),
   });
 
+  const detail =
+    [
+      parsed.category ?? "No category",
+      parsed.merchant ? `at ${parsed.merchant}` : null,
+      parsed.date !== todayISO() ? `on ${parsed.date}` : null,
+    ]
+      .filter(Boolean)
+      .join(" · ") || "No category";
+
   return (
-    <section className="py-8">
-      <h2 className="flex items-center gap-2 text-xl">
-        <Zap className="size-4 text-primary" /> Quick add
-      </h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Just type it — &ldquo;spent 20 at costco on groceries&rdquo; or &ldquo;made 300&rdquo;.
-        {speech.supported ? " Or tap the mic and say it." : ""}
-      </p>
+    <Panel className="border-brand-border">
+      <PanelHeader
+        title={
+          <span className="flex items-center gap-2">
+            <Zap className="size-4 shrink-0 text-brand" aria-hidden="true" /> Quick add
+          </span>
+        }
+        description={`Just type it — “spent 20 at costco on groceries” or “made 300”.${
+          speech.supported ? " Or tap the mic and say it." : ""
+        }`}
+      />
 
-      <form
-        className="mt-3 flex gap-2"
-        onSubmit={(event) => {
-          event.preventDefault();
-          setError(null);
-          if (parsed.ok && !save.isPending) save.mutate();
-        }}
-      >
-        <Input
-          value={speech.listening && speech.interim ? speech.interim : text}
-          onChange={(event) => {
-            setText(event.target.value);
+      <PanelBody>
+        <form
+          className="space-y-3"
+          onSubmit={(event) => {
+            event.preventDefault();
             setError(null);
+            if (parsed.ok && !save.isPending) save.mutate();
           }}
-          placeholder={speech.listening ? "Listening…" : "spent 20 on supplies"}
-          aria-label="Quick add entry"
-        />
-        {speech.supported ? (
+        >
+          <div className="flex gap-2">
+            <Input
+              value={speech.listening && speech.interim ? speech.interim : text}
+              onChange={(event) => {
+                setText(event.target.value);
+                setError(null);
+              }}
+              placeholder={speech.listening ? "Listening…" : "spent 20 on supplies"}
+              aria-label="Quick add entry"
+              className="h-12 min-w-0 flex-1 rounded-[var(--radius-12)] text-base md:h-12 md:text-base"
+            />
+            {speech.supported ? (
+              <Button
+                type="button"
+                variant={speech.listening ? "secondary" : "outline"}
+                size="icon"
+                className="size-12 shrink-0 rounded-[var(--radius-12)]"
+                onClick={speech.toggle}
+                aria-label={speech.listening ? "Stop listening" : "Add by voice"}
+                aria-pressed={speech.listening}
+                title={speech.listening ? "Stop listening" : "Add by voice"}
+              >
+                {speech.listening ? (
+                  <MicOff className="size-4" aria-hidden="true" />
+                ) : (
+                  <Mic className="size-4" aria-hidden="true" />
+                )}
+              </Button>
+            ) : null}
+          </div>
+
+          {text.trim() ? (
+            parsed.ok ? (
+              <div className="pop flex items-center gap-3 rounded-[var(--radius-12)] border border-brand-border bg-brand-soft px-3 py-2.5">
+                <Sparkles className="size-4 shrink-0 text-brand" aria-hidden="true" />
+                <span className="min-w-0 flex-1">
+                  <span className="eyebrow">Reading that as</span>
+                  <span className="mt-0.5 block truncate text-[13px] font-medium text-foreground">
+                    {detail}
+                  </span>
+                </span>
+                <Money
+                  value={parsed.amountIn > 0 ? parsed.amountIn : -parsed.amountOut}
+                  signed
+                  className="shrink-0 text-[15px] font-semibold"
+                />
+              </div>
+            ) : (
+              <p className="rounded-[var(--radius-12)] bg-surface-2 px-3 py-2.5 text-[13px] text-muted-foreground">
+                {parsed.summary}
+              </p>
+            )
+          ) : null}
+
           <Button
-            type="button"
-            variant={speech.listening ? "default" : "outline"}
-            size="icon"
-            className="size-10 shrink-0"
-            onClick={speech.toggle}
-            aria-label={speech.listening ? "Stop listening" : "Add by voice"}
-            title={speech.listening ? "Stop listening" : "Add by voice"}
+            type="submit"
+            variant="brand"
+            size="lg"
+            className="h-12 w-full rounded-[var(--radius-12)]"
+            disabled={!parsed.ok || save.isPending}
+            loading={save.isPending}
           >
-            {speech.listening ? <MicOff className="size-4" /> : <Mic className="size-4" />}
+            {save.isPending ? "Saving…" : "Add it"}
           </Button>
+        </form>
+
+        {speech.listening || speech.error || saved || error ? (
+          <div className="mt-3 space-y-2">
+            {speech.listening ? (
+              <p className="flex items-center gap-2 text-[13px] text-muted-foreground">
+                <span aria-hidden="true" className="size-2 animate-pulse rounded-full bg-danger" />
+                Listening — say something like “spent twenty dollars on lunch”.
+              </p>
+            ) : null}
+            {speech.error ? <Alert tone="negative">{speech.error}</Alert> : null}
+            {saved ? (
+              <Alert tone="positive" title="Saved">
+                {saved}
+              </Alert>
+            ) : null}
+            {error ? <Alert tone="negative">{error}</Alert> : null}
+          </div>
         ) : null}
-        <Button type="submit" disabled={!parsed.ok || save.isPending} className="shrink-0">
-          {save.isPending ? "Saving…" : "Add"}
-        </Button>
-      </form>
-
-      {text.trim() ? (
-        <p className={`mt-2 text-sm ${parsed.ok ? "text-foreground" : "text-muted-foreground"}`}>
-          {parsed.ok ? (
-            <>
-              <span className="text-muted-foreground">Reading that as:</span>{" "}
-              <span className="font-semibold">{parsed.summary}</span>
-              {!parsed.category ? (
-                <span className="text-muted-foreground"> · no category</span>
-              ) : null}
-            </>
-          ) : (
-            parsed.summary
-          )}
-        </p>
-      ) : null}
-
-      {speech.listening ? (
-        <p className="mt-2 flex items-center gap-1.5 text-sm text-muted-foreground">
-          <span className="size-2 animate-pulse rounded-full bg-danger" /> Listening — say something
-          like &ldquo;spent twenty dollars on lunch&rdquo;.
-        </p>
-      ) : null}
-      {speech.error ? <p className="mt-2 text-sm text-danger">{speech.error}</p> : null}
-      {saved ? <p className="mt-2 text-sm text-success">Saved: {saved}</p> : null}
-      {error ? <p className="mt-2 text-sm text-danger">{error}</p> : null}
-    </section>
+      </PanelBody>
+    </Panel>
   );
 }
 
@@ -859,13 +1051,13 @@ export function AskSection() {
   };
 
   return (
-    <section className="border-t py-8">
-      <h2 className="text-xl">Ask about your money</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Ask about your numbers in plain English — no accounting talk.
-      </p>
+    <Panel>
+      <PanelHeader
+        title="Ask about your money"
+        description="Ask about your numbers in plain English — no accounting talk."
+      />
 
-      <div className="mt-4 space-y-3">
+      <PanelBody className="space-y-3">
         {messages.length === 0 ? (
           <div className="flex flex-wrap gap-2">
             {SUGGESTIONS.map((suggestion) => (
@@ -873,7 +1065,12 @@ export function AskSection() {
                 key={suggestion}
                 type="button"
                 onClick={() => send(suggestion)}
-                className="rounded-full border bg-secondary px-3 py-1.5 text-sm text-secondary-foreground transition-colors hover:bg-accent"
+                className={[
+                  "inline-flex min-h-10 items-center rounded-full border border-border bg-surface-2 px-3.5 text-[13px]",
+                  "cursor-pointer text-foreground",
+                  "transition-colors duration-[var(--dur-fast)] ease-[var(--ease)]",
+                  "hover:border-border-strong hover:bg-accent",
+                ].join(" ")}
               >
                 {suggestion}
               </button>
@@ -888,7 +1085,7 @@ export function AskSection() {
               <p
                 className={
                   message.role === "user"
-                    ? "max-w-[85%] rounded-2xl bg-primary px-4 py-2 text-sm text-primary-foreground"
+                    ? "max-w-[85%] rounded-[var(--radius-14)] bg-brand px-4 py-2 text-sm text-brand-foreground"
                     : "max-w-[90%] text-sm leading-relaxed whitespace-pre-line"
                 }
               >
@@ -898,29 +1095,33 @@ export function AskSection() {
           ))
         )}
         {chat.isPending ? (
-          <p className="animate-pulse text-sm text-muted-foreground">Looking at your books…</p>
+          <p className="animate-pulse text-[13px] text-muted-foreground">Looking at your books…</p>
         ) : null}
-      </div>
+      </PanelBody>
 
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          send(question);
-        }}
-        className="mt-4 flex gap-2"
-      >
-        <Input
-          ref={inputRef}
-          value={question}
-          onChange={(event) => setQuestion(event.target.value)}
-          placeholder="Ask a question…"
-          autoFocus
-        />
-        <Button type="submit" size="icon" className="size-10 shrink-0" disabled={chat.isPending}>
-          <Send className="size-4" />
-          <span className="sr-only">Send</span>
-        </Button>
-      </form>
-    </section>
+      <PanelFooter>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            send(question);
+          }}
+          className="flex w-full gap-2"
+        >
+          <Input
+            ref={inputRef}
+            value={question}
+            onChange={(event) => setQuestion(event.target.value)}
+            placeholder="Ask a question…"
+            aria-label="Ask a question about your money"
+            className="min-w-0 flex-1"
+            autoFocus
+          />
+          <Button type="submit" size="icon" className="shrink-0" disabled={chat.isPending}>
+            <Send className="size-4" aria-hidden="true" />
+            <span className="sr-only">Send</span>
+          </Button>
+        </form>
+      </PanelFooter>
+    </Panel>
   );
 }

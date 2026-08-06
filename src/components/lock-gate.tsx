@@ -6,6 +6,7 @@ import { Lock, NotebookPen } from "lucide-react";
 import { getSettings, unlockApp } from "@/lib/shop.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Alert, Field, Panel, PanelBody, PanelHeader } from "@/components/ui/kit";
 
 const UNLOCKED_KEY = "simplebooks.unlockedAt";
 
@@ -112,8 +113,12 @@ export function LockGate({ children }: { children: React.ReactNode }) {
 
   if (isLoading || locked === null) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-sm text-muted-foreground">Loading…</p>
+      <div
+        className="flex min-h-screen flex-col items-center justify-center gap-3 px-4"
+        aria-busy="true"
+      >
+        <span className="skeleton size-11 rounded-[var(--radius-14)]" aria-hidden="true" />
+        <p className="text-sm text-muted-foreground">Getting your books ready…</p>
       </div>
     );
   }
@@ -124,72 +129,88 @@ export function LockGate({ children }: { children: React.ReactNode }) {
   const throttled = attempts >= 5;
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-sm flex-col justify-center px-4">
-      <div className="mb-6 flex items-center gap-3">
-        <span className="flex size-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
-          <NotebookPen className="size-5" />
-        </span>
-        <div>
-          <h1 className="text-2xl font-bold">SimpleBooks AI</h1>
-          <p className="text-sm text-muted-foreground">Locked</p>
+    <main className="mx-auto flex min-h-screen w-full max-w-sm flex-col justify-center px-4 py-10">
+      <div className="rise">
+        {/* who you are, and why you're looking at this screen */}
+        <div className="mb-6 flex items-center gap-3">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-[var(--radius-14)] bg-brand text-brand-foreground shadow-[var(--shadow-sm)]">
+            <NotebookPen className="size-5" aria-hidden="true" />
+          </span>
+          <div className="min-w-0">
+            <p className="eyebrow">SimpleBooks AI</p>
+            <h1 className="mt-0.5 truncate text-[22px] leading-tight">Locked</h1>
+          </div>
         </div>
-      </div>
 
-      <section className="py-8">
-        <h2 className="flex items-center gap-2 text-xl">
-          <Lock className="size-4" /> Enter your PIN
-        </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Your books are hidden until you unlock them on this device.
-        </p>
-
-        <form
-          className="mt-4 space-y-3"
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (!pin || unlock.isPending || throttled) return;
-            unlock.mutate(pin);
-          }}
-        >
-          <Input
-            ref={inputRef}
-            type="password"
-            inputMode="numeric"
-            autoComplete="off"
-            pattern="\d*"
-            maxLength={8}
-            placeholder="••••"
-            value={pin}
-            onChange={(event) => {
-              setPin(event.target.value.replace(/\D/g, ""));
-              setError(null);
-            }}
-            className="text-center text-2xl tracking-widest"
-            aria-label="PIN"
+        <Panel className="shadow-[var(--shadow-md)]">
+          <PanelHeader
+            title={
+              <span className="flex items-center gap-2">
+                <Lock className="size-4 text-brand" aria-hidden="true" />
+                Enter your PIN
+              </span>
+            }
+            description="Your books stay hidden until you unlock them on this device."
           />
 
-          {error ? <p className="text-sm text-danger">{error}</p> : null}
-          {throttled ? (
-            <p className="text-sm text-danger">
-              Too many tries. Sign out and back in if you&apos;ve forgotten it.
-            </p>
-          ) : null}
-
-          <Button
-            type="submit"
-            size="lg"
-            className="w-full"
-            disabled={pin.length < 4 || unlock.isPending || throttled}
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (!pin || unlock.isPending || throttled) return;
+              unlock.mutate(pin);
+            }}
           >
-            {unlock.isPending ? "Checking…" : "Unlock"}
-          </Button>
-        </form>
+            <PanelBody className="space-y-4">
+              <Field
+                id="unlock-pin"
+                label="PIN"
+                hint="4 to 8 numbers."
+                error={error}
+                className="space-y-2"
+              >
+                <Input
+                  ref={inputRef}
+                  type="password"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  pattern="\d*"
+                  maxLength={8}
+                  placeholder="••••"
+                  value={pin}
+                  invalid={Boolean(error)}
+                  onChange={(event) => {
+                    setPin(event.target.value.replace(/\D/g, ""));
+                    setError(null);
+                  }}
+                  className="num h-14 text-center text-2xl tracking-[0.45em] md:h-14 md:text-2xl"
+                />
+              </Field>
 
-        <p className="mt-4 text-xs text-muted-foreground">
+              {throttled ? (
+                <Alert tone="negative" title="Too many tries">
+                  Sign out and back in if you&apos;ve forgotten your PIN.
+                </Alert>
+              ) : null}
+
+              <Button
+                type="submit"
+                variant="brand"
+                size="lg"
+                className="h-12 w-full text-base"
+                loading={unlock.isPending}
+                disabled={pin.length < 4 || unlock.isPending || throttled}
+              >
+                {unlock.isPending ? "Checking…" : "Unlock"}
+              </Button>
+            </PanelBody>
+          </form>
+        </Panel>
+
+        <p className="mt-4 px-1 text-[12px] leading-relaxed text-muted-foreground">
           Forgotten it? Sign out and sign back in with your email and password, then set a new PIN
           under Tools.
         </p>
-      </section>
+      </div>
     </main>
   );
 }

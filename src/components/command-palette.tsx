@@ -234,10 +234,10 @@ export function CommandPalette() {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-start justify-center p-4 pt-[12vh]">
+    <div className="fixed inset-0 z-[100] flex items-start justify-center p-3 pt-[10vh] sm:p-4 sm:pt-[12vh]">
       <button
         type="button"
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/55 backdrop-blur-sm"
         onClick={close}
         aria-label="Close command palette"
       />
@@ -246,10 +246,10 @@ export function CommandPalette() {
         role="dialog"
         aria-modal="true"
         aria-label="Command palette"
-        className="relative w-full max-w-xl overflow-hidden rounded-2xl border bg-popover shadow-2xl"
+        className="floating pop relative w-full max-w-xl overflow-hidden"
       >
-        <div className="flex items-center gap-3 border-b px-4">
-          <Search className="size-4 shrink-0 text-muted-foreground" />
+        <div className="flex items-center gap-3 border-b border-border px-4">
+          <Search className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
           <input
             ref={inputRef}
             value={query}
@@ -267,19 +267,26 @@ export function CommandPalette() {
               }
             }}
             placeholder="Go anywhere, or type an entry like “spent 20 on supplies”"
-            className="h-14 w-full bg-transparent text-[15px] outline-none placeholder:text-muted-foreground"
+            className="h-14 w-full min-w-0 bg-transparent text-base outline-none placeholder:text-muted-foreground sm:text-[15px]"
             aria-label="Search or log an entry"
           />
-          <kbd className="hidden shrink-0 rounded border px-1.5 py-0.5 text-[10px] text-muted-foreground sm:block">
+          <kbd className="num hidden shrink-0 rounded-[var(--radius-8)] border border-border-strong bg-surface-2 px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground sm:block">
             ESC
           </kbd>
         </div>
 
-        <div className="max-h-[52vh] overflow-y-auto p-1.5">
-          {note ? <p className="px-3 py-2 text-sm text-success">{note}</p> : null}
+        <div className="max-h-[52vh] overflow-y-auto overscroll-contain p-1.5">
+          {note ? (
+            <p
+              role="status"
+              className="mx-1.5 my-1 rounded-[var(--radius-10)] bg-success-soft px-3 py-2 text-[13px] font-medium text-success"
+            >
+              {note}
+            </p>
+          ) : null}
 
           {actions.length === 0 ? (
-            <p className="px-3 py-6 text-center text-sm text-muted-foreground">
+            <p className="px-3 py-8 text-center text-sm text-muted-foreground">
               Nothing matches that.
             </p>
           ) : null}
@@ -293,21 +300,30 @@ export function CommandPalette() {
                   type="button"
                   onMouseEnter={() => setCursor(index)}
                   onClick={() => run(action)}
-                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${
-                    selected ? "bg-accent" : ""
+                  aria-selected={selected}
+                  className={`flex min-h-[44px] w-full items-center gap-3 rounded-[var(--radius-10)] px-3 py-2.5 text-left transition-colors duration-[var(--dur-fast)] ease-[var(--ease)] ${
+                    selected ? "bg-accent" : "hover:bg-accent/60"
                   }`}
                 >
-                  <Plus className="size-4 shrink-0 text-muted-foreground" />
+                  <span
+                    aria-hidden="true"
+                    className="flex size-7 shrink-0 items-center justify-center rounded-full border border-brand-border bg-brand-soft text-brand"
+                  >
+                    <Plus className="size-3.5" />
+                  </span>
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-medium">
                       {save.isPending ? "Logging…" : "Log this entry"}
                     </span>
-                    <span className="block truncate text-xs text-muted-foreground">
+                    <span className="block truncate text-[12px] text-muted-foreground">
                       {parsed.summary}
                     </span>
                   </span>
                   {selected ? (
-                    <CornerDownLeft className="size-3.5 shrink-0 text-muted-foreground" />
+                    <CornerDownLeft
+                      className="size-3.5 shrink-0 text-muted-foreground"
+                      aria-hidden="true"
+                    />
                   ) : null}
                 </button>
               );
@@ -318,24 +334,28 @@ export function CommandPalette() {
                 type="button"
                 onMouseEnter={() => setCursor(index)}
                 onClick={() => run(action)}
-                className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${
-                  selected ? "bg-accent" : ""
+                aria-selected={selected}
+                className={`flex min-h-[44px] w-full items-center gap-3 rounded-[var(--radius-10)] px-3 py-2.5 text-left transition-colors duration-[var(--dur-fast)] ease-[var(--ease)] ${
+                  selected ? "bg-accent" : "hover:bg-accent/60"
                 }`}
               >
-                <span className="min-w-0 flex-1 text-sm">{action.label}</span>
-                <span className="shrink-0 text-xs text-muted-foreground">{action.group}</span>
+                <span className="min-w-0 flex-1 truncate text-sm">{action.label}</span>
+                <span className="shrink-0 text-[11px] text-muted-foreground">{action.group}</span>
                 {selected ? (
-                  <CornerDownLeft className="size-3.5 shrink-0 text-muted-foreground" />
+                  <CornerDownLeft
+                    className="size-3.5 shrink-0 text-muted-foreground"
+                    aria-hidden="true"
+                  />
                 ) : null}
               </button>
             );
           })}
         </div>
 
-        <div className="flex items-center gap-4 border-t px-4 py-2.5 text-[11px] text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border bg-surface-2/50 px-4 py-2.5 text-[11px] text-muted-foreground">
           <span>↑↓ to move</span>
           <span>↵ to pick</span>
-          <span className="ml-auto">Type an amount to log it straight away</span>
+          <span className="ml-auto hidden sm:inline">Type an amount to log it straight away</span>
         </div>
       </div>
     </div>

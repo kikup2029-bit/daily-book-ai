@@ -7,11 +7,24 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Lock, Users, X } from "lucide-react";
+import { Check, Copy, Lock, Users, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import {
+  Alert,
+  Badge,
+  Field,
+  Metric,
+  Money,
+  PageHeader,
+  Panel,
+  PanelBody,
+  PanelFooter,
+  PanelHeader,
+  Select,
+  SkeletonRows,
+} from "@/components/ui/kit";
 import { getEntries } from "@/lib/books.functions";
 import {
   getCashCounts,
@@ -36,13 +49,27 @@ import {
   startHousehold,
 } from "@/lib/household.functions";
 
-const money = (value: number) =>
-  `$${Math.abs(value).toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-
 const todayISO = () => new Date().toLocaleDateString("en-CA");
+
+/** Every page in this file sits in the same column so they feel like one app. */
+const page = "rise mx-auto w-full max-w-3xl";
+
+/** A small icon-only "remove this row" control. */
+function RemoveButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon-sm"
+      aria-label={label}
+      title={label}
+      onClick={onClick}
+      className="shrink-0 hover:text-danger"
+    >
+      <X className="size-4" aria-hidden="true" />
+    </Button>
+  );
+}
 
 // =========================================================================
 // Household sharing
@@ -121,75 +148,114 @@ export function HouseholdSection() {
   // --- not in a household yet ---
   if (!state?.household) {
     return (
-      <section className="py-8">
-        <h2 className="flex items-center gap-2 text-xl">
-          <Users className="size-4 text-primary" /> Share with someone
-        </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Share chosen entries with a partner or housemate and split costs fairly. Anything you
-          don&apos;t share stays private to you.
-        </p>
+      <div className={page}>
+        <PageHeader
+          eyebrow="Tools"
+          title="Share with someone"
+          description="Share the entries you choose with a partner or housemate, and split costs fairly. Anything you don't share stays private to you."
+        />
 
-        <div className="mt-4 space-y-2">
-          <Label htmlFor="your-name">Your name (so they know who&apos;s who)</Label>
-          <Input
-            id="your-name"
-            placeholder="Alex"
-            value={yourName}
-            onChange={(event) => setYourName(event.target.value)}
+        {error ? (
+          <div className="mb-4">
+            <Alert tone="negative" title="That didn't work">
+              {error}
+            </Alert>
+          </div>
+        ) : null}
+
+        <Panel>
+          <PanelHeader
+            title={
+              <span className="flex items-center gap-2">
+                <Users className="size-4 text-brand" aria-hidden="true" />
+                Start here
+              </span>
+            }
+            description="Tell the other person who they're sharing with."
           />
+          <PanelBody>
+            <Field
+              id="your-name"
+              label="Your name"
+              hint="Shown next to anything you share, so everyone knows who's who."
+            >
+              <Input
+                placeholder="Alex"
+                value={yourName}
+                onChange={(event) => setYourName(event.target.value)}
+              />
+            </Field>
+          </PanelBody>
+        </Panel>
+
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Panel>
+            <PanelHeader title="Start a new one" description="You'll get a code to pass on." />
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (name.trim()) createMutation.mutate();
+              }}
+            >
+              <PanelBody>
+                <Field id="household-name" label="Name it">
+                  <Input
+                    placeholder="Our place"
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                  />
+                </Field>
+              </PanelBody>
+              <PanelFooter>
+                <Button
+                  type="submit"
+                  variant="brand"
+                  className="w-full"
+                  loading={createMutation.isPending}
+                  disabled={createMutation.isPending}
+                >
+                  {createMutation.isPending ? "Creating…" : "Create household"}
+                </Button>
+              </PanelFooter>
+            </form>
+          </Panel>
+
+          <Panel>
+            <PanelHeader
+              title="Or join with a code"
+              description="Ask them for the code under Tools."
+            />
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (code.trim()) joinMutation.mutate();
+              }}
+            >
+              <PanelBody>
+                <Field id="join-code" label="Invite code">
+                  <Input
+                    placeholder="ABC123"
+                    value={code}
+                    onChange={(event) => setCode(event.target.value.toUpperCase())}
+                    className="num uppercase tracking-[0.18em]"
+                  />
+                </Field>
+              </PanelBody>
+              <PanelFooter>
+                <Button
+                  type="submit"
+                  variant="outline"
+                  className="w-full"
+                  loading={joinMutation.isPending}
+                  disabled={joinMutation.isPending}
+                >
+                  {joinMutation.isPending ? "Joining…" : "Join household"}
+                </Button>
+              </PanelFooter>
+            </form>
+          </Panel>
         </div>
-
-        <form
-          className="mt-4 space-y-3 border-t pt-4"
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (name.trim()) createMutation.mutate();
-          }}
-        >
-          <div className="space-y-2">
-            <Label htmlFor="household-name">Start a new one</Label>
-            <Input
-              id="household-name"
-              placeholder="Our place"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-            />
-          </div>
-          <Button type="submit" className="w-full" disabled={createMutation.isPending}>
-            {createMutation.isPending ? "Creating…" : "Create household"}
-          </Button>
-        </form>
-
-        <form
-          className="mt-4 space-y-3 border-t pt-4"
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (code.trim()) joinMutation.mutate();
-          }}
-        >
-          <div className="space-y-2">
-            <Label htmlFor="join-code">Or join with a code</Label>
-            <Input
-              id="join-code"
-              placeholder="ABC123"
-              value={code}
-              onChange={(event) => setCode(event.target.value.toUpperCase())}
-              className="uppercase"
-            />
-          </div>
-          <Button
-            type="submit"
-            variant="outline"
-            className="w-full"
-            disabled={joinMutation.isPending}
-          >
-            {joinMutation.isPending ? "Joining…" : "Join household"}
-          </Button>
-        </form>
-
-        {error ? <p className="mt-3 text-sm text-danger">{error}</p> : null}
-      </section>
+      </div>
     );
   }
 
@@ -199,161 +265,246 @@ export function HouseholdSection() {
   const me = state.members.find((m) => m.role === "owner" && state.isOwner);
 
   return (
-    <section className="py-8">
-      <h2 className="flex items-center gap-2 text-xl">
-        <Users className="size-4 text-primary" /> {state.household.name}
-      </h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        {state.members.length === 1
-          ? "Just you so far — share the code below to add someone."
-          : `${state.members.length} people sharing.`}
-      </p>
+    <div className={page}>
+      <PageHeader
+        eyebrow="Household"
+        title={state.household.name}
+        description={
+          state.members.length === 1 ? (
+            "Just you so far — share the code below to add someone."
+          ) : (
+            <>
+              <span className="num">{state.members.length}</span> people sharing.
+            </>
+          )
+        }
+      />
 
-      {/* join code */}
-      <div className="mt-4 rounded-2xl bg-muted p-3">
-        <p className="eyebrow">Invite code</p>
-        <div className="mt-1 flex items-center gap-2">
-          <p className="font-mono text-2xl font-bold tracking-widest">
-            {state.household.join_code}
-          </p>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              navigator.clipboard?.writeText(state.household!.join_code);
-              setCopied(true);
-              setTimeout(() => setCopied(false), 2000);
-            }}
-          >
-            {copied ? "Copied" : "Copy"}
-          </Button>
+      {error ? (
+        <div className="mb-4">
+          <Alert tone="negative" title="That didn't work">
+            {error}
+          </Alert>
         </div>
-        <p className="mt-1 text-xs text-muted-foreground">
-          They sign up, then enter this code under Tools.
-        </p>
-      </div>
+      ) : null}
 
-      {/* members */}
-      <ul className="mt-4 divide-y">
-        {state.members.map((member) => (
-          <li key={member.user_id} className="flex items-center justify-between gap-2 py-2 text-sm">
-            <span>
-              {member.display_name?.trim() || `Member ${member.user_id.slice(0, 4)}`}
-              {member.role === "owner" ? (
-                <span className="ml-2 text-xs text-muted-foreground">owner</span>
-              ) : null}
-            </span>
-          </li>
-        ))}
-      </ul>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {/* join code */}
+        <Panel>
+          <PanelHeader
+            title="Invite code"
+            description="They sign up, then enter this under Tools."
+          />
+          <PanelBody>
+            <div className="flex flex-wrap items-center gap-3">
+              <p className="num figure text-[28px] tracking-[0.18em]">
+                {state.household.join_code}
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  navigator.clipboard?.writeText(state.household!.join_code);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }}
+              >
+                {copied ? (
+                  <Check className="size-4 text-success" aria-hidden="true" />
+                ) : (
+                  <Copy className="size-4" aria-hidden="true" />
+                )}
+                {copied ? "Copied" : "Copy"}
+              </Button>
+            </div>
+          </PanelBody>
+        </Panel>
+
+        {/* members */}
+        <Panel>
+          <PanelHeader
+            title={
+              <span className="flex items-center gap-2">
+                <Users className="size-4 text-brand" aria-hidden="true" />
+                Who&apos;s in
+              </span>
+            }
+          />
+          <PanelBody>
+            <ul className="divide-hairline">
+              {state.members.map((member) => (
+                <li
+                  key={member.user_id}
+                  className="flex items-center justify-between gap-2 py-2.5 text-sm"
+                >
+                  <span className="min-w-0 truncate">
+                    {member.display_name?.trim() || `Member ${member.user_id.slice(0, 4)}`}
+                  </span>
+                  {member.role === "owner" ? <Badge tone="brand">owner</Badge> : null}
+                </li>
+              ))}
+            </ul>
+          </PanelBody>
+        </Panel>
+      </div>
 
       {/* your display name */}
-      <div className="mt-4 space-y-2 border-t pt-4">
-        <Label htmlFor="rename">Your name in this household</Label>
-        <div className="flex gap-2">
-          <Input
-            id="rename"
-            placeholder={me?.display_name ?? "Your name"}
-            value={yourName}
-            onChange={(event) => setYourName(event.target.value)}
-          />
+      <Panel className="mt-4">
+        <PanelHeader title="Your name in this household" />
+        <PanelBody>
+          <Field id="rename" label="Shown next to what you share">
+            <Input
+              placeholder={me?.display_name ?? "Your name"}
+              value={yourName}
+              onChange={(event) => setYourName(event.target.value)}
+            />
+          </Field>
+        </PanelBody>
+        <PanelFooter>
           <Button
             type="button"
             variant="outline"
-            className="shrink-0"
+            loading={renameMutation.isPending}
             disabled={renameMutation.isPending || !yourName.trim()}
             onClick={() => renameMutation.mutate(yourName.trim())}
+            className="w-full sm:w-auto"
           >
-            Save
+            Save name
           </Button>
-        </div>
-      </div>
+        </PanelFooter>
+      </Panel>
 
       {/* what everyone has logged (shared, whether split or not) */}
       {combined && combined.sharedCount > 0 ? (
-        <div className="mt-5 border-t pt-4">
-          <p className="eyebrow">What everyone has shared</p>
-          <ul className="mt-2 space-y-1.5 text-sm">
-            {combined.byMember.map((member) => (
-              <li key={member.user_id} className="flex justify-between gap-2">
-                <span>{member.name}</span>
-                <span className="tabular-nums text-muted-foreground">
-                  {member.moneyIn > 0 ? `${money(member.moneyIn)} in · ` : ""}
-                  {money(member.moneyOut)} out
-                </span>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-2 text-xs text-muted-foreground">
-            {combined.sharedCount} shared {combined.sharedCount === 1 ? "entry" : "entries"}
-            {combined.splitCount > 0
-              ? `, ${combined.splitCount} marked to split`
-              : ", none marked to split"}
-            .
-          </p>
-        </div>
+        <Panel className="mt-4">
+          <PanelHeader
+            title="What everyone has shared"
+            description={
+              <>
+                <span className="num">{combined.sharedCount}</span> shared{" "}
+                {combined.sharedCount === 1 ? "entry" : "entries"}
+                {combined.splitCount > 0 ? (
+                  <>
+                    , <span className="num">{combined.splitCount}</span> marked to split
+                  </>
+                ) : (
+                  ", none marked to split"
+                )}
+                .
+              </>
+            }
+          />
+          <PanelBody>
+            <ul className="divide-hairline">
+              {combined.byMember.map((member) => (
+                <li
+                  key={member.user_id}
+                  className="flex items-center justify-between gap-3 py-2.5 text-sm"
+                >
+                  <span className="min-w-0 truncate">{member.name}</span>
+                  <span className="shrink-0 text-right">
+                    {member.moneyIn > 0 ? (
+                      <>
+                        <Money value={member.moneyIn} tone="positive" />
+                        <span className="text-muted-foreground"> in · </span>
+                      </>
+                    ) : null}
+                    <Money value={member.moneyOut} tone="negative" />
+                    <span className="text-muted-foreground"> out</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </PanelBody>
+        </Panel>
       ) : null}
 
       {/* settlement — only entries marked "split it" */}
       {settlement && settlement.totalShared > 0 ? (
-        <div className="mt-5 border-t pt-4">
-          <p className="eyebrow">Bills you're splitting</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {money(settlement.totalShared)} marked to split — {money(settlement.perPerson)} each.
-          </p>
+        <Panel className="mt-4">
+          <PanelHeader title="Bills you're splitting" description="Only entries marked to split." />
+          <PanelBody>
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+              <Metric
+                label="Each person's share"
+                value={<Money value={settlement.perPerson} />}
+                emphasis="hero"
+              />
+              <Metric
+                label="Total to split"
+                value={<Money value={settlement.totalShared} />}
+                emphasis="compact"
+              />
+            </div>
 
-          <ul className="mt-3 space-y-1.5 text-sm">
-            {settlement.balances.map((balance) => (
-              <li key={balance.user_id} className="flex justify-between gap-2">
-                <span>{balance.name}</span>
-                <span className="tabular-nums">
-                  paid {money(balance.paid)}
-                  {Math.abs(balance.balance) < 0.005 ? (
-                    <span className="ml-2 text-success">square</span>
-                  ) : balance.balance > 0 ? (
-                    <span className="ml-2 text-success">owed {money(balance.balance)}</span>
-                  ) : (
-                    <span className="ml-2 text-danger">owes {money(balance.balance)}</span>
-                  )}
-                </span>
-              </li>
-            ))}
-          </ul>
+            <ul className="divide-hairline mt-5">
+              {settlement.balances.map((balance) => (
+                <li
+                  key={balance.user_id}
+                  className="flex flex-wrap items-center justify-between gap-2 py-2.5 text-sm"
+                >
+                  <span className="min-w-0 truncate">{balance.name}</span>
+                  <span className="flex shrink-0 items-center gap-2">
+                    <span className="text-muted-foreground">
+                      paid <Money value={balance.paid} />
+                    </span>
+                    {Math.abs(balance.balance) < 0.005 ? (
+                      <Badge tone="positive">square</Badge>
+                    ) : balance.balance > 0 ? (
+                      <Badge tone="positive">
+                        owed <Money value={Math.abs(balance.balance)} tone="positive" />
+                      </Badge>
+                    ) : (
+                      <Badge tone="negative">
+                        owes <Money value={Math.abs(balance.balance)} tone="negative" />
+                      </Badge>
+                    )}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </PanelBody>
 
           {settlement.transfers.length > 0 ? (
-            <div className="mt-6 border-t pt-5">
+            <PanelFooter className="flex-col items-stretch gap-1.5 py-4">
               <p className="eyebrow">To square up</p>
-              <ul className="mt-1 space-y-0.5 text-sm font-semibold">
+              <ul className="space-y-1 text-sm font-medium">
                 {settlement.transfers.map((transfer, index) => (
                   <li key={index}>
-                    {transfer.fromName} pays {transfer.toName} {money(transfer.amount)}
+                    {transfer.fromName} pays {transfer.toName}{" "}
+                    <Money value={transfer.amount} className="font-semibold" />
                   </li>
                 ))}
               </ul>
-            </div>
+            </PanelFooter>
           ) : (
-            <p className="mt-3 text-sm text-success">Everyone&apos;s square — nothing owed.</p>
+            <PanelFooter>
+              <p className="text-sm text-success">Everyone&apos;s square — nothing owed.</p>
+            </PanelFooter>
           )}
-        </div>
+        </Panel>
       ) : combined && combined.sharedCount > 0 ? (
-        <p className="mt-3 text-sm text-muted-foreground">
-          Nothing marked to split, so nobody owes anybody. Choose &ldquo;Split it&rdquo; when
-          logging if you want an expense divided evenly.
-        </p>
+        <div className="mt-4">
+          <Alert tone="neutral" title="Nothing to settle up">
+            Nothing is marked to split, so nobody owes anybody. Choose &ldquo;Split it&rdquo; when
+            logging if you want an expense divided evenly.
+          </Alert>
+        </div>
       ) : (
-        <p className="mt-5 border-t pt-4 text-sm text-muted-foreground">
-          Nothing shared yet. When you log something, choose &ldquo;Share&rdquo; so the household
-          can see it, or &ldquo;Split it&rdquo; to divide it evenly.
-        </p>
+        <div className="mt-4">
+          <Alert tone="neutral" title="Nothing shared yet">
+            When you log something, choose &ldquo;Share&rdquo; so the household can see it, or
+            &ldquo;Split it&rdquo; to divide it evenly.
+          </Alert>
+        </div>
       )}
-
-      {error ? <p className="mt-3 text-sm text-danger">{error}</p> : null}
 
       <Button
         type="button"
         variant="outline"
         className="mt-5 w-full"
+        loading={leaveMutation.isPending}
         disabled={leaveMutation.isPending}
         onClick={() => {
           if (
@@ -367,7 +518,7 @@ export function HouseholdSection() {
       >
         {leaveMutation.isPending ? "Leaving…" : "Leave household"}
       </Button>
-    </section>
+    </div>
   );
 }
 
@@ -382,7 +533,7 @@ export function MarginsSection() {
   const upsert = useServerFn(saveProduct);
   const drop = useServerFn(removeProduct);
 
-  const { data: products = [] } = useQuery({
+  const { data: products = [], isLoading } = useQuery({
     queryKey: ["products"],
     queryFn: () => fetchProducts(),
   });
@@ -413,127 +564,165 @@ export function MarginsSection() {
   });
 
   return (
-    <section className="py-8">
-      <h2 className="text-xl">What you actually keep</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Put in what an item costs you and what you sell it for, and see the real profit per sale.
-      </p>
+    <div className={page}>
+      <PageHeader
+        eyebrow="Tools"
+        title="What you actually keep"
+        description="Put in what an item costs you and what you sell it for, and see the real profit on every sale."
+      />
 
-      {products.length > 0 ? (
-        <ul className="mt-4 space-y-3">
-          {products.map((product) => {
-            const m = productMargin(product, overhead > 0 ? overhead : null);
-            const losing = m.grossPerUnit <= 0;
-            return (
-              <li key={product.id} className="rounded-2xl border p-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="font-semibold">{product.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Costs {money(product.unit_cost)} · sells for {money(product.sale_price)}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    aria-label={`Remove ${product.name}`}
-                    onClick={() => remove.mutate(product.id)}
-                    className="text-muted-foreground hover:text-danger"
+      <Panel>
+        <PanelHeader
+          title="Your items"
+          description={
+            overhead > 0 ? (
+              <>
+                Your usual monthly costs run about{" "}
+                <Money value={overhead} className="font-medium text-foreground" />.
+              </>
+            ) : undefined
+          }
+        />
+        <PanelBody>
+          {isLoading ? (
+            <SkeletonRows rows={2} />
+          ) : products.length === 0 ? (
+            <p className="py-2 text-sm text-muted-foreground">
+              No items yet — add your first one below.
+            </p>
+          ) : (
+            <ul className="space-y-3">
+              {products.map((product) => {
+                const m = productMargin(product, overhead > 0 ? overhead : null);
+                const losing = m.grossPerUnit <= 0;
+                return (
+                  <li
+                    key={product.id}
+                    className="rounded-[var(--radius-12)] border border-border bg-surface-2 p-3"
                   >
-                    <X className="size-4" />
-                  </button>
-                </div>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold">{product.name}</p>
+                        <p className="text-[12px] text-muted-foreground">
+                          Costs <Money value={product.unit_cost} /> · sells for{" "}
+                          <Money value={product.sale_price} />
+                        </p>
+                      </div>
+                      <RemoveButton
+                        label={`Remove ${product.name}`}
+                        onClick={() => remove.mutate(product.id)}
+                      />
+                    </div>
 
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  <div
-                    className={`rounded-xl p-2.5 ${losing ? "bg-danger-soft" : "bg-success-soft"}`}
-                  >
-                    <p
-                      className={`text-xs font-semibold uppercase tracking-wide ${
-                        losing ? "text-danger" : "text-success"
-                      }`}
-                    >
-                      You keep
-                    </p>
-                    <p className="mt-0.5 font-bold">
-                      {losing ? `−${money(m.grossPerUnit)}` : money(m.grossPerUnit)} each
-                    </p>
-                  </div>
-                  <div className="rounded-xl bg-muted p-2.5">
-                    <p className="eyebrow">Margin</p>
-                    <p className="mt-0.5 font-bold">{Math.round(m.grossMarginPercent)}%</p>
-                  </div>
-                </div>
+                    <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      <div
+                        className={`rounded-[var(--radius-10)] p-2.5 ${
+                          losing ? "bg-danger-soft" : "bg-success-soft"
+                        }`}
+                      >
+                        <Metric
+                          label="You keep, each"
+                          emphasis="compact"
+                          tone={losing ? "negative" : "positive"}
+                          value={
+                            <Money
+                              value={m.grossPerUnit}
+                              signed
+                              tone={losing ? "negative" : "positive"}
+                            />
+                          }
+                        />
+                      </div>
+                      <div className="rounded-[var(--radius-10)] bg-surface-3 p-2.5">
+                        <Metric
+                          label="Margin"
+                          emphasis="compact"
+                          value={<span className="num">{Math.round(m.grossMarginPercent)}%</span>}
+                        />
+                      </div>
+                    </div>
 
-                {losing ? (
-                  <p className="mt-2 text-xs text-danger">
-                    You&apos;re selling this for less than it costs you.
-                  </p>
-                ) : m.unitsToCoverOverhead != null ? (
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    Sell about <span className="font-semibold">{m.unitsToCoverOverhead}</span> a
-                    month to cover your usual {money(overhead)} of costs.
-                  </p>
-                ) : null}
-              </li>
-            );
-          })}
-        </ul>
-      ) : (
-        <p className="mt-3 text-sm text-muted-foreground">No items yet.</p>
-      )}
+                    {losing ? (
+                      <p className="mt-2 text-[12px] font-medium text-danger">
+                        You&apos;re selling this for less than it costs you.
+                      </p>
+                    ) : m.unitsToCoverOverhead != null ? (
+                      <p className="mt-2 text-[12px] text-muted-foreground">
+                        Sell about{" "}
+                        <span className="num font-semibold text-foreground">
+                          {m.unitsToCoverOverhead}
+                        </span>{" "}
+                        a month to cover your usual <Money value={overhead} /> of costs.
+                      </p>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </PanelBody>
+      </Panel>
 
-      <form
-        className="mt-5 space-y-3 border-t pt-4"
-        onSubmit={(event) => {
-          event.preventDefault();
-          const unitCost = Number(cost || 0);
-          const salePrice = Number(price || 0);
-          if (!name.trim() || !(salePrice > 0)) return;
-          save.mutate({ name: name.trim(), unit_cost: unitCost, sale_price: salePrice });
-        }}
-      >
-        <div className="space-y-2">
-          <Label htmlFor="product-name">Item</Label>
-          <Input
-            id="product-name"
-            placeholder="Candle"
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-          />
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="product-cost">Costs you</Label>
-            <Input
-              id="product-cost"
-              type="number"
-              inputMode="decimal"
-              min="0"
-              step="0.01"
-              placeholder="4.00"
-              value={cost}
-              onChange={(event) => setCost(event.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="product-price">You sell it for</Label>
-            <Input
-              id="product-price"
-              type="number"
-              inputMode="decimal"
-              min="0"
-              step="0.01"
-              placeholder="10.00"
-              value={price}
-              onChange={(event) => setPrice(event.target.value)}
-            />
-          </div>
-        </div>
-        <Button type="submit" className="w-full" disabled={save.isPending}>
-          {save.isPending ? "Saving…" : "Save item"}
-        </Button>
-      </form>
-    </section>
+      <Panel className="mt-4">
+        <PanelHeader title="Add an item" />
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            const unitCost = Number(cost || 0);
+            const salePrice = Number(price || 0);
+            if (!name.trim() || !(salePrice > 0)) return;
+            save.mutate({ name: name.trim(), unit_cost: unitCost, sale_price: salePrice });
+          }}
+        >
+          <PanelBody className="space-y-4">
+            <Field id="product-name" label="Item">
+              <Input
+                placeholder="Candle"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+              />
+            </Field>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field id="product-cost" label="Costs you">
+                <Input
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  step="0.01"
+                  placeholder="4.00"
+                  value={cost}
+                  onChange={(event) => setCost(event.target.value)}
+                  className="num"
+                />
+              </Field>
+              <Field id="product-price" label="You sell it for">
+                <Input
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  step="0.01"
+                  placeholder="10.00"
+                  value={price}
+                  onChange={(event) => setPrice(event.target.value)}
+                  className="num"
+                />
+              </Field>
+            </div>
+          </PanelBody>
+          <PanelFooter>
+            <Button
+              type="submit"
+              variant="brand"
+              className="w-full sm:w-auto"
+              loading={save.isPending}
+              disabled={save.isPending}
+            >
+              {save.isPending ? "Saving…" : "Save item"}
+            </Button>
+          </PanelFooter>
+        </form>
+      </Panel>
+    </div>
   );
 }
 
@@ -549,7 +738,7 @@ export function DrawerSection() {
   const upsert = useServerFn(saveCashCount);
   const drop = useServerFn(removeCashCount);
 
-  const { data: counts = [] } = useQuery({
+  const { data: counts = [], isLoading } = useQuery({
     queryKey: ["cashCounts"],
     queryFn: () => fetchCounts(),
   });
@@ -591,133 +780,151 @@ export function DrawerSection() {
   });
 
   return (
-    <section className="border-t py-8">
-      <h2 className="text-xl">Cash drawer check</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Count the till at the end of the day and see whether it matches what you logged.
-      </p>
+    <div className={page}>
+      <PageHeader
+        eyebrow="Tools"
+        title="Cash drawer check"
+        description="Count the till at the end of the day and see whether it matches what you logged."
+      />
 
-      <form
-        className="mt-4 space-y-3"
-        onSubmit={(event) => {
-          event.preventDefault();
-          if (!counted.trim()) return;
-          save.mutate({
-            count_date: date,
-            counted_amount: Number(counted || 0),
-            opening_float: Number(float || settings?.opening_float || 0),
-            note: null,
-          });
-        }}
-      >
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="count-date">Day</Label>
-            <Input
-              id="count-date"
-              type="date"
-              value={date}
-              onChange={(event) => setDate(event.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="count-float">Starting float</Label>
-            <Input
-              id="count-float"
-              type="number"
-              inputMode="decimal"
-              min="0"
-              step="0.01"
-              placeholder={String(settings?.opening_float ?? 0)}
-              value={float}
-              onChange={(event) => setFloat(event.target.value)}
-            />
-          </div>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="count-amount">Counted in the drawer</Label>
-          <Input
-            id="count-amount"
-            type="number"
-            inputMode="decimal"
-            min="0"
-            step="0.01"
-            placeholder="0.00"
-            value={counted}
-            onChange={(event) => setCounted(event.target.value)}
-          />
-        </div>
+      <Panel>
+        <PanelHeader title="Tonight's count" />
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!counted.trim()) return;
+            save.mutate({
+              count_date: date,
+              counted_amount: Number(counted || 0),
+              opening_float: Number(float || settings?.opening_float || 0),
+              note: null,
+            });
+          }}
+        >
+          <PanelBody className="space-y-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field id="count-date" label="Day">
+                <Input
+                  type="date"
+                  value={date}
+                  onChange={(event) => setDate(event.target.value)}
+                  className="num"
+                />
+              </Field>
+              <Field id="count-float" label="Starting float">
+                <Input
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  step="0.01"
+                  placeholder={String(settings?.opening_float ?? 0)}
+                  value={float}
+                  onChange={(event) => setFloat(event.target.value)}
+                  className="num"
+                />
+              </Field>
+            </div>
 
-        <div className="text-sm">
-          <p>
-            Should be <span className="font-semibold">{money(preview.expected)}</span>{" "}
-            <span className="text-muted-foreground">
-              ({money(preview.openingFloat)} float + {money(preview.cashIn)} in −{" "}
-              {money(preview.cashOut)} out)
-            </span>
-          </p>
-          {counted.trim() ? (
-            <p
-              className={`mt-1 font-semibold ${
-                preview.status === "balanced"
-                  ? "text-success"
-                  : preview.status === "over"
-                    ? "text-foreground"
-                    : "text-danger"
-              }`}
+            <Field id="count-amount" label="Counted in the drawer">
+              <Input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                step="0.01"
+                placeholder="0.00"
+                value={counted}
+                onChange={(event) => setCounted(event.target.value)}
+                className="num"
+              />
+            </Field>
+
+            <div className="rounded-[var(--radius-12)] border border-border bg-surface-2 p-4">
+              <Metric
+                label="Should be in the drawer"
+                emphasis="hero"
+                value={<Money value={preview.expected} />}
+                hint={
+                  <>
+                    <Money value={preview.openingFloat} /> float +{" "}
+                    <Money value={preview.cashIn} tone="positive" /> in −{" "}
+                    <Money value={preview.cashOut} tone="negative" /> out
+                  </>
+                }
+              />
+            </div>
+
+            {counted.trim() ? (
+              preview.status === "balanced" ? (
+                <Alert tone="positive" title="Balanced — nice.">
+                  What you counted matches what you logged.
+                </Alert>
+              ) : preview.status === "over" ? (
+                <Alert tone="neutral" title="More than expected">
+                  There&apos;s <Money value={Math.abs(preview.difference)} /> more in the drawer
+                  than your entries account for.
+                </Alert>
+              ) : (
+                <Alert tone="negative" title="Short">
+                  The drawer is <Money value={Math.abs(preview.difference)} tone="negative" /> short
+                  of what you logged.
+                </Alert>
+              )
+            ) : null}
+          </PanelBody>
+
+          <PanelFooter>
+            <Button
+              type="submit"
+              variant="brand"
+              className="w-full sm:w-auto"
+              loading={save.isPending}
+              disabled={save.isPending || !counted.trim()}
             >
-              {preview.status === "balanced"
-                ? "Balanced — nice."
-                : preview.status === "over"
-                  ? `${money(preview.difference)} more than expected.`
-                  : `${money(preview.difference)} short.`}
-            </p>
-          ) : null}
-        </div>
+              {save.isPending ? "Saving…" : "Save count"}
+            </Button>
+          </PanelFooter>
+        </form>
+      </Panel>
 
-        <Button type="submit" className="w-full" disabled={save.isPending || !counted.trim()}>
-          {save.isPending ? "Saving…" : "Save count"}
-        </Button>
-      </form>
-
-      {counts.length > 0 ? (
-        <ul className="mt-5 divide-y border-t pt-2">
-          {counts.slice(0, 7).map((count) => (
-            <li key={count.id} className="flex items-center justify-between gap-2 py-2 text-sm">
-              <span className="font-semibold">{count.count_date}</span>
-              <span className="flex items-center gap-2 tabular-nums">
-                <span className="text-muted-foreground">
-                  {money(count.counted_amount)} vs {money(count.expected_amount)}
-                </span>
-                <span
-                  className={
-                    Math.abs(count.difference) < 0.005
-                      ? "text-success"
-                      : count.difference < 0
-                        ? "text-danger"
-                        : ""
-                  }
-                >
-                  {Math.abs(count.difference) < 0.005
-                    ? "OK"
-                    : count.difference > 0
-                      ? `+${money(count.difference)}`
-                      : `−${money(count.difference)}`}
-                </span>
-                <button
-                  type="button"
-                  aria-label={`Remove count for ${count.count_date}`}
-                  onClick={() => remove.mutate(count.id)}
-                  className="text-muted-foreground hover:text-danger"
-                >
-                  <X className="size-4" />
-                </button>
-              </span>
-            </li>
-          ))}
-        </ul>
+      {isLoading || counts.length > 0 ? (
+        <Panel className="mt-4">
+          <PanelHeader title="Recent counts" description="Your last seven days of counting up." />
+          <PanelBody>
+            {isLoading ? (
+              <SkeletonRows rows={3} />
+            ) : (
+              <ul className="divide-hairline">
+                {counts.slice(0, 7).map((count) => (
+                  <li
+                    key={count.id}
+                    className="flex flex-wrap items-center justify-between gap-2 py-2.5 text-sm"
+                  >
+                    <span className="num font-medium">{count.count_date}</span>
+                    <span className="flex shrink-0 items-center gap-2">
+                      <span className="text-[12px] text-muted-foreground">
+                        <Money value={count.counted_amount} /> counted ·{" "}
+                        <Money value={count.expected_amount} /> expected
+                      </span>
+                      {Math.abs(count.difference) < 0.005 ? (
+                        <Badge tone="positive">square</Badge>
+                      ) : (
+                        <Badge tone={count.difference > 0 ? "neutral" : "negative"}>
+                          <Money value={count.difference} signed />
+                        </Badge>
+                      )}
+                      <RemoveButton
+                        label={`Remove count for ${count.count_date}`}
+                        onClick={() => remove.mutate(count.id)}
+                      />
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </PanelBody>
+        </Panel>
       ) : null}
-    </section>
+    </div>
   );
 }
 
@@ -750,15 +957,14 @@ export function SettingsSection() {
   });
 
   return (
-    <section className="border-t py-8">
-      <h2 className="text-xl">Settings</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Set what share of income to hold back for tax, and how much cash you normally start the day
-        with.
-      </p>
-
+    // Sits under the tax card on its page, so it stays a panel rather than a
+    // second page heading.
+    <Panel className="mt-6">
+      <PanelHeader
+        title="Settings"
+        description="Set what share of income to hold back for tax, and how much cash you normally start the day with."
+      />
       <form
-        className="mt-4 space-y-3"
         onSubmit={(event) => {
           event.preventDefault();
           mutate.mutate({
@@ -767,44 +973,52 @@ export function SettingsSection() {
           });
         }}
       >
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="tax-rate">Hold back for tax (%)</Label>
-            <Input
-              id="tax-rate"
-              type="number"
-              inputMode="decimal"
-              min="0"
-              max="100"
-              step="1"
-              placeholder="25"
-              value={rateValue}
-              onChange={(event) => setRate(event.target.value)}
-            />
+        <PanelBody className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field id="tax-rate" label="Hold back for tax (%)">
+              <Input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                max="100"
+                step="1"
+                placeholder="25"
+                value={rateValue}
+                onChange={(event) => setRate(event.target.value)}
+                className="num"
+              />
+            </Field>
+            <Field id="default-float" label="Usual starting float">
+              <Input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                step="0.01"
+                placeholder="50"
+                value={floatValue}
+                onChange={(event) => setFloat(event.target.value)}
+                className="num"
+              />
+            </Field>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="default-float">Usual starting float</Label>
-            <Input
-              id="default-float"
-              type="number"
-              inputMode="decimal"
-              min="0"
-              step="0.01"
-              placeholder="50"
-              value={floatValue}
-              onChange={(event) => setFloat(event.target.value)}
-            />
-          </div>
-        </div>
-        <Button type="submit" className="w-full" disabled={mutate.isPending}>
-          {mutate.isPending ? "Saving…" : "Save settings"}
-        </Button>
-        <p className="text-xs text-muted-foreground">
-          Not tax advice — it just holds back a share of what you log so the bill isn&apos;t a
-          surprise. Check the rate with your accountant.
-        </p>
+          <p className="text-[12px] leading-relaxed text-muted-foreground">
+            Not tax advice — it just holds back a share of what you log so the bill isn&apos;t a
+            surprise. Check the rate with your accountant.
+          </p>
+        </PanelBody>
+        <PanelFooter>
+          <Button
+            type="submit"
+            variant="brand"
+            className="w-full sm:w-auto"
+            loading={mutate.isPending}
+            disabled={mutate.isPending}
+          >
+            {mutate.isPending ? "Saving…" : "Save settings"}
+          </Button>
+        </PanelFooter>
       </form>
-    </section>
+    </Panel>
   );
 }
 
@@ -855,116 +1069,158 @@ export function LockSection() {
   const enabled = Boolean(settings?.lock_enabled);
 
   return (
-    <section className="border-t py-8">
-      <h2 className="flex items-center gap-2 text-xl">
-        <Lock className="size-4 text-primary" /> Lock this app
-      </h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Hide your books behind a PIN so someone holding your unlocked phone can&apos;t read them.
-      </p>
+    <div className={page}>
+      <PageHeader
+        eyebrow="Tools"
+        title="Lock this app"
+        description="Hide your books behind a PIN, so someone holding your unlocked phone can't read them."
+      />
+
+      {error ? (
+        <div className="mb-4">
+          <Alert tone="negative" title="That didn't work">
+            {error}
+          </Alert>
+        </div>
+      ) : null}
+      {done ? (
+        <div className="mb-4">
+          <Alert tone="positive">{done}</Alert>
+        </div>
+      ) : null}
 
       {enabled ? (
-        <div className="mt-4 space-y-3">
-          <div className="">
-            <p className="text-sm font-semibold text-success">Lock is on</p>
-            <p className="text-xs text-muted-foreground">
-              {settings?.lock_timeout_minutes === 0
-                ? "Asks for your PIN every time you open the app."
-                : `Asks again after ${settings?.lock_timeout_minutes} minutes away.`}
+        <Panel>
+          <PanelHeader
+            title={
+              <span className="flex items-center gap-2">
+                <Lock className="size-4 text-brand" aria-hidden="true" />
+                Lock this app
+              </span>
+            }
+            action={<Badge tone="positive">On</Badge>}
+          />
+          <PanelBody>
+            <p className="text-sm text-muted-foreground">
+              {settings?.lock_timeout_minutes === 0 ? (
+                "Asks for your PIN every time you open the app."
+              ) : (
+                <>
+                  Asks again after{" "}
+                  <span className="num font-medium text-foreground">
+                    {settings?.lock_timeout_minutes}
+                  </span>{" "}
+                  minutes away.
+                </>
+              )}
             </p>
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full"
-            disabled={turnOff.isPending}
-            onClick={() => turnOff.mutate()}
-          >
-            {turnOff.isPending ? "Turning off…" : "Turn off lock"}
-          </Button>
-        </div>
-      ) : (
-        <form
-          className="mt-4 space-y-3"
-          onSubmit={(event) => {
-            event.preventDefault();
-            const problem = validatePin(pin);
-            if (problem) {
-              setError(problem);
-              return;
-            }
-            if (pin !== confirm) {
-              setError("Those two PINs don't match.");
-              return;
-            }
-            save.mutate();
-          }}
-        >
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="lock-pin">Choose a PIN (4–8 numbers)</Label>
-              <Input
-                id="lock-pin"
-                type="password"
-                inputMode="numeric"
-                maxLength={8}
-                autoComplete="new-password"
-                placeholder="••••"
-                value={pin}
-                onChange={(event) => {
-                  setPin(event.target.value.replace(/\D/g, ""));
-                  setError(null);
-                }}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="lock-confirm">Type it again</Label>
-              <Input
-                id="lock-confirm"
-                type="password"
-                inputMode="numeric"
-                maxLength={8}
-                autoComplete="new-password"
-                placeholder="••••"
-                value={confirm}
-                onChange={(event) => {
-                  setConfirm(event.target.value.replace(/\D/g, ""));
-                  setError(null);
-                }}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="lock-timeout">Ask again after</Label>
-            <select
-              id="lock-timeout"
-              value={timeout}
-              onChange={(event) => setTimeoutMinutes(event.target.value)}
-              className="h-10 w-full rounded-xl border bg-background px-3 text-sm"
+          </PanelBody>
+          <PanelFooter>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full sm:w-auto"
+              loading={turnOff.isPending}
+              disabled={turnOff.isPending}
+              onClick={() => turnOff.mutate()}
             >
-              <option value="0">Every time I open it</option>
-              <option value="1">1 minute away</option>
-              <option value="5">5 minutes away</option>
-              <option value="15">15 minutes away</option>
-              <option value="60">1 hour away</option>
-            </select>
-          </div>
+              {turnOff.isPending ? "Turning off…" : "Turn off lock"}
+            </Button>
+          </PanelFooter>
+        </Panel>
+      ) : (
+        <Panel>
+          <PanelHeader
+            title={
+              <span className="flex items-center gap-2">
+                <Lock className="size-4 text-brand" aria-hidden="true" />
+                Choose a PIN
+              </span>
+            }
+            description="Four to eight numbers. You'll type it when you come back to the app."
+            action={<Badge tone="neutral">Off</Badge>}
+          />
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              const problem = validatePin(pin);
+              if (problem) {
+                setError(problem);
+                return;
+              }
+              if (pin !== confirm) {
+                setError("Those two PINs don't match.");
+                return;
+              }
+              save.mutate();
+            }}
+          >
+            <PanelBody className="space-y-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Field id="lock-pin" label="New PIN" hint="4 to 8 numbers.">
+                  <Input
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={8}
+                    autoComplete="new-password"
+                    placeholder="••••"
+                    value={pin}
+                    invalid={Boolean(error)}
+                    onChange={(event) => {
+                      setPin(event.target.value.replace(/\D/g, ""));
+                      setError(null);
+                    }}
+                    className="num h-12 text-lg tracking-[0.3em] md:h-12 md:text-lg"
+                  />
+                </Field>
+                <Field id="lock-confirm" label="Type it again">
+                  <Input
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={8}
+                    autoComplete="new-password"
+                    placeholder="••••"
+                    value={confirm}
+                    invalid={Boolean(error)}
+                    onChange={(event) => {
+                      setConfirm(event.target.value.replace(/\D/g, ""));
+                      setError(null);
+                    }}
+                    className="num h-12 text-lg tracking-[0.3em] md:h-12 md:text-lg"
+                  />
+                </Field>
+              </div>
 
-          <Button type="submit" className="w-full" disabled={save.isPending}>
-            {save.isPending ? "Saving…" : "Turn on lock"}
-          </Button>
-        </form>
+              <Field id="lock-timeout" label="Ask again after">
+                <Select value={timeout} onChange={(event) => setTimeoutMinutes(event.target.value)}>
+                  <option value="0">Every time I open it</option>
+                  <option value="1">1 minute away</option>
+                  <option value="5">5 minutes away</option>
+                  <option value="15">15 minutes away</option>
+                  <option value="60">1 hour away</option>
+                </Select>
+              </Field>
+            </PanelBody>
+            <PanelFooter>
+              <Button
+                type="submit"
+                variant="brand"
+                className="w-full sm:w-auto"
+                loading={save.isPending}
+                disabled={save.isPending}
+              >
+                {save.isPending ? "Saving…" : "Turn on lock"}
+              </Button>
+            </PanelFooter>
+          </form>
+        </Panel>
       )}
 
-      {error ? <p className="mt-3 text-sm text-danger">{error}</p> : null}
-      {done ? <p className="mt-3 text-sm text-success">{done}</p> : null}
-
-      <p className="mt-3 text-xs text-muted-foreground">
+      <p className="mt-4 px-1 text-[12px] leading-relaxed text-muted-foreground">
         This hides the app on your device. Your account is already protected by your password, and
         only you can read your data — the PIN is a convenience lock on top of that, not a
         replacement for it. Forgotten it? Sign out and back in, then set a new one.
       </p>
-    </section>
+    </div>
   );
 }

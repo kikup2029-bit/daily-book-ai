@@ -2,15 +2,16 @@
  * The individual cards that make up "This month", each addressable on its own
  * so the sidebar can link straight to one. They all read from the same cached
  * insights query, so showing them separately costs no extra requests.
+ *
+ * Each card is a panel, so a route can drop one on a page and it sits at the
+ * same elevation as everything else in the app.
  */
 
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 
 import { getInsights } from "@/lib/shop.functions";
-
-const money = (value: number) =>
-  value.toLocaleString(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 2 });
+import { Alert, Metric, Money, Panel, PanelBody, PanelHeader } from "@/components/ui/kit";
 
 function useInsights() {
   const fetchInsights = useServerFn(getInsights);
@@ -19,11 +20,13 @@ function useInsights() {
 
 function Loading({ label }: { label: string }) {
   return (
-    <section className="py-8" aria-busy="true" aria-label={label}>
-      <span className="skeleton block h-4 w-44" />
-      <span className="skeleton mt-5 block h-12 w-56" />
-      <span className="skeleton mt-3 block h-3.5 w-72" />
-    </section>
+    <Panel className="mb-6" aria-busy="true" aria-label={label}>
+      <PanelBody className="pt-5">
+        <span className="skeleton block h-3 w-44" />
+        <span className="skeleton mt-5 block h-10 w-56" />
+        <span className="skeleton mt-4 block h-3.5 w-full max-w-xs" />
+      </PanelBody>
+    </Panel>
   );
 }
 
@@ -36,20 +39,29 @@ export function WeekDigestCard() {
   const { digest } = data;
 
   return (
-    <section className="py-8">
-      <h2 className="text-xl">Your week in plain English</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        {digest.weekFrom} to {digest.weekTo}
-      </p>
-      <ul className="mt-3 space-y-1.5 text-sm">
-        {digest.lines.map((line, index) => (
-          <li key={index} className="flex gap-2">
-            <span className="text-muted-foreground">•</span>
-            <span>{line}</span>
-          </li>
-        ))}
-      </ul>
-    </section>
+    <Panel className="mb-6">
+      <PanelHeader
+        title="Your week in plain English"
+        description={
+          <span className="num">
+            {digest.weekFrom} to {digest.weekTo}
+          </span>
+        }
+      />
+      <PanelBody>
+        <ul className="space-y-2.5 text-sm">
+          {digest.lines.map((line, index) => (
+            <li key={index} className="flex gap-2.5">
+              <span
+                aria-hidden="true"
+                className="mt-[0.45rem] size-1.5 shrink-0 rounded-full bg-brand"
+              />
+              <span className="min-w-0">{line}</span>
+            </li>
+          ))}
+        </ul>
+      </PanelBody>
+    </Panel>
   );
 }
 
@@ -62,72 +74,73 @@ export function OutlookCard() {
   const { forecast } = data;
 
   return (
-    <section className="py-8">
-      <h2 className="text-xl">Can you cover what&apos;s coming?</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Next {forecast.horizonDays} days, based on your last {forecast.basedOnDays} days and the
-        bills you&apos;ve set up.
-      </p>
+    <Panel className="mb-6">
+      <PanelHeader
+        title="Can you cover what's coming?"
+        description={`Next ${forecast.horizonDays} days, based on your last ${forecast.basedOnDays} days and the bills you've set up.`}
+      />
+      <PanelBody className="space-y-5">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          <Metric label="Where you are" value={<Money value={forecast.currentNet} signed />} />
+          <Metric
+            label={`In ${forecast.horizonDays} days`}
+            value={<Money value={forecast.projectedNet} signed />}
+          />
+        </div>
 
-      <div className="mt-6 grid grid-cols-2 gap-8">
-        <div className="">
-          <p className="eyebrow">Where you are</p>
-          <p className="figure mt-2 text-3xl">{money(forecast.currentNet)}</p>
-        </div>
-        <div>
-          <p className={`eyebrow ${forecast.projectedNet >= 0 ? "text-success" : "text-danger"}`}>
-            In {forecast.horizonDays} days
-          </p>
-          <p className="figure mt-2 text-3xl">
-            {forecast.projectedNet < 0 ? "−" : ""}
-            {money(forecast.projectedNet)}
-          </p>
-        </div>
-      </div>
+        {forecast.shortfallDate ? (
+          <Alert
+            tone="negative"
+            title={`Heads up — you could run short around ${forecast.shortfallDate}.`}
+          >
+            <span>
+              Lowest point is <Money value={forecast.lowestPoint.balance} signed /> on{" "}
+              <span className="num">{forecast.lowestPoint.date}</span>.
+            </span>
+          </Alert>
+        ) : (
+          <Alert tone="positive" title="You stay in the black the whole time.">
+            <span>
+              Lowest point is <Money value={forecast.lowestPoint.balance} signed /> on{" "}
+              <span className="num">{forecast.lowestPoint.date}</span>.
+            </span>
+          </Alert>
+        )}
 
-      {forecast.shortfallDate ? (
-        <div className="mt-4 border-l-2 border-danger pl-4">
-          <p className="text-sm font-semibold text-danger">
-            Heads up — you could run short around {forecast.shortfallDate}.
-          </p>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            Lowest point is {money(forecast.lowestPoint.balance)} on {forecast.lowestPoint.date}.
-          </p>
-        </div>
-      ) : (
-        <p className="mt-3 text-sm text-success">
-          You stay in the black the whole time — lowest point is{" "}
-          {money(forecast.lowestPoint.balance)} on {forecast.lowestPoint.date}.
+        <p className="text-[13px] text-muted-foreground">
+          Typical day: <Money value={forecast.dailyIn} className="text-foreground" /> in,{" "}
+          <Money value={forecast.dailyOut} className="text-foreground" /> out.
         </p>
-      )}
 
-      <p className="mt-3 text-sm text-muted-foreground">
-        Typical day: {money(forecast.dailyIn)} in, {money(forecast.dailyOut)} out.
-      </p>
+        {forecast.upcomingBills.length > 0 ? (
+          <div className="rounded-[var(--radius-12)] border bg-surface-2 px-4 py-3">
+            <p className="eyebrow">Bills coming up</p>
+            <ul className="divide-hairline mt-1">
+              {forecast.upcomingBills.slice(0, 6).map((bill, index) => (
+                <li
+                  key={index}
+                  className="flex items-center justify-between gap-3 py-2 text-[13px] sm:text-sm"
+                >
+                  <span className="min-w-0 truncate">
+                    <span className="font-medium">{bill.category}</span>
+                    <span className="num ml-2 text-muted-foreground">{bill.due}</span>
+                  </span>
+                  <Money value={bill.amount} className="shrink-0" />
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
 
-      {forecast.upcomingBills.length > 0 ? (
-        <div className="mt-3 border-t pt-3">
-          <p className="eyebrow">Bills coming up</p>
-          <ul className="mt-2 space-y-1 text-sm">
-            {forecast.upcomingBills.slice(0, 6).map((bill, index) => (
-              <li key={index} className="flex justify-between gap-2">
-                <span>
-                  {bill.category} <span className="text-muted-foreground">· {bill.due}</span>
-                </span>
-                <span className="tabular-nums">{money(bill.amount)}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      {forecast.lowConfidence ? (
-        <p className="mt-3 text-xs text-muted-foreground">
-          This is a rough guess — you&apos;ve only got {forecast.basedOnDays} days logged. It gets
-          more accurate as you keep going.
-        </p>
-      ) : null}
-    </section>
+        {forecast.lowConfidence ? (
+          <p className="text-xs text-muted-foreground">
+            This is a rough guess — you&apos;ve only got{" "}
+            <span className="num">{forecast.basedOnDays}</span> days logged. It gets more accurate
+            as you keep going.
+          </p>
+        ) : null}
+      </PanelBody>
+    </Panel>
   );
 }
 
@@ -140,39 +153,49 @@ export function TaxJarCard() {
   const { tax } = data;
 
   return (
-    <section className="py-8">
-      <h2 className="text-xl">Tax set-aside</h2>
-      {tax.ratePercent <= 0 ? (
-        <p className="mt-1 text-sm text-muted-foreground">
-          Set a percentage below and I&apos;ll keep a running total of what to hold back for tax.
-        </p>
-      ) : (
-        <>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Holding back {tax.ratePercent}% of the {money(tax.incomeInPeriod)} you&apos;ve taken in{" "}
+    <Panel className="mb-6">
+      <PanelHeader
+        className={tax.ratePercent <= 0 ? "pb-5" : undefined}
+        title="Tax set-aside"
+        description={
+          tax.ratePercent <= 0
+            ? "Set a percentage below and I'll keep a running total of what to hold back for tax."
+            : undefined
+        }
+      />
+      {tax.ratePercent > 0 ? (
+        <PanelBody className="space-y-6">
+          <p className="text-[13px] text-muted-foreground">
+            Holding back <span className="num text-foreground">{tax.ratePercent}%</span> of the{" "}
+            <Money value={tax.incomeInPeriod} className="text-foreground" /> you&apos;ve taken in{" "}
             {tax.periodLabel}.
           </p>
-          <div className="mt-6 grid grid-cols-2 gap-8">
-            <div className="">
-              <p className="eyebrow">Should set aside</p>
-              <p className="figure mt-2 text-3xl">{money(tax.shouldHaveSetAside)}</p>
-            </div>
-            <div className="">
-              <p className="eyebrow text-success">Already paid</p>
-              <p className="figure mt-2 text-3xl">{money(tax.alreadyPaid)}</p>
-            </div>
+
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <Metric
+              label="Should set aside"
+              emphasis="compact"
+              value={<Money value={tax.shouldHaveSetAside} />}
+            />
+            <Metric
+              label="Already paid"
+              emphasis="compact"
+              tone="positive"
+              value={<Money value={tax.alreadyPaid} />}
+            />
           </div>
-          <div className="mt-8 border-t pt-6">
-            <p className="eyebrow">Still to put aside</p>
-            <p className="figure mt-3 text-5xl">{money(tax.stillToSetAside)}</p>
+
+          <div className="border-t pt-6">
+            <Metric
+              label="Still to put aside"
+              emphasis="hero"
+              value={<Money value={tax.stillToSetAside} />}
+              hint="Log tax payments with “tax” in the category and they’ll count here. Not tax advice — confirm your rate with an accountant."
+            />
           </div>
-          <p className="mt-2 text-xs text-muted-foreground">
-            Log tax payments with &ldquo;tax&rdquo; in the category and they&apos;ll count here. Not
-            tax advice — confirm your rate with an accountant.
-          </p>
-        </>
-      )}
-    </section>
+        </PanelBody>
+      ) : null}
+    </Panel>
   );
 }
 
@@ -186,13 +209,13 @@ export function BusyDaysCard() {
 
   if (!dayPatterns.enoughData || !dayPatterns.best || !dayPatterns.worst) {
     return (
-      <section className="py-8">
-        <h2 className="text-xl">Your busy and quiet days</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Keep logging for a few more weeks and I&apos;ll show which days of the week are your best
-          and quietest.
-        </p>
-      </section>
+      <Panel className="mb-6">
+        <PanelHeader
+          className="pb-5"
+          title="Your busy and quiet days"
+          description="Keep logging for a few more weeks and I'll show which days of the week are your best and quietest."
+        />
+      </Panel>
     );
   }
 
@@ -200,39 +223,63 @@ export function BusyDaysCard() {
   const worst = dayPatterns.worst;
 
   return (
-    <section className="py-8">
-      <h2 className="text-xl">Your busy and quiet days</h2>
-      <p className="mt-1 text-sm text-muted-foreground">Average money in per day of the week.</p>
-
-      <div className="mt-4 space-y-2">
-        {[...dayPatterns.patterns]
-          .sort((a, b) => b.averageIn - a.averageIn)
-          .map((pattern) => {
-            const max = best.averageIn || 1;
-            const width = Math.max(2, (pattern.averageIn / max) * 100);
-            return (
-              <div key={pattern.weekday} className="flex items-center gap-3 text-sm">
-                <span className="w-20 shrink-0 text-muted-foreground">{pattern.label}</span>
-                <span className="h-2.5 flex-1 overflow-hidden rounded-full bg-muted">
+    <Panel className="mb-6">
+      <PanelHeader
+        title="Your busy and quiet days"
+        description="Average money in per day of the week."
+      />
+      <PanelBody className="space-y-5">
+        <div className="space-y-2.5">
+          {[...dayPatterns.patterns]
+            .sort((a, b) => b.averageIn - a.averageIn)
+            .map((pattern) => {
+              const max = best.averageIn || 1;
+              const width = Math.max(2, (pattern.averageIn / max) * 100);
+              return (
+                <div
+                  key={pattern.weekday}
+                  className="flex items-center gap-3 text-[13px] sm:text-sm"
+                >
+                  <span className="w-[68px] shrink-0 truncate text-muted-foreground sm:w-20">
+                    {pattern.label}
+                  </span>
                   <span
-                    className="block h-full rounded-full bg-primary"
-                    style={{ width: `${width}%` }}
+                    className="h-2.5 min-w-0 flex-1 overflow-hidden rounded-full bg-surface-3"
+                    aria-hidden="true"
+                  >
+                    <span
+                      className="block h-full rounded-full bg-brand transition-[width] duration-[var(--dur)] ease-[var(--ease)]"
+                      style={{ width: `${width}%` }}
+                    />
+                  </span>
+                  <Money
+                    value={pattern.averageIn}
+                    className="w-[76px] shrink-0 text-right sm:w-24"
                   />
-                </span>
-                <span className="w-20 shrink-0 text-right tabular-nums">
-                  {money(pattern.averageIn)}
-                </span>
-              </div>
-            );
-          })}
-      </div>
+                </div>
+              );
+            })}
+        </div>
 
-      <p className="mt-4 text-sm">
-        <span className="font-semibold">{best.label}</span> is your best day
-        {best.vsAverage > 5 ? ` (${Math.round(best.vsAverage)}% above your average)` : ""}, and{" "}
-        <span className="font-semibold">{worst.label}</span> is your quietest
-        {worst.vsAverage < -5 ? ` (${Math.round(Math.abs(worst.vsAverage))}% below)` : ""}.
-      </p>
-    </section>
+        <p className="text-sm text-muted-foreground">
+          <span className="font-semibold text-foreground">{best.label}</span> is your best day
+          {best.vsAverage > 5 ? (
+            <>
+              {" "}
+              (<span className="num">{Math.round(best.vsAverage)}%</span> above your average)
+            </>
+          ) : null}
+          , and <span className="font-semibold text-foreground">{worst.label}</span> is your
+          quietest
+          {worst.vsAverage < -5 ? (
+            <>
+              {" "}
+              (<span className="num">{Math.round(Math.abs(worst.vsAverage))}%</span> below)
+            </>
+          ) : null}
+          .
+        </p>
+      </PanelBody>
+    </Panel>
   );
 }

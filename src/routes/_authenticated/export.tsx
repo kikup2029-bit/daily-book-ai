@@ -8,7 +8,16 @@ import type { ExportEntry } from "@/lib/export";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import {
+  Alert,
+  Badge,
+  Field,
+  Money,
+  PageHeader,
+  Panel,
+  PanelBody,
+  PanelHeader,
+} from "@/components/ui/kit";
 import { getEntries } from "@/lib/books.functions";
 import { exportCsv, exportPdf } from "@/lib/export";
 
@@ -58,45 +67,75 @@ function PreviewTable({ rows, money }: { rows: ExportEntry[]; money: (value: num
   const totalIn = rows.reduce((sum, entry) => sum + entry.amount_in, 0);
   const totalOut = rows.reduce((sum, entry) => sum + entry.amount_out, 0);
 
+  const headCell =
+    "sticky top-0 z-10 border-b border-border bg-surface-2 px-3 py-2.5 text-[11px] font-semibold uppercase tracking-[0.07em] text-muted-foreground";
+  const footCell =
+    "sticky bottom-0 z-10 border-t border-border bg-surface-2 px-3 py-2.5 text-[13px] font-semibold";
+
   return (
-    <div className="max-h-64 overflow-y-auto rounded-2xl border">
-      <table className="w-full text-left text-sm">
-        <thead className="sticky top-0 bg-muted text-xs uppercase text-muted-foreground">
-          <tr>
-            <th className="px-3 py-2 font-semibold">Date</th>
-            <th className="px-3 py-2 font-semibold">Category</th>
-            <th className="px-3 py-2 text-right font-semibold">In</th>
-            <th className="px-3 py-2 text-right font-semibold">Out</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y">
-          {rows.map((entry, index) => (
-            <tr key={index}>
-              <td className="whitespace-nowrap px-3 py-2">{entry.entry_date}</td>
-              <td className="px-3 py-2 text-muted-foreground">{entry.spent_on ?? "—"}</td>
-              <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums">
-                {entry.amount_in > 0 ? money(entry.amount_in) : "—"}
-              </td>
-              <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums">
-                {entry.amount_out > 0 ? money(entry.amount_out) : "—"}
-              </td>
+    <div className="panel overflow-hidden">
+      <div className="max-h-72 overflow-auto overscroll-contain">
+        <table className="w-full min-w-[26rem] border-separate border-spacing-0 text-left text-sm">
+          <thead>
+            <tr>
+              <th scope="col" className={headCell}>
+                Date
+              </th>
+              <th scope="col" className={headCell}>
+                Category
+              </th>
+              <th scope="col" className={`${headCell} text-right`}>
+                In
+              </th>
+              <th scope="col" className={`${headCell} text-right`}>
+                Out
+              </th>
             </tr>
-          ))}
-        </tbody>
-        <tfoot className="sticky bottom-0 border-t bg-muted font-semibold">
-          <tr>
-            <td className="px-3 py-2" colSpan={2}>
-              Totals ({money(totalIn - totalOut)} net)
-            </td>
-            <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums">
-              {money(totalIn)}
-            </td>
-            <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums">
-              {money(totalOut)}
-            </td>
-          </tr>
-        </tfoot>
-      </table>
+          </thead>
+          <tbody>
+            {rows.map((entry, index) => (
+              <tr key={index}>
+                <td
+                  className={`num whitespace-nowrap px-3 py-2.5 text-muted-foreground ${
+                    index > 0 ? "border-t border-border" : ""
+                  }`}
+                >
+                  {entry.entry_date}
+                </td>
+                <td className={`px-3 py-2.5 ${index > 0 ? "border-t border-border" : ""}`}>
+                  {entry.spent_on ?? <span className="text-muted-foreground">—</span>}
+                </td>
+                <td
+                  className={`num whitespace-nowrap px-3 py-2.5 text-right ${
+                    index > 0 ? "border-t border-border" : ""
+                  } ${entry.amount_in > 0 ? "text-success" : "text-muted-foreground"}`}
+                >
+                  {entry.amount_in > 0 ? money(entry.amount_in) : "—"}
+                </td>
+                <td
+                  className={`num whitespace-nowrap px-3 py-2.5 text-right ${
+                    index > 0 ? "border-t border-border" : ""
+                  } ${entry.amount_out > 0 ? "text-danger" : "text-muted-foreground"}`}
+                >
+                  {entry.amount_out > 0 ? money(entry.amount_out) : "—"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td className={footCell} colSpan={2}>
+                Totals{" "}
+                <span className="num font-normal text-muted-foreground">
+                  ({money(totalIn - totalOut)} net)
+                </span>
+              </td>
+              <td className={`${footCell} num whitespace-nowrap text-right`}>{money(totalIn)}</td>
+              <td className={`${footCell} num whitespace-nowrap text-right`}>{money(totalOut)}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
     </div>
   );
 }
@@ -144,86 +183,110 @@ function ExportPage() {
 
   return (
     <div className="rise mx-auto w-full max-w-3xl">
-      <section className="py-8">
-        <h2 className="text-xl">Export your records</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Pick the dates you need, then download a spreadsheet or a tidy PDF for your accountant.
-        </p>
+      <section className="pb-8">
+        <PageHeader
+          eyebrow="Export"
+          title="Export your records"
+          description="Pick the dates you need, then download a spreadsheet or a tidy PDF for your accountant."
+        />
 
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="from">From</Label>
-            <Input
-              id="from"
-              type="date"
-              value={from}
-              onChange={(event) => setFrom(event.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="to">To</Label>
-            <Input id="to" type="date" value={to} onChange={(event) => setTo(event.target.value)} />
-          </div>
-        </div>
+        <Panel>
+          <PanelHeader title="Date range" description="Leave both blank to export everything." />
+          <PanelBody className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field id="from" label="From">
+                <Input
+                  type="date"
+                  className="num"
+                  value={from}
+                  onChange={(event) => setFrom(event.target.value)}
+                />
+              </Field>
+              <Field id="to" label="To">
+                <Input
+                  type="date"
+                  className="num"
+                  value={to}
+                  onChange={(event) => setTo(event.target.value)}
+                />
+              </Field>
+            </div>
 
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              const now = new Date();
-              setFrom(new Date(now.getFullYear(), now.getMonth(), 1).toLocaleDateString("en-CA"));
-              setTo(new Date(now.getFullYear(), now.getMonth() + 1, 0).toLocaleDateString("en-CA"));
-            }}
-          >
-            This month
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              const now = new Date();
-              setFrom(
-                new Date(now.getFullYear(), now.getMonth() - 1, 1).toLocaleDateString("en-CA"),
-              );
-              setTo(new Date(now.getFullYear(), now.getMonth(), 0).toLocaleDateString("en-CA"));
-            }}
-          >
-            Last month
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setFrom("");
-              setTo("");
-            }}
-          >
-            Everything
-          </Button>
-        </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const now = new Date();
+                  setFrom(
+                    new Date(now.getFullYear(), now.getMonth(), 1).toLocaleDateString("en-CA"),
+                  );
+                  setTo(
+                    new Date(now.getFullYear(), now.getMonth() + 1, 0).toLocaleDateString("en-CA"),
+                  );
+                }}
+              >
+                This month
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const now = new Date();
+                  setFrom(
+                    new Date(now.getFullYear(), now.getMonth() - 1, 1).toLocaleDateString("en-CA"),
+                  );
+                  setTo(new Date(now.getFullYear(), now.getMonth(), 0).toLocaleDateString("en-CA"));
+                }}
+              >
+                Last month
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setFrom("");
+                  setTo("");
+                }}
+              >
+                Everything
+              </Button>
+            </div>
+          </PanelBody>
+        </Panel>
 
-        <div className="mt-6 text-sm">
+        <div className="mt-6">
           {isLoading ? (
-            <span className="skeleton block h-4 w-40" />
+            <span className="skeleton block h-4 w-48" aria-hidden="true" />
           ) : (
-            <p>
+            <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-sm">
               <span className="font-semibold">
-                {filtered.length} {filtered.length === 1 ? "entry" : "entries"}
-              </span>{" "}
-              · {money(totalIn)} in · {money(totalOut)} out ·{" "}
-              <span className="font-semibold">{money(totalIn - totalOut)} net</span>
-            </p>
+                <span className="num">{filtered.length}</span>{" "}
+                {filtered.length === 1 ? "entry" : "entries"}
+              </span>
+              <span className="inline-flex items-baseline gap-1.5">
+                <Money value={totalIn} tone="positive" className="font-medium" />
+                <span className="text-muted-foreground">in</span>
+              </span>
+              <span className="inline-flex items-baseline gap-1.5">
+                <Money value={totalOut} tone="negative" className="font-medium" />
+                <span className="text-muted-foreground">out</span>
+              </span>
+              <span className="inline-flex items-baseline gap-1.5">
+                <Money value={totalIn - totalOut} className="font-semibold" />
+                <span className="text-muted-foreground">net</span>
+              </span>
+            </div>
           )}
         </div>
 
         {!isLoading && filtered.length > 0 ? (
-          <div className="mt-4">
+          <div className="mt-6">
             <p className="eyebrow">Preview — this is what you&apos;ll get</p>
-            <div className="mt-2">
+            <div className="mt-3">
               <PreviewTable rows={filtered} money={money} />
             </div>
-            <p className="mt-2 text-xs text-muted-foreground">
+            <p className="mt-2.5 text-[12px] leading-relaxed text-muted-foreground">
               This is exactly what goes into the CSV and PDF below — the PDF also adds your business
               name and the date range as a header.
             </p>
@@ -231,22 +294,20 @@ function ExportPage() {
         ) : null}
 
         {!isLoading && filtered.length === 0 ? (
-          <div className="mt-4 rounded-2xl border border-dashed p-4">
-            <div className="flex items-center gap-2">
-              <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-secondary-foreground">
-                Sample
-              </span>
+          <div className="mt-6 rounded-[var(--radius-14)] border border-dashed border-border-strong p-4 sm:p-5">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge tone="brand">Sample</Badge>
               <p className="eyebrow">What your export will look like</p>
             </div>
-            <p className="mt-2 text-sm text-muted-foreground">
+            <p className="mt-3 max-w-prose text-[13px] leading-relaxed text-muted-foreground">
               You don&apos;t have entries in this date range yet, so here&apos;s a made-up example
               with fake numbers — just to show you what the CSV and PDF export will include once you
               start logging your daily money in and out.
             </p>
-            <div className="mt-3">
+            <div className="mt-4">
               <PreviewTable rows={SAMPLE_ROWS} money={money} />
             </div>
-            <p className="mt-2 text-xs text-muted-foreground">
+            <p className="mt-2.5 max-w-prose text-[12px] leading-relaxed text-muted-foreground">
               Every entry becomes a row with its date, category, and amounts, plus a totals row at
               the bottom. The real download buttons below only turn on once you have actual entries
               in range.
@@ -255,26 +316,29 @@ function ExportPage() {
         ) : null}
 
         {download && !isLoading && filtered.length === 0 ? (
-          <p className="mt-4 border-l-2 border-danger pl-4 text-sm text-danger">
-            Nothing to download for these dates yet — pick a wider range below.
-          </p>
+          <div className="mt-6">
+            <Alert tone="negative" title="Nothing to download for these dates yet">
+              Pick a wider range above, then try again.
+            </Alert>
+          </div>
         ) : null}
 
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
           <Button
             size="lg"
             variant="outline"
             disabled={filtered.length === 0}
             onClick={() => exportCsv(filtered, filename)}
           >
-            <FileSpreadsheet className="size-4" /> Download CSV
+            <FileSpreadsheet aria-hidden="true" /> Download CSV
           </Button>
           <Button
             size="lg"
+            variant="brand"
             disabled={filtered.length === 0}
             onClick={() => exportPdf(filtered, filename, rangeLabel)}
           >
-            <FileText className="size-4" /> Download PDF
+            <FileText aria-hidden="true" /> Download PDF
           </Button>
         </div>
       </section>

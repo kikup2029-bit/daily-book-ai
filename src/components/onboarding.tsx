@@ -7,7 +7,7 @@ import { createEntry, getEntries } from "@/lib/books.functions";
 import { getSettings, putSettings } from "@/lib/shop.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Field, Panel, PanelBody, PanelHeader } from "@/components/ui/kit";
 
 const DISMISSED_KEY = "simplebooks.onboarded";
 
@@ -93,108 +93,179 @@ export function Onboarding() {
   const done = [hasEntries, hasRate].filter(Boolean).length;
 
   return (
-    <section className="border-b pb-10">
-      <p className="eyebrow">Getting started · {done} of 2 done</p>
-      <h1 className="mt-3 text-3xl">Let&apos;s set up your books</h1>
-      <p className="mt-2 max-w-md text-sm text-muted-foreground">
-        Two quick things and the rest of the app starts working properly.
-      </p>
+    <section className="mb-8">
+      <Panel className="overflow-hidden">
+        <PanelHeader
+          title="Let's set up your books"
+          description="Two quick things and the rest of the app starts working properly."
+          action={
+            <span className="eyebrow whitespace-nowrap">
+              <span className="num">{done}</span> of <span className="num">2</span> done
+            </span>
+          }
+        />
 
-      {/* Step 1 — first entry */}
-      <div className="mt-8 border-t pt-6">
-        <div className="flex items-baseline gap-2">
-          {hasEntries ? <Check className="size-4 shrink-0 text-success" /> : null}
-          <p className="text-sm font-semibold">
-            {hasEntries ? "First entry logged" : "Log what you made today"}
-          </p>
-        </div>
-        {hasEntries ? (
-          <p className="mt-1 text-sm text-muted-foreground">
-            Nice — your totals and charts are live now.
-          </p>
-        ) : (
-          <form
-            className="mt-3 flex max-w-sm items-end gap-2"
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (Number(amount) > 0) logFirst.mutate();
-            }}
+        <PanelBody className="pb-0">
+          {/* Progress */}
+          <div
+            className="flex gap-1.5"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={2}
+            aria-valuenow={done}
+            aria-label="Setup progress"
           >
-            <div className="flex-1 space-y-2">
-              <Label htmlFor="first-amount">Money made today</Label>
-              <Input
-                id="first-amount"
-                type="number"
-                inputMode="decimal"
-                min="0"
-                step="0.01"
-                placeholder="0.00"
-                value={amount}
-                onChange={(event) => setAmount(event.target.value)}
+            {[hasEntries, hasRate].map((complete, index) => (
+              <span
+                key={index}
+                className={`h-1.5 flex-1 rounded-full transition-colors duration-[var(--dur)] ease-[var(--ease)] ${
+                  complete ? "bg-brand" : "bg-surface-3"
+                }`}
               />
-            </div>
-            <Button type="submit" disabled={logFirst.isPending || !(Number(amount) > 0)}>
-              {logFirst.isPending ? "Saving…" : "Save"}
-            </Button>
-          </form>
-        )}
-      </div>
+            ))}
+          </div>
+        </PanelBody>
 
-      {/* Step 2 — tax rate */}
-      <div className="mt-6 border-t pt-6">
-        <div className="flex items-baseline gap-2">
-          {hasRate ? <Check className="size-4 shrink-0 text-success" /> : null}
-          <p className="text-sm font-semibold">
-            {hasRate
-              ? `Holding back ${settings?.tax_rate_percent}% for tax`
-              : "Decide what to hold back for tax"}
-          </p>
+        <div className="mt-5 divide-hairline border-t">
+          {/* Step 1 — first entry */}
+          <div className="px-5 py-5">
+            <div className="flex items-start gap-3">
+              <span
+                aria-hidden="true"
+                className={`mt-px flex size-6 shrink-0 items-center justify-center rounded-full text-[12px] font-semibold ${
+                  hasEntries
+                    ? "bg-success-soft text-success"
+                    : "border border-brand-border bg-brand-soft text-foreground"
+                }`}
+              >
+                {hasEntries ? <Check className="size-3.5" /> : <span className="num">1</span>}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold leading-6">
+                  {hasEntries ? "First entry logged" : "Log what you made today"}
+                </p>
+
+                {hasEntries ? (
+                  <p className="mt-1 text-[13px] text-muted-foreground">
+                    Nice — your totals and charts are live now.
+                  </p>
+                ) : (
+                  <form
+                    className="mt-3 flex max-w-sm flex-wrap items-end gap-2"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      if (Number(amount) > 0) logFirst.mutate();
+                    }}
+                  >
+                    <Field
+                      id="first-amount"
+                      label="Money made today"
+                      className="min-w-[8rem] flex-1"
+                    >
+                      <Input
+                        type="number"
+                        inputMode="decimal"
+                        min="0"
+                        step="0.01"
+                        placeholder="0.00"
+                        className="num"
+                        value={amount}
+                        onChange={(event) => setAmount(event.target.value)}
+                      />
+                    </Field>
+                    <Button
+                      type="submit"
+                      variant="brand"
+                      className="h-11 md:h-10"
+                      disabled={logFirst.isPending || !(Number(amount) > 0)}
+                    >
+                      {logFirst.isPending ? "Saving…" : "Save"}
+                    </Button>
+                  </form>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Step 2 — tax rate */}
+          <div className="px-5 py-5">
+            <div className="flex items-start gap-3">
+              <span
+                aria-hidden="true"
+                className={`mt-px flex size-6 shrink-0 items-center justify-center rounded-full text-[12px] font-semibold ${
+                  hasRate
+                    ? "bg-success-soft text-success"
+                    : "border border-brand-border bg-brand-soft text-foreground"
+                }`}
+              >
+                {hasRate ? <Check className="size-3.5" /> : <span className="num">2</span>}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold leading-6">
+                  {hasRate
+                    ? `Holding back ${settings?.tax_rate_percent}% for tax`
+                    : "Decide what to hold back for tax"}
+                </p>
+
+                {hasRate ? (
+                  <p className="mt-1 text-[13px] text-muted-foreground">
+                    You can change this any time under Tools.
+                  </p>
+                ) : (
+                  <>
+                    <form
+                      className="mt-3 flex max-w-sm flex-wrap items-end gap-2"
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        if (Number(rate) > 0) setTax.mutate();
+                      }}
+                    >
+                      <Field
+                        id="first-rate"
+                        label="Percentage of income"
+                        className="min-w-[8rem] flex-1"
+                      >
+                        <Input
+                          type="number"
+                          inputMode="decimal"
+                          min="0"
+                          max="100"
+                          placeholder="25"
+                          className="num"
+                          value={rate}
+                          onChange={(event) => setRate(event.target.value)}
+                        />
+                      </Field>
+                      <Button
+                        type="submit"
+                        variant="brand"
+                        className="h-11 md:h-10"
+                        disabled={setTax.isPending}
+                      >
+                        {setTax.isPending ? "Saving…" : "Set"}
+                      </Button>
+                    </form>
+                    <p className="mt-2.5 max-w-prose text-[12px] leading-relaxed text-muted-foreground">
+                      A rough guess is fine — 25% is a common starting point. Check the real figure
+                      with an accountant; this just stops the bill being a surprise.
+                    </p>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
-        {hasRate ? (
-          <p className="mt-1 text-sm text-muted-foreground">
-            You can change this any time under Tools.
-          </p>
-        ) : (
-          <form
-            className="mt-3 flex max-w-sm items-end gap-2"
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (Number(rate) > 0) setTax.mutate();
-            }}
-          >
-            <div className="flex-1 space-y-2">
-              <Label htmlFor="first-rate">Percentage of income</Label>
-              <Input
-                id="first-rate"
-                type="number"
-                inputMode="decimal"
-                min="0"
-                max="100"
-                placeholder="25"
-                value={rate}
-                onChange={(event) => setRate(event.target.value)}
-              />
-            </div>
-            <Button type="submit" disabled={setTax.isPending}>
-              {setTax.isPending ? "Saving…" : "Set"}
-            </Button>
-          </form>
-        )}
-        {!hasRate ? (
-          <p className="mt-2 max-w-md text-xs text-muted-foreground">
-            A rough guess is fine — 25% is a common starting point. Check the real figure with an
-            accountant; this just stops the bill being a surprise.
-          </p>
-        ) : null}
-      </div>
 
-      <button
-        type="button"
-        onClick={hide}
-        className="mt-6 text-xs text-muted-foreground underline-offset-4 hover:underline"
-      >
-        Skip this
-      </button>
+        <div className="flex border-t px-5 py-2.5">
+          <button
+            type="button"
+            onClick={hide}
+            className="-ml-2 inline-flex h-10 items-center rounded-[var(--radius-10)] px-2 text-[12px] text-muted-foreground transition-colors duration-[var(--dur-fast)] ease-[var(--ease)] hover:bg-accent hover:text-foreground"
+          >
+            Skip this
+          </button>
+        </div>
+      </Panel>
     </section>
   );
 }

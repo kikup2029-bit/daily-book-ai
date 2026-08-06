@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, Menu, Moon, Search, Sun, X } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { BrandMark } from "@/components/brand-mark";
 import { CommandPalette } from "@/components/command-palette";
 import { OfflineBar } from "@/components/offline-bar";
 import { HELP_NAV } from "@/lib/help-content";
@@ -99,7 +100,9 @@ const THEME_KEY = "simplebooks.theme";
  */
 function paintStatusBar(light: boolean) {
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute("content", light ? "#ffffff" : "#141413");
+  // These are the two page backgrounds converted out of oklch. They have to
+  // match exactly or there's a visible seam where the status bar meets the app.
+  if (meta) meta.setAttribute("content", light ? "#f9f9fc" : "#0e0f12");
 }
 
 /** Dark by default; the choice sticks between visits. */
@@ -218,13 +221,17 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
         like an app rather than a web page), so the padding has to be added back
         here or the nav sits underneath it.
       */}
-      <header className="pt-safe sticky top-0 z-40 border-b bg-background/85 backdrop-blur">
-        <div className="mx-auto flex h-16 w-full max-w-4xl items-center gap-1 px-5">
+      <header className="pt-safe sticky top-0 z-40 border-b bg-background/80 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-1 px-5 sm:px-6">
           <Link
             to="/dashboard"
-            className="mr-6 text-sm font-semibold tracking-tight text-foreground"
+            className="mr-5 flex items-center gap-2.5 rounded-[var(--radius-8)]"
+            aria-label="SimpleBooks home"
           >
-            SimpleBooks
+            <BrandMark size={30} />
+            <span className="font-display text-[15px] font-semibold tracking-[-0.02em] text-foreground">
+              SimpleBooks
+            </span>
           </Link>
 
           {/* desktop nav */}
@@ -248,8 +255,8 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
                       type="button"
                       onClick={() => setOpenMenu(openMenu === item.label ? null : item.label)}
                       aria-expanded={openMenu === item.label}
-                      className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm transition-colors ${
-                        active ? "text-foreground" : "text-muted-foreground"
+                      className={`flex items-center gap-1.5 rounded-[var(--radius-8)] px-3 py-2 text-[13.5px] font-medium transition-colors duration-[var(--dur-fast)] ${
+                        active ? "bg-accent text-foreground" : "text-muted-foreground"
                       }`}
                     >
                       {item.label}
@@ -258,16 +265,15 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
                           openMenu === item.label ? "rotate-180" : ""
                         }`}
                       />
-                      {active ? (
-                        <span className="absolute inset-x-3 -bottom-[1px] h-[1.5px] bg-foreground" />
-                      ) : null}
                     </button>
                   ) : (
                     <Link
                       to={item.to}
                       onClick={() => item.children && setOpenMenu(null)}
-                      className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm transition-colors ${
-                        active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                      className={`flex items-center gap-1.5 rounded-[var(--radius-8)] px-3 py-2 text-[13.5px] font-medium transition-colors duration-[var(--dur-fast)] ${
+                        active
+                          ? "bg-accent text-foreground"
+                          : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
                       }`}
                     >
                       {item.label}
@@ -278,15 +284,12 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
                           }`}
                         />
                       ) : null}
-                      {active ? (
-                        <span className="absolute inset-x-3 -bottom-[1px] h-[1.5px] bg-foreground" />
-                      ) : null}
                     </Link>
                   )}
 
                   {item.children && openMenu === item.label ? (
                     <div
-                      className="absolute left-0 top-full z-50 w-56 rounded-xl border bg-popover p-1.5 shadow-xl"
+                      className="floating pop absolute left-0 top-[calc(100%+6px)] z-50 w-60 p-1.5"
                       onMouseEnter={() => !touch && openNow(item.label)}
                       onMouseLeave={touch ? undefined : closeSoon}
                     >
@@ -305,9 +308,9 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
                         <Link
                           key={child.to}
                           to={child.to}
-                          className={`block rounded-lg px-3 py-2 text-[13px] transition-colors ${
+                          className={`block rounded-[var(--radius-8)] px-3 py-2 text-[13px] transition-colors duration-[var(--dur-fast)] ${
                             pathname === child.to
-                              ? "bg-accent text-foreground"
+                              ? "bg-brand-soft font-medium text-foreground"
                               : "text-muted-foreground hover:bg-accent hover:text-foreground"
                           }`}
                         >
@@ -329,17 +332,19 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
                   new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true }),
                 )
               }
-              className="hidden items-center gap-2 rounded-lg border px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground sm:flex"
-              aria-label="Open command palette"
+              className="hidden items-center gap-2 rounded-[var(--radius-10)] border border-border bg-surface-1 py-1.5 pl-2.5 pr-2 text-[13px] text-muted-foreground transition-colors duration-[var(--dur-fast)] hover:border-border-strong hover:text-foreground sm:flex"
+              aria-label="Search or jump to a page"
             >
               <Search className="size-3.5" />
-              <span>Search</span>
-              <kbd className="rounded border px-1 py-0.5 text-[10px]">⌘K</kbd>
+              <span className="pr-6">Search…</span>
+              <kbd className="rounded-[6px] border border-border bg-surface-2 px-1.5 py-0.5 font-sans text-[11px] font-medium">
+                ⌘K
+              </kbd>
             </button>
             <button
               type="button"
               onClick={toggle}
-              className="rounded-lg p-2 text-muted-foreground transition-colors hover:text-foreground"
+              className="flex size-9 items-center justify-center rounded-[var(--radius-8)] text-muted-foreground transition-colors duration-[var(--dur-fast)] hover:bg-accent hover:text-foreground"
               aria-label={light ? "Switch to dark" : "Switch to light"}
               title={light ? "Switch to dark" : "Switch to light"}
             >
@@ -371,13 +376,18 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
         <div className="fixed inset-0 z-50 md:hidden">
           <button
             type="button"
-            className="absolute inset-0 bg-black/60"
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             onClick={() => setMobileOpen(false)}
             aria-label="Close menu"
           />
           <div className="pt-safe pb-safe absolute inset-x-0 top-0 max-h-full overflow-y-auto bg-background px-5">
             <div className="flex h-16 items-center justify-between">
-              <span className="text-sm font-semibold tracking-tight">SimpleBooks</span>
+              <span className="flex items-center gap-2.5">
+                <BrandMark size={30} />
+                <span className="font-display text-[15px] font-semibold tracking-[-0.02em]">
+                  SimpleBooks
+                </span>
+              </span>
               <button
                 type="button"
                 onClick={() => setMobileOpen(false)}
@@ -405,8 +415,10 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
                       className="flex w-full items-center justify-between py-4 text-left"
                     >
                       <span
-                        className={`text-[17px] ${
-                          isActive(item) ? "font-semibold text-foreground" : "text-foreground"
+                        className={`text-[16px] ${
+                          isActive(item)
+                            ? "font-semibold text-foreground"
+                            : "font-medium text-foreground"
                         }`}
                       >
                         {item.label}
@@ -425,9 +437,9 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
                             key={child.to}
                             to={child.to}
                             onClick={() => setMobileOpen(false)}
-                            className={`block py-2.5 pl-3 text-[15px] ${
+                            className={`block rounded-[var(--radius-8)] px-3 py-2.5 text-[15px] ${
                               pathname === child.to
-                                ? "font-semibold text-foreground"
+                                ? "bg-brand-soft font-semibold text-foreground"
                                 : "text-muted-foreground"
                             }`}
                           >
@@ -456,7 +468,9 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
 
       {/* ---------- page ---------- */}
       {/* pb-page keeps the last row clear of the iPhone home indicator. */}
-      <main className="pb-page mx-auto w-full max-w-4xl px-5 pt-12">{children}</main>
+      <main className="pb-page mx-auto w-full max-w-6xl px-5 pt-8 sm:px-6 sm:pt-10">
+        {children}
+      </main>
 
       <CommandPalette />
     </div>

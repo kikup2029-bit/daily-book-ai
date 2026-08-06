@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Camera, Loader2, Trash2 } from "lucide-react";
+import { Camera, Trash2 } from "lucide-react";
 
 import { attachReceipt } from "@/lib/books.functions";
 import { deleteReceipt, getReceiptUrl, uploadReceipt } from "@/lib/receipts";
@@ -25,7 +25,12 @@ export function ReceiptThumb({ path, alt = "Receipt photo" }: { path: string; al
   }, [path]);
 
   if (!url) {
-    return <span className="block size-10 shrink-0 animate-pulse rounded-lg bg-muted" />;
+    return (
+      <span
+        className="skeleton block size-10 shrink-0 rounded-[var(--radius-10)]"
+        aria-hidden="true"
+      />
+    );
   }
 
   return (
@@ -33,7 +38,12 @@ export function ReceiptThumb({ path, alt = "Receipt photo" }: { path: string; al
       href={url}
       target="_blank"
       rel="noreferrer"
-      className="block size-10 shrink-0 overflow-hidden rounded-lg border"
+      className={[
+        "block size-10 shrink-0 overflow-hidden rounded-[var(--radius-10)]",
+        "border border-border bg-surface-2",
+        "transition-[border-color,box-shadow] duration-[var(--dur-fast)] ease-[var(--ease)]",
+        "hover:border-border-strong hover:shadow-[var(--shadow-sm)]",
+      ].join(" ")}
       title="View receipt"
     >
       <img src={url} alt={alt} loading="lazy" className="size-full object-cover" />
@@ -75,7 +85,8 @@ export function ReceiptAttachButton({
   const busy = upload.isPending || remove.isPending;
 
   return (
-    <span className="inline-flex items-center gap-1">
+    // Sits inside a row of text, so everything here stays inline-level.
+    <span className="inline-flex items-center gap-0.5">
       <input
         ref={inputRef}
         type="file"
@@ -93,28 +104,37 @@ export function ReceiptAttachButton({
       <Button
         type="button"
         variant="ghost"
-        size="sm"
-        className="h-8 px-2 text-muted-foreground"
+        size="icon-sm"
+        loading={busy}
         disabled={busy}
         onClick={() => inputRef.current?.click()}
         aria-label={currentPath ? "Replace receipt photo" : "Add receipt photo"}
+        title={currentPath ? "Replace receipt photo" : "Add receipt photo"}
       >
-        {busy ? <Loader2 className="size-4 animate-spin" /> : <Camera className="size-4" />}
+        {busy ? null : <Camera className="size-4" aria-hidden="true" />}
       </Button>
       {currentPath ? (
         <Button
           type="button"
           variant="ghost"
-          size="sm"
-          className="h-8 px-2 text-muted-foreground"
+          size="icon-sm"
+          className="hover:text-danger"
           disabled={busy}
           onClick={() => remove.mutate()}
           aria-label="Remove receipt photo"
+          title="Remove receipt photo"
         >
-          <Trash2 className="size-4" />
+          <Trash2 className="size-4" aria-hidden="true" />
         </Button>
       ) : null}
-      {error ? <span className="text-xs text-danger">{error}</span> : null}
+      {error ? (
+        <span
+          role="alert"
+          className="rounded-[var(--radius-8)] bg-danger-soft px-1.5 py-0.5 text-[11px] font-medium text-danger"
+        >
+          {error}
+        </span>
+      ) : null}
     </span>
   );
 }

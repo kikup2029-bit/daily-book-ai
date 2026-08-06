@@ -2,9 +2,12 @@
  * Section components shared by the sidebar routes.
  * Extracted from the original single-page layout so each route can render
  * just the part it needs.
+ *
+ * Visually every section is a panel from the kit, so a page made of one
+ * section and a page made of six line up the same way.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -22,8 +25,20 @@ import { AlertTriangle, ChevronLeft, ChevronRight, Pencil, Trash2, X } from "luc
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import {
+  Alert,
+  Badge,
+  Field,
+  Metric,
+  Money,
+  Panel,
+  PanelBody,
+  PanelHeader,
+  Select,
+  SkeletonRows,
+  formatMoney,
+} from "@/components/ui/kit";
 import { getEntries } from "@/lib/books.functions";
 import {
   getBudgets,
@@ -38,9 +53,6 @@ import {
 } from "@/lib/planning.functions";
 import { getInsights } from "@/lib/shop.functions";
 import { EmptyState, SampleRows } from "@/components/empty-state";
-
-const money = (value: number) =>
-  value.toLocaleString(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 2 });
 
 const monthKey = (date: Date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
@@ -71,6 +83,57 @@ const CHART_COLORS = [
   "var(--color-chart-4)",
   "var(--color-chart-5)",
 ];
+
+/* Charts borrow the same surface, border and radius as everything else, so a
+   tooltip doesn't look like it came from a different app. */
+const TOOLTIP_STYLE = {
+  background: "var(--color-popover)",
+  border: "1px solid var(--color-border-strong)",
+  borderRadius: "var(--radius-10)",
+  boxShadow: "var(--shadow-md)",
+  padding: "6px 10px",
+  fontSize: 12,
+};
+const TOOLTIP_LABEL_STYLE = { color: "var(--color-muted-foreground)", fontSize: 11 };
+const TOOLTIP_ITEM_STYLE = { color: "var(--color-foreground)" };
+const AXIS_TICK = { fontSize: 10, fill: "var(--color-muted-foreground)" };
+
+/** A small square of colour beside a chart legend entry. */
+function Swatch({ color }: { color: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className="size-2.5 shrink-0 rounded-[3px]"
+      style={{ background: color }}
+    />
+  );
+}
+
+/** An icon-only control that still hits the 40px touch target. */
+function IconAction({
+  label,
+  onClick,
+  danger = false,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  danger?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon"
+      aria-label={label}
+      onClick={onClick}
+      className={danger ? "hover:text-danger" : undefined}
+    >
+      {children}
+    </Button>
+  );
+}
 
 export type MonthPart =
   "totals" | "categories" | "daybyday" | "budgets" | "goals" | "recurring" | "bills";
@@ -172,157 +235,190 @@ export function MonthlyPage({ parts = ALL_PARTS }: { parts?: MonthPart[] } = {})
   });
 
   const alerts = budgetRows.filter((row) => row.pct >= 80);
+  const anyOver = alerts.some((row) => row.pct >= 100);
+
+  const netLabel =
+    net > 0 ? "Profit this month" : net < 0 ? "Loss this month" : "Break even this month";
 
   return (
-    <div className="rise mx-auto w-full max-w-3xl">
-      <section className="py-8">
-        <div className="flex items-center justify-between gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            aria-label="Previous month"
-            onClick={() => setMonth((current) => shiftMonth(current, -1))}
-          >
-            <ChevronLeft className="size-4" />
-          </Button>
-          <h2 className="text-xl">{monthLabel(month)}</h2>
-          <Button
-            variant="outline"
-            size="icon"
-            aria-label="Next month"
-            onClick={() => setMonth((current) => shiftMonth(current, 1))}
-          >
-            <ChevronRight className="size-4" />
-          </Button>
+    <div className="rise mx-auto w-full max-w-3xl space-y-6">
+      {/* ---------- Month switcher ---------- */}
+      <header className="flex items-center justify-between gap-3">
+        <Button
+          variant="outline"
+          size="icon"
+          aria-label="Previous month"
+          onClick={() => setMonth((current) => shiftMonth(current, -1))}
+        >
+          <ChevronLeft className="size-4" aria-hidden="true" />
+        </Button>
+        <div className="min-w-0 text-center" aria-live="polite">
+          <h1 className="truncate text-[20px] leading-tight sm:text-[24px]">{monthLabel(month)}</h1>
         </div>
+        <Button
+          variant="outline"
+          size="icon"
+          aria-label="Next month"
+          onClick={() => setMonth((current) => shiftMonth(current, 1))}
+        >
+          <ChevronRight className="size-4" aria-hidden="true" />
+        </Button>
+      </header>
 
-        {alerts.length > 0 ? (
-          <div
-            className={`mt-4 flex items-start gap-2 rounded-2xl p-3 text-sm ${
-              alerts.some((row) => row.pct >= 100)
-                ? "bg-danger-soft text-danger"
-                : "bg-secondary text-secondary-foreground"
-            }`}
-          >
-            <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-            <p>
-              {alerts
-                .map((row) =>
-                  row.pct >= 100
-                    ? `${row.category} is over budget`
-                    : `${row.category} is at ${Math.round(row.pct)}% of budget`,
-                )
-                .join(" · ")}
-            </p>
-          </div>
-        ) : null}
+      {alerts.length > 0 ? (
+        <Alert
+          tone={anyOver ? "negative" : "warning"}
+          title={
+            <span className="flex items-start gap-2">
+              <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+              <span className="min-w-0">
+                {alerts
+                  .map((row) =>
+                    row.pct >= 100
+                      ? `${row.category} is over budget`
+                      : `${row.category} is at ${Math.round(row.pct)}% of budget`,
+                  )
+                  .join(" · ")}
+              </span>
+            </span>
+          }
+        />
+      ) : null}
 
-        {show("totals") ? (
-          <>
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <div className="">
-                <p className="eyebrow text-success">Money in</p>
-                <p className="figure mt-2 text-4xl">{money(totalIn)}</p>
-              </div>
-              <div className="">
-                <p className="eyebrow text-danger">Money out</p>
-                <p className="figure mt-2 text-4xl">{money(totalOut)}</p>
-              </div>
+      {/* ---------- Money in, money out, net ---------- */}
+      {show("totals") ? (
+        <Panel>
+          <PanelBody className="pt-5">
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <Metric
+                label="Money in"
+                tone="positive"
+                loading={isLoading}
+                value={<Money value={totalIn} />}
+              />
+              <Metric
+                label="Money out"
+                tone="negative"
+                loading={isLoading}
+                value={<Money value={totalOut} />}
+              />
             </div>
 
-            <div
-              className={`mt-3 rounded-2xl p-4 text-center ${
-                net > 0
-                  ? "bg-success text-success-foreground"
-                  : net < 0
-                    ? "bg-danger text-danger-foreground"
-                    : "bg-muted text-foreground"
-              }`}
-            >
-              <p className="text-sm font-semibold">
-                {net > 0
-                  ? "Profit this month"
-                  : net < 0
-                    ? "Loss this month"
-                    : "Break even this month"}
-              </p>
-              <p className="figure mt-2 text-5xl">{money(Math.abs(net))}</p>
+            <div className="mt-6 border-t pt-6">
+              <Metric
+                label={netLabel}
+                emphasis="hero"
+                loading={isLoading}
+                value={<Money value={net} signed />}
+              />
             </div>
-          </>
-        ) : null}
+          </PanelBody>
+        </Panel>
+      ) : isLoading ? (
+        <span className="skeleton block h-4 w-40" />
+      ) : null}
 
-        {isLoading ? <span className="skeleton mt-4 block h-4 w-40" /> : null}
-      </section>
-
+      {/* ---------- Where the money went ---------- */}
       {show("categories") ? (
-        <section className="border-t py-8">
-          <h2 className="text-xl">Where the money went</h2>
-          {byCategory.length === 0 ? (
-            <EmptyState
-              title="Nothing spent this month yet"
-              blurb="Once you log expenses, this shows exactly which categories your money went to, biggest first."
-              sample={<SampleRows rows={4} />}
+        byCategory.length === 0 ? (
+          <EmptyState
+            title="Nothing spent this month yet"
+            blurb="Once you log expenses, this shows exactly which categories your money went to, biggest first."
+            sample={<SampleRows rows={4} />}
+          />
+        ) : (
+          <Panel>
+            <PanelHeader
+              title="Where the money went"
+              description="Every expense this month, biggest first."
             />
-          ) : (
-            <>
-              <div className="mt-2 h-56 w-full">
+            <PanelBody>
+              <div className="h-56 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Pie data={byCategory} dataKey="amount" nameKey="name" outerRadius={80} label>
+                    <Pie
+                      data={byCategory}
+                      dataKey="amount"
+                      nameKey="name"
+                      outerRadius={78}
+                      innerRadius={44}
+                      paddingAngle={1}
+                      stroke="var(--color-surface-1)"
+                      strokeWidth={2}
+                    >
                       {byCategory.map((row, index) => (
                         <Cell key={row.name} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value: number) => money(value)} />
+                    <Tooltip
+                      formatter={(value: number) => formatMoney(value)}
+                      contentStyle={TOOLTIP_STYLE}
+                      labelStyle={TOOLTIP_LABEL_STYLE}
+                      itemStyle={TOOLTIP_ITEM_STYLE}
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
-              <ul className="mt-2 divide-y">
+
+              <ul className="divide-hairline mt-2">
                 {byCategory.map((row, index) => (
-                  <li key={row.name} className="flex items-center justify-between py-2 text-sm">
-                    <span className="flex items-center gap-2">
-                      <span
-                        className="size-3 rounded-full"
-                        style={{ background: CHART_COLORS[index % CHART_COLORS.length] }}
-                      />
-                      {row.name}
+                  <li
+                    key={row.name}
+                    className="flex items-center justify-between gap-3 py-2.5 text-sm"
+                  >
+                    <span className="flex min-w-0 items-center gap-2">
+                      <Swatch color={CHART_COLORS[index % CHART_COLORS.length]} />
+                      <span className="truncate">{row.name}</span>
                     </span>
-                    <span className="tabular-nums font-semibold">{money(row.amount)}</span>
+                    <Money value={row.amount} className="shrink-0 font-medium" />
                   </li>
                 ))}
               </ul>
-            </>
-          )}
-        </section>
+            </PanelBody>
+          </Panel>
+        )
       ) : null}
 
+      {/* ---------- Day by day ---------- */}
       {show("daybyday") ? (
-        <section className="border-t py-8">
-          <h2 className="text-xl">Day by day</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Green bars are good days, red are not.
-          </p>
-          <div className="mt-3 h-48 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={dailyNet}>
-                <XAxis dataKey="day" tick={{ fontSize: 10 }} interval={4} />
-                <YAxis tick={{ fontSize: 10 }} width={40} />
-                <Tooltip
-                  formatter={(value: number) => money(value)}
-                  labelFormatter={(label) => `Day ${label}`}
-                />
-                <Bar dataKey="net" radius={[4, 4, 0, 0]}>
-                  {dailyNet.map((row) => (
-                    <Cell
-                      key={row.day}
-                      fill={row.net < 0 ? "var(--color-danger)" : "var(--color-success)"}
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </section>
+        <Panel>
+          <PanelHeader
+            title="Day by day"
+            description="Each bar is that day's net. Bars above the line are days you came out ahead, below the line are days you didn't."
+          />
+          <PanelBody>
+            <div className="h-48 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={dailyNet} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+                  <XAxis
+                    dataKey="day"
+                    tick={AXIS_TICK}
+                    interval={4}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis tick={AXIS_TICK} width={44} axisLine={false} tickLine={false} />
+                  <Tooltip
+                    formatter={(value: number) => formatMoney(value)}
+                    labelFormatter={(label) => `Day ${label}`}
+                    cursor={{ fill: "var(--color-accent)" }}
+                    contentStyle={TOOLTIP_STYLE}
+                    labelStyle={TOOLTIP_LABEL_STYLE}
+                    itemStyle={TOOLTIP_ITEM_STYLE}
+                  />
+                  <Bar dataKey="net" radius={[4, 4, 0, 0]}>
+                    {dailyNet.map((row) => (
+                      <Cell
+                        key={row.day}
+                        fill={row.net < 0 ? "var(--color-danger)" : "var(--color-success)"}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </PanelBody>
+        </Panel>
       ) : null}
 
       {show("budgets") ? (
@@ -344,9 +440,11 @@ export function InsightsSection() {
 
   if (isLoading) {
     return (
-      <section className="border-t py-8">
-        <span className="skeleton block h-4 w-48" />
-      </section>
+      <Panel aria-busy="true">
+        <PanelBody className="pt-5">
+          <SkeletonRows rows={3} />
+        </PanelBody>
+      </Panel>
     );
   }
   if (!data) return null;
@@ -354,134 +452,145 @@ export function InsightsSection() {
   const { forecast, tax, dayPatterns, digest } = data;
 
   return (
-    <>
+    <div className="space-y-6">
       {/* ---------- Weekly digest ---------- */}
-      <section className="border-t py-8">
-        <h2 className="text-xl">Your week in plain English</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {digest.weekFrom} to {digest.weekTo}
-        </p>
-        <ul className="mt-3 space-y-1.5 text-sm">
-          {digest.lines.map((line, index) => (
-            <li key={index} className="flex gap-2">
-              <span className="text-muted-foreground">•</span>
-              <span>{line}</span>
-            </li>
-          ))}
-        </ul>
-      </section>
+      <Panel>
+        <PanelHeader
+          title="Your week in plain English"
+          description={
+            <span className="num">
+              {digest.weekFrom} to {digest.weekTo}
+            </span>
+          }
+        />
+        <PanelBody>
+          <ul className="space-y-2.5 text-sm">
+            {digest.lines.map((line, index) => (
+              <li key={index} className="flex gap-2.5">
+                <span
+                  aria-hidden="true"
+                  className="mt-[0.45rem] size-1.5 shrink-0 rounded-full bg-brand"
+                />
+                <span className="min-w-0">{line}</span>
+              </li>
+            ))}
+          </ul>
+        </PanelBody>
+      </Panel>
 
       {/* ---------- Cash runway ---------- */}
-      <section className="border-t py-8">
-        <h2 className="text-xl">Can you cover what&apos;s coming?</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Next {forecast.horizonDays} days, based on your last {forecast.basedOnDays} days and the
-          bills you&apos;ve set up.
-        </p>
-
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          <div className="">
-            <p className="eyebrow">Where you are</p>
-            <p className="figure mt-2 text-3xl">{money(forecast.currentNet)}</p>
+      <Panel>
+        <PanelHeader
+          title="Can you cover what's coming?"
+          description={`Next ${forecast.horizonDays} days, based on your last ${forecast.basedOnDays} days and the bills you've set up.`}
+        />
+        <PanelBody className="space-y-5">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <Metric label="Where you are" value={<Money value={forecast.currentNet} signed />} />
+            <Metric
+              label={`In ${forecast.horizonDays} days`}
+              value={<Money value={forecast.projectedNet} signed />}
+            />
           </div>
-          <div
-            className={`rounded-2xl p-3 ${
-              forecast.projectedNet >= 0 ? "bg-success-soft" : "bg-danger-soft"
-            }`}
-          >
-            <p
-              className={`text-xs font-semibold uppercase tracking-wide ${
-                forecast.projectedNet >= 0 ? "text-success" : "text-danger"
-              }`}
+
+          {forecast.shortfallDate ? (
+            <Alert
+              tone="negative"
+              title={`Heads up — you could run short around ${forecast.shortfallDate}.`}
             >
-              In {forecast.horizonDays} days
-            </p>
-            <p className="figure mt-2 text-3xl">
-              {forecast.projectedNet < 0 ? "−" : ""}
-              {money(forecast.projectedNet)}
-            </p>
-          </div>
-        </div>
+              <span>
+                Lowest point is <Money value={forecast.lowestPoint.balance} signed /> on{" "}
+                <span className="num">{forecast.lowestPoint.date}</span>.
+              </span>
+            </Alert>
+          ) : (
+            <Alert tone="positive" title="You stay in the black the whole time.">
+              <span>
+                Lowest point is <Money value={forecast.lowestPoint.balance} signed /> on{" "}
+                <span className="num">{forecast.lowestPoint.date}</span>.
+              </span>
+            </Alert>
+          )}
 
-        {forecast.shortfallDate ? (
-          <div className="mt-4 border-l-2 border-danger pl-4">
-            <p className="text-sm font-semibold">
-              Heads up — you could run short around {forecast.shortfallDate}.
-            </p>
-            <p className="mt-0.5 text-xs">
-              Lowest point is {money(forecast.lowestPoint.balance)} on {forecast.lowestPoint.date}.
-            </p>
-          </div>
-        ) : (
-          <p className="mt-3 text-sm text-success">
-            You stay in the black the whole time — lowest point is{" "}
-            {money(forecast.lowestPoint.balance)} on {forecast.lowestPoint.date}.
+          <p className="text-[13px] text-muted-foreground">
+            Typical day: <Money value={forecast.dailyIn} className="text-foreground" /> in,{" "}
+            <Money value={forecast.dailyOut} className="text-foreground" /> out.
           </p>
-        )}
 
-        <p className="mt-3 text-sm text-muted-foreground">
-          Typical day: {money(forecast.dailyIn)} in, {money(forecast.dailyOut)} out.
-        </p>
+          {forecast.upcomingBills.length > 0 ? (
+            <div className="rounded-[var(--radius-12)] border bg-surface-2 px-4 py-3">
+              <p className="eyebrow">Bills coming up</p>
+              <ul className="divide-hairline mt-1">
+                {forecast.upcomingBills.slice(0, 6).map((bill, index) => (
+                  <li
+                    key={index}
+                    className="flex items-center justify-between gap-3 py-2 text-[13px] sm:text-sm"
+                  >
+                    <span className="min-w-0 truncate">
+                      <span className="font-medium">{bill.category}</span>
+                      <span className="num ml-2 text-muted-foreground">{bill.due}</span>
+                    </span>
+                    <Money value={bill.amount} className="shrink-0" />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
 
-        {forecast.upcomingBills.length > 0 ? (
-          <div className="mt-3 border-t pt-3">
-            <p className="eyebrow">Bills coming up</p>
-            <ul className="mt-2 space-y-1 text-sm">
-              {forecast.upcomingBills.slice(0, 6).map((bill, index) => (
-                <li key={index} className="flex justify-between gap-2">
-                  <span>
-                    {bill.category} <span className="text-muted-foreground">· {bill.due}</span>
-                  </span>
-                  <span className="tabular-nums">{money(bill.amount)}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-
-        {forecast.lowConfidence ? (
-          <p className="mt-3 text-xs text-muted-foreground">
-            This is a rough guess — you&apos;ve only got {forecast.basedOnDays} days logged. It gets
-            more accurate as you keep going.
-          </p>
-        ) : null}
-      </section>
+          {forecast.lowConfidence ? (
+            <p className="text-xs text-muted-foreground">
+              This is a rough guess — you&apos;ve only got{" "}
+              <span className="num">{forecast.basedOnDays}</span> days logged. It gets more accurate
+              as you keep going.
+            </p>
+          ) : null}
+        </PanelBody>
+      </Panel>
 
       {/* ---------- Tax jar ---------- */}
-      <section className="border-t py-8">
-        <h2 className="text-xl">Tax set-aside</h2>
-        {tax.ratePercent <= 0 ? (
-          <p className="mt-1 text-sm text-muted-foreground">
-            Set a percentage on the Tools tab and I&apos;ll keep a running total of what to hold
-            back for tax.
-          </p>
-        ) : (
-          <>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Holding back {tax.ratePercent}% of the {money(tax.incomeInPeriod)} you&apos;ve taken
-              in {tax.periodLabel}.
+      <Panel>
+        <PanelHeader
+          className={tax.ratePercent <= 0 ? "pb-5" : undefined}
+          title="Tax set-aside"
+          description={
+            tax.ratePercent <= 0
+              ? "Set a percentage on the Tools tab and I'll keep a running total of what to hold back for tax."
+              : undefined
+          }
+        />
+        {tax.ratePercent > 0 ? (
+          <PanelBody className="space-y-6">
+            <p className="text-[13px] text-muted-foreground">
+              Holding back <span className="num text-foreground">{tax.ratePercent}%</span> of the{" "}
+              <Money value={tax.incomeInPeriod} className="text-foreground" /> you&apos;ve taken in{" "}
+              {tax.periodLabel}.
             </p>
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <div className="">
-                <p className="eyebrow">Should set aside</p>
-                <p className="figure mt-2 text-3xl">{money(tax.shouldHaveSetAside)}</p>
-              </div>
-              <div className="">
-                <p className="eyebrow text-success">Already paid</p>
-                <p className="figure mt-2 text-3xl">{money(tax.alreadyPaid)}</p>
-              </div>
+
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <Metric
+                label="Should set aside"
+                emphasis="compact"
+                value={<Money value={tax.shouldHaveSetAside} />}
+              />
+              <Metric
+                label="Already paid"
+                emphasis="compact"
+                tone="positive"
+                value={<Money value={tax.alreadyPaid} />}
+              />
             </div>
-            <div className="mt-8 border-t pt-6">
-              <p className="text-sm font-semibold">Still to put aside</p>
-              <p className="figure mt-2 text-5xl">{money(tax.stillToSetAside)}</p>
+
+            <div className="border-t pt-6">
+              <Metric
+                label="Still to put aside"
+                emphasis="hero"
+                value={<Money value={tax.stillToSetAside} />}
+                hint="Log tax payments with “tax” in the category and they’ll count here. Not tax advice — confirm your rate with an accountant."
+              />
             </div>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Log tax payments with &ldquo;tax&rdquo; in the category and they&apos;ll count here.
-              Not tax advice — confirm your rate with an accountant.
-            </p>
-          </>
-        )}
-      </section>
+          </PanelBody>
+        ) : null}
+      </Panel>
 
       {/* ---------- Bill calendar ---------- */}
       <BillCalendarSection calendar={data.calendar} />
@@ -491,49 +600,61 @@ export function InsightsSection() {
 
       {/* ---------- Day patterns ---------- */}
       {dayPatterns.enoughData && dayPatterns.best && dayPatterns.worst ? (
-        <section className="border-t py-8">
-          <h2 className="text-xl">Your busy and quiet days</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Average money in per day of the week.
-          </p>
-
-          <div className="mt-4 space-y-2">
-            {[...dayPatterns.patterns]
-              .sort((a, b) => b.averageIn - a.averageIn)
-              .map((pattern) => {
-                const max = dayPatterns.best!.averageIn || 1;
-                const width = Math.max(2, (pattern.averageIn / max) * 100);
-                return (
-                  <div key={pattern.weekday} className="flex items-center gap-3 text-sm">
-                    <span className="w-20 shrink-0 text-muted-foreground">{pattern.label}</span>
-                    <span className="h-2.5 flex-1 overflow-hidden rounded-full bg-muted">
+        <Panel>
+          <PanelHeader
+            title="Your busy and quiet days"
+            description="Average money in per day of the week."
+          />
+          <PanelBody className="space-y-5">
+            <div className="space-y-2.5">
+              {[...dayPatterns.patterns]
+                .sort((a, b) => b.averageIn - a.averageIn)
+                .map((pattern) => {
+                  const max = dayPatterns.best!.averageIn || 1;
+                  const width = Math.max(2, (pattern.averageIn / max) * 100);
+                  return (
+                    <div
+                      key={pattern.weekday}
+                      className="flex items-center gap-3 text-[13px] sm:text-sm"
+                    >
+                      <span className="w-[68px] shrink-0 truncate text-muted-foreground sm:w-20">
+                        {pattern.label}
+                      </span>
                       <span
-                        className="block h-full rounded-full bg-primary"
-                        style={{ width: `${width}%` }}
+                        aria-hidden="true"
+                        className="h-2.5 min-w-0 flex-1 overflow-hidden rounded-full bg-surface-3"
+                      >
+                        <span
+                          className="block h-full rounded-full bg-brand transition-[width] duration-[var(--dur)] ease-[var(--ease)]"
+                          style={{ width: `${width}%` }}
+                        />
+                      </span>
+                      <Money
+                        value={pattern.averageIn}
+                        className="w-[76px] shrink-0 text-right sm:w-24"
                       />
-                    </span>
-                    <span className="w-20 shrink-0 text-right tabular-nums">
-                      {money(pattern.averageIn)}
-                    </span>
-                  </div>
-                );
-              })}
-          </div>
+                    </div>
+                  );
+                })}
+            </div>
 
-          <p className="mt-4 text-sm">
-            <span className="font-semibold">{dayPatterns.best.label}</span> is your best day
-            {dayPatterns.best.vsAverage > 5
-              ? ` (${Math.round(dayPatterns.best.vsAverage)}% above your average)`
-              : ""}
-            , and <span className="font-semibold">{dayPatterns.worst.label}</span> is your quietest
-            {dayPatterns.worst.vsAverage < -5
-              ? ` (${Math.round(Math.abs(dayPatterns.worst.vsAverage))}% below)`
-              : ""}
-            .
-          </p>
-        </section>
+            <p className="text-sm text-muted-foreground">
+              <span className="font-semibold text-foreground">{dayPatterns.best.label}</span> is
+              your best day
+              {dayPatterns.best.vsAverage > 5
+                ? ` (${Math.round(dayPatterns.best.vsAverage)}% above your average)`
+                : ""}
+              , and <span className="font-semibold text-foreground">{dayPatterns.worst.label}</span>{" "}
+              is your quietest
+              {dayPatterns.worst.vsAverage < -5
+                ? ` (${Math.round(Math.abs(dayPatterns.worst.vsAverage))}% below)`
+                : ""}
+              .
+            </p>
+          </PanelBody>
+        </Panel>
       ) : null}
-    </>
+    </div>
   );
 }
 
@@ -557,24 +678,34 @@ export function BillCalendarSection({
   const total = calendar.reduce((sum, b) => sum + b.amount, 0);
 
   return (
-    <section className="border-t py-8">
-      <h2 className="text-xl">What&apos;s due</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        {money(total)} of bills over the next 45 days.
-      </p>
-
-      <div className="mt-4 space-y-4">
+    <Panel>
+      <PanelHeader
+        title="What's due"
+        description={
+          <>
+            <Money value={total} className="text-foreground" /> of bills over the next 45 days.
+          </>
+        }
+      />
+      <PanelBody className="space-y-5">
         {groups.map((group) => (
           <div key={group.heading}>
-            <p className="eyebrow">
-              {group.heading} · {money(group.bills.reduce((s, b) => s + b.amount, 0))}
-            </p>
-            <ul className="mt-2 divide-y">
+            <div className="flex items-baseline justify-between gap-3">
+              <p className="eyebrow">{group.heading}</p>
+              <Money
+                value={group.bills.reduce((s, b) => s + b.amount, 0)}
+                className="text-[12px] text-muted-foreground"
+              />
+            </div>
+            <ul className="divide-hairline mt-1">
               {group.bills.map((bill, index) => (
-                <li key={index} className="flex items-center justify-between gap-2 py-2 text-sm">
+                <li
+                  key={index}
+                  className="flex items-center justify-between gap-3 py-2.5 text-[13px] sm:text-sm"
+                >
                   <span className="min-w-0">
-                    <span className="font-semibold">{bill.category}</span>
-                    <span className="ml-2 text-muted-foreground">
+                    <span className="block truncate font-medium">{bill.category}</span>
+                    <span className="num mt-0.5 block text-[12px] text-muted-foreground">
                       {bill.due}
                       {bill.daysAway === 0
                         ? " · today"
@@ -583,20 +714,18 @@ export function BillCalendarSection({
                           : ` · in ${bill.daysAway} days`}
                     </span>
                   </span>
-                  <span
-                    className={`shrink-0 tabular-nums ${
-                      bill.daysAway <= 5 ? "font-semibold text-danger" : ""
-                    }`}
-                  >
-                    {money(bill.amount)}
-                  </span>
+                  <Money
+                    value={bill.amount}
+                    tone={bill.daysAway <= 5 ? "negative" : "neutral"}
+                    className={bill.daysAway <= 5 ? "shrink-0 font-semibold" : "shrink-0"}
+                  />
                 </li>
               ))}
             </ul>
           </div>
         ))}
-      </div>
-    </section>
+      </PanelBody>
+    </Panel>
   );
 }
 
@@ -644,54 +773,55 @@ export function DetectedRecurringSection({
   if (visible.length === 0) return null;
 
   return (
-    <section className="border-t py-8">
-      <h2 className="text-xl">Looks like a regular bill</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        I spotted these repeating in your entries. Track them and they&apos;ll show up in your
-        outlook and bill reminders.
-      </p>
-
-      <ul className="mt-4 space-y-3">
-        {visible.map((item) => (
-          <li key={item.label} className="rounded-2xl border p-3">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className="font-semibold">
-                  {item.label}{" "}
-                  {item.confidence === "medium" ? (
-                    <span className="text-xs font-normal text-muted-foreground">(maybe)</span>
-                  ) : null}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {money(item.amount)} {item.frequency} · seen {item.occurrences} times · next
-                  around {item.nextExpected}
-                </p>
-              </div>
-              <button
-                type="button"
-                aria-label={`Dismiss ${item.label}`}
-                onClick={() => setDismissed((prev) => [...prev, item.label])}
-                className="text-muted-foreground hover:text-danger"
-              >
-                <X className="size-4" />
-              </button>
-            </div>
-            <Button
-              type="button"
-              size="sm"
-              className="mt-3 w-full"
-              disabled={accept.isPending}
-              onClick={() => {
-                accept.mutate(item);
-                setDismissed((prev) => [...prev, item.label]);
-              }}
+    <Panel>
+      <PanelHeader
+        title="Looks like a regular bill"
+        description="I spotted these repeating in your entries. Track them and they'll show up in your outlook and bill reminders."
+      />
+      <PanelBody>
+        <ul className="space-y-3">
+          {visible.map((item) => (
+            <li
+              key={item.label}
+              className="rounded-[var(--radius-12)] border bg-surface-2 px-4 py-3"
             >
-              Track this bill
-            </Button>
-          </li>
-        ))}
-      </ul>
-    </section>
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="flex flex-wrap items-center gap-2 text-sm font-semibold">
+                    <span className="truncate">{item.label}</span>
+                    {item.confidence === "medium" ? <Badge tone="warning">maybe</Badge> : null}
+                  </p>
+                  <p className="mt-1 text-[12px] text-muted-foreground">
+                    <Money value={item.amount} /> {item.frequency} · seen{" "}
+                    <span className="num">{item.occurrences}</span> times · next around{" "}
+                    <span className="num">{item.nextExpected}</span>
+                  </p>
+                </div>
+                <IconAction
+                  label={`Dismiss ${item.label}`}
+                  danger
+                  onClick={() => setDismissed((prev) => [...prev, item.label])}
+                >
+                  <X className="size-4" aria-hidden="true" />
+                </IconAction>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                className="mt-3 w-full"
+                disabled={accept.isPending}
+                onClick={() => {
+                  accept.mutate(item);
+                  setDismissed((prev) => [...prev, item.label]);
+                }}
+              >
+                Track this bill
+              </Button>
+            </li>
+          ))}
+        </ul>
+      </PanelBody>
+    </Panel>
   );
 }
 
@@ -733,117 +863,112 @@ export function GoalsSection() {
   });
 
   return (
-    <section className="border-t py-8">
-      <h2 className="text-xl">Savings goals</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Something you're putting money aside for — track how close you are.
-      </p>
-
-      {goals.length > 0 ? (
-        <ul className="mt-4 space-y-4">
-          {goals.map((goal) => {
-            const share =
-              goal.target_amount > 0 ? (goal.saved_amount / goal.target_amount) * 100 : 0;
-            const remaining = Math.max(0, goal.target_amount - goal.saved_amount);
-            return (
-              <li key={goal.id}>
-                <div className="flex items-center justify-between gap-2 text-sm">
-                  <span className="font-semibold">{goal.name}</span>
-                  <span className="flex items-center gap-2 tabular-nums">
-                    {money(goal.saved_amount)} / {money(goal.target_amount)}
-                    {share >= 100 ? (
-                      <span className="rounded-full bg-success px-2 py-0.5 text-xs font-semibold text-success-foreground">
-                        Reached
+    <Panel>
+      <PanelHeader
+        title="Savings goals"
+        description="Something you're putting money aside for — track how close you are."
+      />
+      <PanelBody className="space-y-5">
+        {goals.length > 0 ? (
+          <ul className="space-y-4">
+            {goals.map((goal) => {
+              const share =
+                goal.target_amount > 0 ? (goal.saved_amount / goal.target_amount) * 100 : 0;
+              const remaining = Math.max(0, goal.target_amount - goal.saved_amount);
+              return (
+                <li key={goal.id}>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="min-w-0 truncate text-sm font-semibold">{goal.name}</span>
+                    <span className="flex shrink-0 items-center gap-2">
+                      {share >= 100 ? <Badge tone="positive">Reached</Badge> : null}
+                      <span className="num text-[13px] text-muted-foreground">
+                        {formatMoney(goal.saved_amount)} / {formatMoney(goal.target_amount)}
                       </span>
-                    ) : null}
-                    <button
-                      type="button"
-                      aria-label={`Remove ${goal.name} goal`}
-                      onClick={() => remove.mutate(goal.id)}
-                      className="text-muted-foreground hover:text-danger"
-                    >
-                      <X className="size-4" />
-                    </button>
-                  </span>
-                </div>
-                <Progress value={Math.min(share, 100)} className="mt-2 h-2" />
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {remaining > 0 ? `${money(remaining)} to go` : "Goal reached"}
-                  {goal.target_date ? ` · by ${goal.target_date}` : ""}
-                </p>
-              </li>
-            );
-          })}
-        </ul>
-      ) : (
-        <p className="mt-3 text-sm text-muted-foreground">No goals yet.</p>
-      )}
+                      <IconAction
+                        label={`Remove ${goal.name} goal`}
+                        danger
+                        onClick={() => remove.mutate(goal.id)}
+                      >
+                        <X className="size-4" aria-hidden="true" />
+                      </IconAction>
+                    </span>
+                  </div>
+                  <Progress
+                    value={Math.min(share, 100)}
+                    className={`mt-2 h-2 bg-surface-3 ${
+                      share >= 100 ? "[&>div]:bg-success" : "[&>div]:bg-brand"
+                    }`}
+                  />
+                  <p className="mt-1.5 text-[12px] text-muted-foreground">
+                    {remaining > 0 ? `${formatMoney(remaining)} to go` : "Goal reached"}
+                    {goal.target_date ? ` · by ${goal.target_date}` : ""}
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p className="text-sm text-muted-foreground">No goals yet.</p>
+        )}
 
-      <form
-        className="mt-5 space-y-3 border-t pt-4"
-        onSubmit={(event) => {
-          event.preventDefault();
-          const targetAmount = Number(target || 0);
-          if (!name.trim() || !(targetAmount > 0)) return;
-          save.mutate({
-            name: name.trim(),
-            target_amount: targetAmount,
-            saved_amount: Number(saved || 0),
-            target_date: targetDate || null,
-          });
-        }}
-      >
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="goal-name">What for?</Label>
-            <Input
-              id="goal-name"
-              placeholder="New oven"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-            />
+        <form
+          className="space-y-4 border-t pt-5"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const targetAmount = Number(target || 0);
+            if (!name.trim() || !(targetAmount > 0)) return;
+            save.mutate({
+              name: name.trim(),
+              target_amount: targetAmount,
+              saved_amount: Number(saved || 0),
+              target_date: targetDate || null,
+            });
+          }}
+        >
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field id="goal-name" label="What for?">
+              <Input
+                placeholder="New oven"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+              />
+            </Field>
+            <Field id="goal-target" label="Target amount">
+              <Input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                step="0.01"
+                placeholder="2000"
+                value={target}
+                onChange={(event) => setTarget(event.target.value)}
+              />
+            </Field>
+            <Field id="goal-saved" label="Saved so far">
+              <Input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                step="0.01"
+                placeholder="0"
+                value={saved}
+                onChange={(event) => setSaved(event.target.value)}
+              />
+            </Field>
+            <Field id="goal-date" label="Target date (optional)">
+              <Input
+                type="date"
+                value={targetDate}
+                onChange={(event) => setTargetDate(event.target.value)}
+              />
+            </Field>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="goal-target">Target amount</Label>
-            <Input
-              id="goal-target"
-              type="number"
-              inputMode="decimal"
-              min="0"
-              step="0.01"
-              placeholder="2000"
-              value={target}
-              onChange={(event) => setTarget(event.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="goal-saved">Saved so far</Label>
-            <Input
-              id="goal-saved"
-              type="number"
-              inputMode="decimal"
-              min="0"
-              step="0.01"
-              placeholder="0"
-              value={saved}
-              onChange={(event) => setSaved(event.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="goal-date">Target date (optional)</Label>
-            <Input
-              id="goal-date"
-              type="date"
-              value={targetDate}
-              onChange={(event) => setTargetDate(event.target.value)}
-            />
-          </div>
-        </div>
-        <Button type="submit" className="w-full" disabled={save.isPending}>
-          {save.isPending ? "Saving…" : "Save goal"}
-        </Button>
-      </form>
-    </section>
+          <Button type="submit" className="w-full" loading={save.isPending}>
+            {save.isPending ? "Saving…" : "Save goal"}
+          </Button>
+        </form>
+      </PanelBody>
+    </Panel>
   );
 }
 
@@ -877,94 +1002,94 @@ export function BudgetsSection({
   });
 
   return (
-    <section className="border-t py-8">
-      <h2 className="text-xl">Budget limits</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Set a monthly cap per category and watch the bars.
-      </p>
+    <Panel>
+      <PanelHeader
+        title="Budget limits"
+        description="Set a monthly cap per category and watch the bars."
+      />
+      <PanelBody className="space-y-5">
+        {rows.length > 0 ? (
+          <ul className="space-y-4">
+            {rows.map((row) => (
+              <li key={row.id}>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="min-w-0 truncate text-sm font-semibold">{row.category}</span>
+                  <span className="flex shrink-0 items-center gap-2">
+                    {row.pct >= 100 ? (
+                      <Badge tone="negative">Over</Badge>
+                    ) : row.pct >= 80 ? (
+                      <Badge tone="warning">Close</Badge>
+                    ) : null}
+                    <span className="num text-[13px] text-muted-foreground">
+                      {formatMoney(row.used)} / {formatMoney(row.monthly_limit)}
+                    </span>
+                    <IconAction
+                      label={`Remove ${row.category} budget`}
+                      danger
+                      onClick={() => remove.mutate(row.id)}
+                    >
+                      <X className="size-4" aria-hidden="true" />
+                    </IconAction>
+                  </span>
+                </div>
+                <Progress
+                  value={Math.min(row.pct, 100)}
+                  className={`mt-2 h-2 bg-surface-3 ${
+                    row.pct >= 100
+                      ? "[&>div]:bg-danger"
+                      : row.pct >= 80
+                        ? "[&>div]:bg-warning"
+                        : "[&>div]:bg-brand"
+                  }`}
+                />
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-muted-foreground">No budgets set yet.</p>
+        )}
 
-      {rows.length > 0 ? (
-        <ul className="mt-4 space-y-4">
-          {rows.map((row) => (
-            <li key={row.id}>
-              <div className="flex items-center justify-between gap-2 text-sm">
-                <span className="font-semibold">{row.category}</span>
-                <span className="flex items-center gap-2 tabular-nums">
-                  {money(row.used)} / {money(row.monthly_limit)}
-                  {row.pct >= 100 ? (
-                    <span className="rounded-full bg-danger px-2 py-0.5 text-xs font-semibold text-danger-foreground">
-                      Over
-                    </span>
-                  ) : row.pct >= 80 ? (
-                    <span className="rounded-full bg-danger-soft px-2 py-0.5 text-xs font-semibold text-danger">
-                      Close
-                    </span>
-                  ) : null}
-                  <button
-                    type="button"
-                    aria-label={`Remove ${row.category} budget`}
-                    onClick={() => remove.mutate(row.id)}
-                    className="text-muted-foreground hover:text-danger"
-                  >
-                    <X className="size-4" />
-                  </button>
-                </span>
-              </div>
-              <Progress
-                value={Math.min(row.pct, 100)}
-                className={`mt-2 h-2 ${row.pct >= 80 ? "[&>div]:bg-danger" : ""}`}
+        <form
+          className="space-y-4 border-t pt-5"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const amount = Number(limit || 0);
+            if (!category.trim() || !(amount > 0)) return;
+            save.mutate({ category: category.trim(), monthly_limit: amount });
+          }}
+        >
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field id="budget-category" label="Category">
+              <Input
+                list="budget-categories"
+                placeholder="Supplies"
+                value={category}
+                onChange={(event) => setCategory(event.target.value)}
               />
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="mt-3 text-sm text-muted-foreground">No budgets set yet.</p>
-      )}
-
-      <form
-        className="mt-5 space-y-3 border-t pt-4"
-        onSubmit={(event) => {
-          event.preventDefault();
-          const amount = Number(limit || 0);
-          if (!category.trim() || !(amount > 0)) return;
-          save.mutate({ category: category.trim(), monthly_limit: amount });
-        }}
-      >
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="budget-category">Category</Label>
-            <Input
-              id="budget-category"
-              list="budget-categories"
-              placeholder="Supplies"
-              value={category}
-              onChange={(event) => setCategory(event.target.value)}
-            />
-            <datalist id="budget-categories">
-              {categories.map((name) => (
-                <option key={name} value={name} />
-              ))}
-            </datalist>
+            </Field>
+            <Field id="budget-limit" label="Monthly limit">
+              <Input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                step="0.01"
+                placeholder="500"
+                value={limit}
+                onChange={(event) => setLimit(event.target.value)}
+              />
+            </Field>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="budget-limit">Monthly limit</Label>
-            <Input
-              id="budget-limit"
-              type="number"
-              inputMode="decimal"
-              min="0"
-              step="0.01"
-              placeholder="500"
-              value={limit}
-              onChange={(event) => setLimit(event.target.value)}
-            />
-          </div>
-        </div>
-        <Button type="submit" className="w-full" disabled={save.isPending}>
-          {save.isPending ? "Saving…" : "Save budget"}
-        </Button>
-      </form>
-    </section>
+          <datalist id="budget-categories">
+            {categories.map((name) => (
+              <option key={name} value={name} />
+            ))}
+          </datalist>
+          <Button type="submit" className="w-full" loading={save.isPending}>
+            {save.isPending ? "Saving…" : "Save budget"}
+          </Button>
+        </form>
+      </PanelBody>
+    </Panel>
   );
 }
 
@@ -1030,147 +1155,138 @@ export function RecurringSection({ rules }: { rules: Rule[] }) {
   };
 
   return (
-    <section className="border-t py-8">
-      <h2 className="text-xl">Recurring expenses</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Bills that repeat get logged for you automatically.
-      </p>
-
-      {rules.length > 0 ? (
-        <ul className="mt-4 divide-y">
-          {rules.map((rule) => (
-            <li key={rule.id} className="flex items-center justify-between gap-3 py-3 text-sm">
-              <span className="min-w-0">
-                <span className="font-semibold">{rule.category}</span>
-                <span className="ml-2 text-muted-foreground">
-                  {money(rule.amount)} · {rule.frequency} · from {rule.start_date}
-                  {rule.active ? "" : " · cancelled"}
+    <Panel>
+      <PanelHeader
+        title="Recurring expenses"
+        description="Bills that repeat get logged for you automatically."
+      />
+      <PanelBody className="space-y-5">
+        {rules.length > 0 ? (
+          <ul className="divide-hairline">
+            {rules.map((rule) => (
+              <li key={rule.id} className="flex items-center justify-between gap-3 py-2">
+                <span className="min-w-0">
+                  <span className="flex items-center gap-2">
+                    <span className="truncate text-sm font-semibold">{rule.category}</span>
+                    {rule.active ? null : <Badge>Cancelled</Badge>}
+                  </span>
+                  <span className="mt-0.5 block truncate text-[12px] text-muted-foreground">
+                    <Money value={rule.amount} /> · {rule.frequency} · from{" "}
+                    <span className="num">{rule.start_date}</span>
+                  </span>
                 </span>
-              </span>
-              <span className="flex shrink-0 gap-2">
-                <button
-                  type="button"
-                  aria-label={`Edit ${rule.category}`}
-                  onClick={() => startEdit(rule)}
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  <Pencil className="size-4" />
-                </button>
-                {rule.active ? (
-                  <button
-                    type="button"
-                    aria-label={`Cancel ${rule.category}`}
-                    onClick={() =>
-                      save.mutate({
-                        id: rule.id,
-                        amount: rule.amount,
-                        category: rule.category,
-                        frequency: rule.frequency,
-                        start_date: rule.start_date,
-                        active: false,
-                      })
-                    }
-                    className="text-xs font-semibold text-muted-foreground hover:text-danger"
+                <span className="flex shrink-0 items-center gap-1">
+                  <IconAction label={`Edit ${rule.category}`} onClick={() => startEdit(rule)}>
+                    <Pencil className="size-4" aria-hidden="true" />
+                  </IconAction>
+                  {rule.active ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      aria-label={`Cancel ${rule.category}`}
+                      onClick={() =>
+                        save.mutate({
+                          id: rule.id,
+                          amount: rule.amount,
+                          category: rule.category,
+                          frequency: rule.frequency,
+                          start_date: rule.start_date,
+                          active: false,
+                        })
+                      }
+                      className="h-10 hover:text-danger"
+                    >
+                      Cancel
+                    </Button>
+                  ) : null}
+                  <IconAction
+                    label={`Delete ${rule.category}`}
+                    danger
+                    onClick={() => remove.mutate(rule.id)}
                   >
-                    Cancel
-                  </button>
-                ) : null}
-                <button
-                  type="button"
-                  aria-label={`Delete ${rule.category}`}
-                  onClick={() => remove.mutate(rule.id)}
-                  className="text-muted-foreground hover:text-danger"
-                >
-                  <Trash2 className="size-4" />
-                </button>
-              </span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="mt-3 text-sm text-muted-foreground">Nothing recurring yet.</p>
-      )}
+                    <Trash2 className="size-4" aria-hidden="true" />
+                  </IconAction>
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-muted-foreground">Nothing recurring yet.</p>
+        )}
 
-      <form
-        className="mt-5 space-y-3 border-t pt-4"
-        onSubmit={(event) => {
-          event.preventDefault();
-          const value = Number(amount || 0);
-          if (!category.trim() || !(value > 0)) return;
-          save.mutate({
-            id: editing,
-            amount: value,
-            category: category.trim(),
-            frequency,
-            start_date: startDate,
-            active: true,
-          });
-        }}
-      >
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="rec-category">What is it for?</Label>
-            <Input
-              id="rec-category"
-              placeholder="Rent"
-              value={category}
-              onChange={(event) => setCategory(event.target.value)}
-            />
+        <form
+          className="space-y-4 border-t pt-5"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const value = Number(amount || 0);
+            if (!category.trim() || !(value > 0)) return;
+            save.mutate({
+              id: editing,
+              amount: value,
+              category: category.trim(),
+              frequency,
+              start_date: startDate,
+              active: true,
+            });
+          }}
+        >
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field id="rec-category" label="What is it for?">
+              <Input
+                placeholder="Rent"
+                value={category}
+                onChange={(event) => setCategory(event.target.value)}
+              />
+            </Field>
+            <Field id="rec-amount" label="Amount">
+              <Input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                step="0.01"
+                placeholder="0.00"
+                value={amount}
+                onChange={(event) => setAmount(event.target.value)}
+              />
+            </Field>
+            <Field id="rec-frequency" label="How often?">
+              <Select
+                value={frequency}
+                onChange={(event) => setFrequency(event.target.value as "weekly" | "monthly")}
+              >
+                <option value="weekly">Every week</option>
+                <option value="monthly">Every month</option>
+              </Select>
+            </Field>
+            <Field id="rec-start" label="Starting">
+              <Input
+                type="date"
+                value={startDate}
+                onChange={(event) => setStartDate(event.target.value)}
+              />
+            </Field>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="rec-amount">Amount</Label>
-            <Input
-              id="rec-amount"
-              type="number"
-              inputMode="decimal"
-              min="0"
-              step="0.01"
-              placeholder="0.00"
-              value={amount}
-              onChange={(event) => setAmount(event.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="rec-frequency">How often?</Label>
-            <select
-              id="rec-frequency"
-              value={frequency}
-              onChange={(event) => setFrequency(event.target.value as "weekly" | "monthly")}
-              className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs"
-            >
-              <option value="weekly">Every week</option>
-              <option value="monthly">Every month</option>
-            </select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="rec-start">Starting</Label>
-            <Input
-              id="rec-start"
-              type="date"
-              value={startDate}
-              onChange={(event) => setStartDate(event.target.value)}
-            />
-          </div>
-        </div>
-        {save.isError ? (
-          <p className="text-sm text-danger">{(save.error as Error).message}</p>
-        ) : null}
-        <div className="flex gap-2">
-          <Button type="submit" className="flex-1" disabled={save.isPending}>
-            {save.isPending
-              ? "Saving…"
-              : editing
-                ? "Update recurring expense"
-                : "Add recurring expense"}
-          </Button>
-          {editing ? (
-            <Button type="button" variant="outline" onClick={reset}>
-              Cancel
+
+          {save.isError ? <Alert tone="negative" title={(save.error as Error).message} /> : null}
+
+          <div className="flex flex-wrap gap-2">
+            <Button type="submit" className="min-w-40 flex-1" loading={save.isPending}>
+              {save.isPending
+                ? "Saving…"
+                : editing
+                  ? "Update recurring expense"
+                  : "Add recurring expense"}
             </Button>
-          ) : null}
-        </div>
-      </form>
-    </section>
+            {editing ? (
+              <Button type="button" variant="outline" onClick={reset}>
+                Cancel
+              </Button>
+            ) : null}
+          </div>
+        </form>
+      </PanelBody>
+    </Panel>
   );
 }
 
@@ -1192,11 +1308,14 @@ export function BillsPage() {
   });
 
   return (
-    <div className="rise mx-auto w-full max-w-3xl">
+    <div className="rise mx-auto w-full max-w-3xl space-y-6">
       {isLoading ? (
-        <section className="py-8">
-          <span className="skeleton block h-4 w-40" />
-        </section>
+        <Panel aria-busy="true" aria-label="Loading your bills">
+          <PanelHeader title="What's due" />
+          <PanelBody>
+            <SkeletonRows rows={4} />
+          </PanelBody>
+        </Panel>
       ) : insights ? (
         <>
           <BillCalendarSection calendar={insights.calendar} />

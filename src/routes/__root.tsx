@@ -107,7 +107,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:card", content: "summary_large_image" },
       // Installed-app chrome. The colour matches the dark canvas so the status
       // bar blends into the page instead of framing it.
-      { name: "theme-color", content: "#141413" },
+      { name: "theme-color", content: "#0e0f12" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       // "default" rather than "black-translucent": translucent forces white
       // status bar text, which disappears against the light theme. This lets
@@ -122,7 +122,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Nunito+Sans:wght@400;600;700&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Inter+Tight:wght@500;600;700&display=swap",
       },
       {
         rel: "stylesheet",

@@ -3,6 +3,7 @@
  * plus a nudge to log something, rather than blank charts and $0.00.
  */
 import { Link } from "@tanstack/react-router";
+import { Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
@@ -18,19 +19,33 @@ export function EmptyState({
 }) {
   return (
     <section className="py-8">
-      <h2 className="text-xl">{title}</h2>
-      <p className="mt-1 max-w-md text-sm text-muted-foreground">{blurb}</p>
+      <div className="flex flex-col items-center text-center">
+        <span
+          aria-hidden="true"
+          className="flex size-14 items-center justify-center rounded-full border border-brand-border bg-brand-soft text-brand"
+        >
+          <Sparkles className="size-6" />
+        </span>
 
-      <Button asChild size="lg" className="mt-5">
-        <Link to="/add">Log your first entry</Link>
-      </Button>
+        <h2 className="mt-5 text-xl">{title}</h2>
+        <p className="mt-2 max-w-sm text-balance text-sm leading-relaxed text-muted-foreground">
+          {blurb}
+        </p>
+
+        <Button asChild variant="brand" size="lg" className="mt-6">
+          <Link to="/add">Log your first entry</Link>
+        </Button>
+      </div>
 
       {sample ? (
-        <div className="mt-8">
-          <p className="eyebrow">Here&apos;s what this will look like</p>
+        <div className="mt-10">
+          <div className="flex items-center gap-3">
+            <p className="eyebrow shrink-0">Here&apos;s what this will look like</p>
+            <span aria-hidden="true" className="h-px flex-1 bg-border" />
+          </div>
           <div
             aria-hidden="true"
-            className="pointer-events-none mt-3 select-none opacity-35 blur-[0.3px]"
+            className="pointer-events-none mt-4 select-none opacity-35 blur-[0.3px]"
           >
             {sample}
           </div>
@@ -47,7 +62,7 @@ export function SampleBars({ heights = [40, 65, 30, 80, 55, 70, 45] }: { heights
       {heights.map((height, index) => (
         <div
           key={index}
-          className="flex-1 rounded-t bg-muted-foreground"
+          className="flex-1 rounded-t-[var(--radius-8)] bg-muted-foreground"
           style={{ height: `${height}%` }}
         />
       ))}
@@ -58,11 +73,11 @@ export function SampleBars({ heights = [40, 65, 30, 80, 55, 70, 45] }: { heights
 /** A few stand-in rows for empty list pages. */
 export function SampleRows({ rows = 4 }: { rows?: number }) {
   return (
-    <div className="divide-y">
+    <div className="divide-hairline">
       {Array.from({ length: rows }, (_, index) => (
-        <div key={index} className="flex items-center justify-between py-3">
+        <div key={index} className="flex items-center justify-between gap-4 py-3.5">
           <span className="skeleton h-3.5" style={{ width: `${45 - index * 5}%` }} />
-          <span className="skeleton h-3.5 w-16" />
+          <span className="skeleton h-3.5 w-16 shrink-0" />
         </div>
       ))}
     </div>
