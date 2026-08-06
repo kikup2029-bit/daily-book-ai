@@ -12,10 +12,13 @@ const checks = [
   ["entry filters", ["--experimental-strip-types", "tests/filter.test.ts"]],
   ["invoices", ["--experimental-strip-types", "tests/invoices.test.ts"]],
   ["reminders", ["--experimental-strip-types", "tests/reminders.test.ts"]],
+  ["entry formatting", ["--experimental-strip-types", "tests/recent-entries.test.ts"]],
   ["service worker", ["tests/sw.test.mjs"]],
   ["money signs", ["tests/money.test.mjs"]],
   ["colour contrast", ["tests/contrast.mjs"]],
   ["responsive layout", ["tests/responsive.mjs"]],
+  ["recent entries viewports", ["tests/viewports.mjs"]],
+  ["top bar (estimate)", ["tests/navbar.mjs"]],
 ];
 
 let failed = 0;

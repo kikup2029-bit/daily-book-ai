@@ -245,7 +245,8 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
           </Link>
 
           {/* desktop nav */}
-          <nav className="hidden items-center gap-1 lg:flex">
+          {/* Gaps tighten one step before the search label collapses. */}
+          <nav className="hidden items-center gap-0.5 navbar:flex navgap:gap-1">
             {NAV.map((item) => {
               const active = isActive(item);
               return (
@@ -265,7 +266,7 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
                       type="button"
                       onClick={() => setOpenMenu(openMenu === item.label ? null : item.label)}
                       aria-expanded={openMenu === item.label}
-                      className={`flex items-center gap-1.5 rounded-[var(--radius-8)] px-3 py-2 text-[13.5px] font-medium transition-colors duration-[var(--dur-fast)] ${
+                      className={`flex items-center gap-1.5 rounded-[var(--radius-8)] px-2.5 py-2 text-[13.5px] font-medium transition-colors duration-[var(--dur-fast)] navgap:px-3 ${
                         active ? "bg-accent text-foreground" : "text-muted-foreground"
                       }`}
                     >
@@ -280,7 +281,7 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
                     <Link
                       to={item.to}
                       onClick={() => item.children && setOpenMenu(null)}
-                      className={`flex items-center gap-1.5 rounded-[var(--radius-8)] px-3 py-2 text-[13.5px] font-medium transition-colors duration-[var(--dur-fast)] ${
+                      className={`flex items-center gap-1.5 rounded-[var(--radius-8)] px-2.5 py-2 text-[13.5px] font-medium transition-colors duration-[var(--dur-fast)] navgap:px-3 ${
                         active
                           ? "bg-accent text-foreground"
                           : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
@@ -342,12 +343,19 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
                   new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true }),
                 )
               }
-              className="hidden items-center gap-2 rounded-[var(--radius-10)] border border-border bg-surface-1 py-1.5 pl-2.5 pr-2 text-[13px] text-muted-foreground transition-colors duration-[var(--dur-fast)] hover:border-border-strong hover:text-foreground sm:flex"
+              className="hidden h-9 items-center gap-2 rounded-[var(--radius-10)] border border-border bg-surface-1 px-2.5 text-[13px] text-muted-foreground transition-colors duration-[var(--dur-fast)] hover:border-border-strong hover:text-foreground sm:flex"
               aria-label="Search or jump to a page"
+              title="Search or jump to a page (⌘K)"
             >
-              <Search className="size-3.5" />
-              <span className="pr-6">Search…</span>
-              <kbd className="rounded-[6px] border border-border bg-surface-2 px-1.5 py-0.5 font-sans text-[11px] font-medium">
+              <Search className="size-3.5 shrink-0" aria-hidden="true" />
+              {/*
+                The word stays in the DOM at every width — it's only visually
+                hidden once space runs short, so a screen reader always reads
+                "Search…" and the button never becomes a bare icon to anyone
+                relying on the accessible name.
+              */}
+              <span className="sr-only navlabel:not-sr-only navkbd:pr-6">Search…</span>
+              <kbd className="hidden rounded-[6px] border border-border bg-surface-2 px-1.5 py-0.5 font-sans text-[11px] font-medium navkbd:block">
                 ⌘K
               </kbd>
             </button>
@@ -364,7 +372,7 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
             <button
               type="button"
               onClick={signOut}
-              className="hidden rounded-[var(--radius-8)] px-3 py-2 text-[13.5px] font-medium text-muted-foreground transition-colors duration-[var(--dur-fast)] hover:bg-accent hover:text-foreground lg:block"
+              className="hidden rounded-[var(--radius-8)] px-3 py-2 text-[13.5px] font-medium text-muted-foreground transition-colors duration-[var(--dur-fast)] hover:bg-accent hover:text-foreground navbar:block"
             >
               Sign out
             </button>
@@ -372,7 +380,7 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
             <button
               type="button"
               onClick={openMobile}
-              className="flex size-9 items-center justify-center rounded-[var(--radius-8)] text-muted-foreground transition-colors duration-[var(--dur-fast)] hover:bg-accent hover:text-foreground lg:hidden"
+              className="flex size-9 items-center justify-center rounded-[var(--radius-8)] text-muted-foreground transition-colors duration-[var(--dur-fast)] hover:bg-accent hover:text-foreground navbar:hidden"
               aria-label="Open menu"
             >
               <Menu className="size-5" />
@@ -383,7 +391,7 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
 
       {/* ---------- mobile menu ---------- */}
       {mobileOpen ? (
-        <div className="fixed inset-0 z-50 lg:hidden">
+        <div className="fixed inset-0 z-50 navbar:hidden">
           <button
             type="button"
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
