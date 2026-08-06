@@ -1,6 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+import { ProGate } from "@/components/pro-gate";
 import { HouseholdSection } from "@/components/sections/tools-sections";
+
+const Page = () => (
+  <ProGate feature="householdSharing" title="Sharing with your household">
+    <HouseholdSection />
+  </ProGate>
+);
 
 export const Route = createFileRoute("/_authenticated/household")({
   head: () => ({
@@ -17,5 +24,5 @@ export const Route = createFileRoute("/_authenticated/household")({
       },
     ],
   }),
-  component: HouseholdSection,
+  component: Page,
 });

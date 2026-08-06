@@ -14,6 +14,54 @@
 export type PlanId = "free" | "pro";
 
 /**
+ * How long the free trial runs.
+ *
+ * The card is taken at sign-up and charged when this runs out, which is a model
+ * with rules attached: US law (the FTC's negative-option guidance) requires the
+ * price, the date of the first charge and the way to cancel to be stated
+ * *before* the card is handed over, and cancelling to be no harder than
+ * subscribing was. Three things in this codebase exist to satisfy that, and
+ * removing any of them turns a legal trial into an unlawful one:
+ *
+ *   1. `trialDisclosure()` below, printed next to the checkout button.
+ *   2. The countdown banner shown for the whole trial.
+ *   3. One-click cancel on the billing page, no retention flow.
+ */
+export const TRIAL_DAYS = 7;
+
+/** The day the first charge lands, given when the trial started. */
+export function firstChargeDate(startedAt: Date = new Date()): Date {
+  const due = new Date(startedAt);
+  due.setDate(due.getDate() + TRIAL_DAYS);
+  return due;
+}
+
+/** Whole days left in a trial. Never negative, and 0 means it ends today. */
+export function trialDaysLeft(trialEndIso: string | null, now: Date = new Date()): number | null {
+  if (!trialEndIso) return null;
+  const end = new Date(trialEndIso);
+  if (Number.isNaN(end.getTime())) return null;
+  const ms = end.getTime() - now.getTime();
+  if (ms <= 0) return 0;
+  return Math.ceil(ms / 86_400_000);
+}
+
+/**
+ * The sentence that must appear before anyone types a card number.
+ *
+ * Kept here rather than in a component so it cannot end up worded three
+ * different ways on three different screens — the disclosure only works if it
+ * says the same thing everywhere.
+ */
+export function trialDisclosure(locale = "en-US", startedAt: Date = new Date()): string {
+  const price = formatPrice(PLANS.pro.priceCents, locale);
+  const date = new Intl.DateTimeFormat(locale, { day: "numeric", month: "long" }).format(
+    firstChargeDate(startedAt),
+  );
+  return `Free for ${TRIAL_DAYS} days. On ${date} your card is charged ${price}, then ${price} every month. Cancel any time before then and you pay nothing.`;
+}
+
+/**
  * The things a plan can unlock.
  *
  * Named after what the owner gets, not after the component that implements it,
@@ -57,23 +105,37 @@ export type Plan = {
 };
 
 export const PLANS: Record<PlanId, Plan> = {
+  /*
+   * What is left after a trial ends.
+   *
+   * Deliberately thin — but two things stay free on purpose, and they are not
+   * oversights to be tidied up later:
+   *
+   *   `exports` — someone who stops paying must still be able to get their own
+   *   books out. Charging for that is holding a business's records hostage, and
+   *   it is the promise made in the Terms.
+   *
+   *   `allLanguages` — the app is built for people whose first language is not
+   *   English. Putting Gujarati or Urdu behind the paywall doesn't make the free
+   *   tier lean, it makes it unreadable for exactly the people it is for.
+   */
   free: {
     id: "free",
     name: "Free",
     priceCents: 0,
     cadence: "forever",
-    tagline: "Enough to keep a simple daily record.",
-    features: [],
+    tagline: "Your books stay yours, and you can still keep a daily record.",
+    features: ["exports", "allLanguages"],
     bullets: [
       "Log money in and money out by hand",
       "Daily and monthly totals",
-      "Up to 3 invoices a month",
-      "One device",
+      "CSV and PDF exports — always",
+      "All six languages",
     ],
-    cta: "Start free",
+    cta: "Continue on Free",
     stripePriceEnvVar: null,
     featured: false,
-    limits: { invoicesPerMonth: 3, entriesPerMonth: null, devices: 1 },
+    limits: { invoicesPerMonth: 0, entriesPerMonth: null, devices: 1 },
   },
 
   pro: {
@@ -81,7 +143,9 @@ export const PLANS: Record<PlanId, Plan> = {
     name: "Pro",
     priceCents: 999,
     cadence: "per month",
-    tagline: "Everything, for less than a round of coffees.",
+    // No price in the tagline: it would be a second copy of priceCents, free to
+    // drift out of step with the first. The card renders the price itself.
+    tagline: `Free for ${TRIAL_DAYS} days. Cancel any time before it ends.`,
     features: [
       "unlimitedEntries",
       "unlimitedInvoices",
@@ -103,7 +167,7 @@ export const PLANS: Record<PlanId, Plan> = {
       "Keeps working with no signal, syncs later",
       "All six languages",
     ],
-    cta: "Start Pro",
+    cta: `Start my ${TRIAL_DAYS} free days`,
     stripePriceEnvVar: "STRIPE_PRICE_PRO_MONTHLY",
     featured: true,
     limits: { invoicesPerMonth: null, entriesPerMonth: null, devices: null },

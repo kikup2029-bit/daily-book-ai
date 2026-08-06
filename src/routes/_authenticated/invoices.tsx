@@ -1,6 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+import { ProGate } from "@/components/pro-gate";
 import { InvoicesList } from "@/components/sections/invoices-sections";
+
+const Page = () => (
+  <ProGate feature="unlimitedInvoices" title="Invoicing">
+    <InvoicesList />
+  </ProGate>
+);
 
 export const Route = createFileRoute("/_authenticated/invoices")({
   head: () => ({
@@ -12,5 +19,5 @@ export const Route = createFileRoute("/_authenticated/invoices")({
       },
     ],
   }),
-  component: InvoicesList,
+  component: Page,
 });

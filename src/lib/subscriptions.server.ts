@@ -32,6 +32,22 @@ export type Subscription = {
   isPro: boolean;
   /** Derived: should we ask them to fix a payment problem? */
   needsAttention: boolean;
+  /**
+   * Inside the free trial — full Pro access, nothing charged yet.
+   *
+   * Kept separate from isPro because the two need opposite messages: a paying
+   * customer should be left alone, a trialling one has to be told the date and
+   * the amount of the charge that is coming.
+   */
+  isTrialing: boolean;
+  /**
+   * When the trial ends and the first charge lands.
+   *
+   * Read from current_period_end rather than a column of its own: during a
+   * trial Stripe sets the period end to the trial end, so the value is already
+   * there and no migration is needed to show a countdown.
+   */
+  trialEndsAt: string | null;
 };
 
 export const FREE_SUBSCRIPTION: Subscription = {
@@ -43,6 +59,8 @@ export const FREE_SUBSCRIPTION: Subscription = {
   cancelAtPeriodEnd: false,
   isPro: false,
   needsAttention: false,
+  isTrialing: false,
+  trialEndsAt: null,
 };
 
 /**
@@ -87,6 +105,8 @@ export async function fetchSubscription(supabase: Client, userId: string): Promi
       cancelAtPeriodEnd: row.cancel_at_period_end === true,
       isPro: active && row.plan === "pro",
       needsAttention: needsAttention(row.status),
+      isTrialing: row.status === "trialing",
+      trialEndsAt: row.status === "trialing" ? row.current_period_end : null,
     };
   } catch {
     return FREE_SUBSCRIPTION;

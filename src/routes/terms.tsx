@@ -18,7 +18,7 @@ import { LandingShell } from "@/components/landing/landing-shell";
 import { Button } from "@/components/ui/button";
 import { CONTACT_EMAIL } from "@/lib/contact";
 import { LEGAL_UPDATED, LegalPage, LegalSection } from "@/components/landing/legal";
-import { PLANS, formatPrice } from "@/lib/pricing";
+import { PLANS, TRIAL_DAYS, formatPrice } from "@/lib/pricing";
 
 export const Route = createFileRoute("/terms")({
   head: () => ({
@@ -97,16 +97,42 @@ function TermsPage() {
           </p>
         </LegalSection>
 
-        <LegalSection title="Plans and billing">
+        <LegalSection title="Your free trial">
           <p>
-            The Free plan costs nothing and stays free. It limits you to{" "}
-            {freeInvoiceCap === null ? "unlimited" : freeInvoiceCap} invoices a month; logging your
-            money in and out is not limited.
+            <strong className="text-foreground">
+              Pro is free for {TRIAL_DAYS} days. We take your card details when you start, and we do
+              not charge them until day {TRIAL_DAYS + 1}.
+            </strong>
           </p>
           <p>
-            Pro costs {proPrice} per month, charged in US dollars, and renews automatically every
-            month until you cancel. Payment is taken by Stripe on the day you subscribe and on the
-            same day each month after that.
+            On that day your card is charged {proPrice}, and then {proPrice} every month after that,
+            until you cancel.{" "}
+            <strong className="text-foreground">
+              Cancel at any point before the trial ends and you pay nothing at all.
+            </strong>{" "}
+            Cancelling takes one click from the Billing page — the same number of steps it took to
+            start.
+          </p>
+          <p>
+            While the trial is running, the app shows you how many days are left and the exact date
+            and amount of the first charge. On the final day that notice cannot be dismissed. We
+            would rather you cancel deliberately than be surprised by a charge.
+          </p>
+          <p>One trial per account.</p>
+        </LegalSection>
+
+        <LegalSection title="Plans and billing">
+          <p>
+            Pro costs {proPrice} per month, charged in US dollars, and renews automatically each
+            month until you cancel.
+          </p>
+          <p>
+            When a Pro subscription ends — because you cancelled, or a payment could not be taken —
+            the account drops to the Free plan. Free costs nothing and has no time limit. You can
+            still log money in and out, see your daily and monthly totals, use the app in any of the
+            six languages, and export everything you have ever entered. Free does not include
+            invoicing{freeInvoiceCap === 0 ? "" : ` beyond ${freeInvoiceCap} a month`}, receipt
+            scanning, budgets and goals, household sharing, or asking questions about your figures.
           </p>
           <p>
             <strong className="text-foreground">Cancelling is one click, at any time</strong>, from
@@ -126,6 +152,11 @@ function TermsPage() {
         </LegalSection>
 
         <LegalSection title="Refunds">
+          <p>
+            If you meant to cancel during the free trial and were charged anyway, email us and we
+            will refund it. That is the whole rule — we will not ask you to prove you did not use
+            it.
+          </p>
           <p>
             If you were charged for a month you did not use, email{" "}
             <a className="text-brand hover:underline" href={`mailto:${CONTACT_EMAIL}`}>

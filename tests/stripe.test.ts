@@ -7,7 +7,10 @@ import {
   parseSignatureHeader, timingSafeEqual, computeSignature, verifyWebhook,
   grantsPro, needsAttention, readSubscription, isHandled, TOLERANCE_SECONDS,
 } from "../src/lib/stripe/webhook.ts";
-import { PLANS, planHasFeature, formatPrice, withinInvoiceLimit } from "../src/lib/pricing.ts";
+import {
+  PLANS, planHasFeature, formatPrice, withinInvoiceLimit,
+  TRIAL_DAYS, firstChargeDate, trialDaysLeft, trialDisclosure,
+} from "../src/lib/pricing.ts";
 
 let pass = 0, fail = 0;
 const ok = (c: boolean, l: string) => { if (c) pass++; else { fail++; console.log("FAIL: " + l); } };
@@ -176,12 +179,64 @@ eq(formatPrice(0), "Free", "free reads as Free, not $0.00");
 ok(planHasFeature("pro", "aiQuestions"), "Pro includes AI questions");
 ok(!planHasFeature("free", "aiQuestions"), "Free does not");
 ok(!planHasFeature("free", "receiptScanning"), "Free does not include receipt scanning");
-eq(PLANS.free.features, [], "the free plan unlocks nothing extra");
+/*
+ * The free tier is thin by design, but exactly two things must survive in it,
+ * and both are promises made in the Terms rather than product decisions to be
+ * revisited when conversion looks flat:
+ *
+ *   exports      — someone who stops paying can still take their own books
+ *                  with them. Removing this makes the app a hostage-taker.
+ *   allLanguages — the audience is people whose first language isn't English.
+ *                  Charging for Gujarati doesn't slim the free tier down, it
+ *                  makes it unreadable for the people it exists for.
+ *
+ * If a future edit drops either, this test should fail loudly.
+ */
+eq(PLANS.free.features.slice().sort(), ["allLanguages", "exports"],
+   "free keeps exports and every language, and nothing else");
+ok(planHasFeature("free", "exports"), "a lapsed customer can still get their data out");
+ok(planHasFeature("free", "allLanguages"), "free is readable in every supported language");
+ok(!planHasFeature("free", "unlimitedInvoices"), "invoicing is Pro");
+ok(!planHasFeature("free", "householdSharing"), "sharing is Pro");
+ok(!planHasFeature("free", "budgetsAndGoals"), "budgets and goals are Pro");
+
 ok(PLANS.pro.stripePriceEnvVar !== null, "Pro maps to a Stripe price via an env var");
 ok(PLANS.free.stripePriceEnvVar === null, "Free has no Stripe price — it can't be bought");
-ok(withinInvoiceLimit("free", 2), "free tier allows an invoice under the cap");
-ok(!withinInvoiceLimit("free", 3), "free tier stops at the cap");
+ok(!withinInvoiceLimit("free", 0), "free makes no invoices at all — the cap is zero");
 ok(withinInvoiceLimit("pro", 9999), "Pro has no invoice cap");
+
+// --- the trial
+{
+  eq(TRIAL_DAYS, 7, "the trial length lives in one place");
+
+  const start = new Date("2026-03-01T10:00:00Z");
+  eq(firstChargeDate(start).toISOString().slice(0, 10), "2026-03-08",
+     "the first charge lands seven days after the trial starts");
+
+  // Counting days left, from both sides of each boundary.
+  const end = "2026-03-08T10:00:00Z";
+  eq(trialDaysLeft(end, new Date("2026-03-01T10:00:00Z")), 7, "seven days at the start");
+  eq(trialDaysLeft(end, new Date("2026-03-07T10:00:00Z")), 1, "one day left on the last day");
+  eq(trialDaysLeft(end, new Date("2026-03-08T09:59:00Z")), 1, "still 1 with an hour to go, never 0 early");
+  eq(trialDaysLeft(end, new Date("2026-03-08T10:00:00Z")), 0, "0 exactly when it expires");
+  eq(trialDaysLeft(end, new Date("2026-03-20T10:00:00Z")), 0, "never negative once it's past");
+  eq(trialDaysLeft(null), null, "no trial means no countdown");
+  eq(trialDaysLeft("not a date"), null, "an unparseable date doesn't become a fake countdown");
+
+  /*
+   * The disclosure is the sentence that makes a card-up-front trial lawful in
+   * the US. It has to carry all three facts before a card is entered: the
+   * amount, the date of the first charge, and how to avoid being charged.
+   * Asserting on its content rather than trusting it to stay written.
+   */
+  const disclosure = trialDisclosure("en-US", start);
+  ok(disclosure.includes("$9.99"), "the disclosure names the amount");
+  ok(disclosure.includes("8 March") || disclosure.includes("March 8"),
+     "the disclosure names the date of the first charge");
+  ok(/cancel/i.test(disclosure), "the disclosure says how to avoid the charge");
+  ok(/pay nothing|no charge|free/i.test(disclosure),
+     "the disclosure says cancelling costs nothing");
+}
 
 /**
  * Comments explain what the code deliberately does NOT do, so they have to be

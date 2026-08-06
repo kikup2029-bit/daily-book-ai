@@ -24,7 +24,9 @@ const LANGS = [["es", es], ["hi", hi], ["gu", gu], ["ur", ur], ["zh", zh]] as co
  * rather than broken. Listing them here keeps the suite honest: the count is
  * the size of the translation debt, and it should trend to zero.
  */
-const PENDING_TRANSLATION = new Set(["nav.billing"]);
+// Empty, and it should stay that way. A key parked here renders in English for
+// everyone — which, in a nav bar, looks like a bug rather than a gap.
+const PENDING_TRANSLATION = new Set<string>([]);
 
 // --- completeness: no locale may be missing a key
 for (const [name, dict] of LANGS) {

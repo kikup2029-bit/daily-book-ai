@@ -157,15 +157,38 @@ export async function createCheckoutSession(input: {
   userId: string;
   successUrl: string;
   cancelUrl: string;
+  /** Days of free access before the first charge. 0 or undefined bills today. */
+  trialDays?: number;
 }): Promise<{ id: string; url: string }> {
+  const trialDays = input.trialDays && input.trialDays > 0 ? input.trialDays : null;
+
   return stripeRequest<{ id: string; url: string }>("/checkout/sessions", {
     mode: "subscription",
     customer: input.customerId,
     line_items: [{ price: input.priceId, quantity: 1 }],
     success_url: input.successUrl,
     cancel_url: input.cancelUrl,
-    // Carried onto the subscription so every later webhook knows whose it is.
-    subscription_data: { metadata: { supabase_user_id: input.userId } },
+    subscription_data: {
+      // Carried onto the subscription so every later webhook knows whose it is.
+      metadata: { supabase_user_id: input.userId },
+      ...(trialDays
+        ? {
+            trial_period_days: trialDays,
+            trial_settings: {
+              end_behavior: {
+                // Without this, a trial that ends with no usable card sits in
+                // `past_due` — which grantsPro() treats as still paid, so the
+                // account would keep Pro indefinitely without ever paying.
+                // `cancel` ends it cleanly and drops them to Free.
+                missing_payment_method: "cancel",
+              },
+            },
+          }
+        : {}),
+    },
+    // A trial that never asked for a card is not the model we sell — the
+    // disclosure promises a charge on a specific date, so a card must exist.
+    ...(trialDays ? { payment_method_collection: "always" } : {}),
     metadata: { supabase_user_id: input.userId },
     allow_promotion_codes: true,
     // Card details are collected by Stripe on Stripe's own page. They never

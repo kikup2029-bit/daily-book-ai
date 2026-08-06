@@ -9,6 +9,7 @@ import { CommandPalette } from "@/components/command-palette";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { ReminderRunner } from "@/components/daily-reminder";
 import { OfflineBar } from "@/components/offline-bar";
+import { TrialBanner } from "@/components/trial-banner";
 import { HELP_NAV } from "@/lib/help-content";
 import { useI18n } from "@/lib/i18n";
 import { clearOfflineData } from "@/lib/register-sw";
@@ -70,8 +71,20 @@ function buildNav(t: (path: string) => string): Item[] {
         { to: "/tax", label: t("nav.tax") },
         { to: "/reminders", label: t("nav.reminder") },
         { to: "/lock", label: t("nav.lock") },
-        { to: "/billing", label: t("nav.billing") },
       ],
+    },
+    /*
+     * Billing is its own topic, not the last line of Tools.
+     *
+     * It sat under Tools next to Cash drawer and Tax, which is where you look
+     * for a feature — not for what you are paying. Nobody found it, including
+     * the person who built it. A plan is account business and belongs at the
+     * top level where account business is expected.
+     */
+    {
+      label: t("nav.billing"),
+      to: "/billing",
+      children: [{ to: "/billing", label: t("nav.yourPlan") }],
     },
     {
       label: t("nav.export"),
@@ -504,6 +517,8 @@ export function AppTopNav({ children }: { children: React.ReactNode }) {
         </div>
       ) : null}
 
+      {/* Trial first: a countdown to a charge outranks a sync notice. */}
+      <TrialBanner />
       <OfflineBar userId={userId} />
 
       {/* ---------- page ---------- */}

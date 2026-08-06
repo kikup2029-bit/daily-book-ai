@@ -30,10 +30,31 @@ ok(NAVBAR < LABEL && LABEL < GAP && GAP < KBD, "breakpoints ascend");
  * to fit the WIDEST language, not the one the developer happens to read, so
  * this measures every locale and reports the worst case.
  */
+/*
+ * These must be every top-level item in the bar, in order.
+ *
+ * This list used to be maintained by hand and drifted: Billing was promoted to
+ * a top-level topic and the list wasn't updated, so the test kept measuring a
+ * six-item bar and passing while the real one had seven. A width check that
+ * doesn't know about an item is worse than no check — it reports safety it
+ * never measured. The guard below now reads the component and fails if the two
+ * disagree.
+ */
 const navKeys = [
   "nav.today", "nav.thisMonth", "nav.invoices",
-  "nav.tools", "nav.export", "nav.help",
+  "nav.tools", "nav.billing", "nav.export", "nav.help",
 ];
+
+{
+  // Top-level items are the `label: t("nav.x")` lines; children use `to:` +
+  // `label:` on one line, so matching on the label-first shape finds only the
+  // parents.
+  const found = [...nav.matchAll(/^\s*label:\s*t\("(nav\.[a-zA-Z]+)"\)/gm)].map((m) => m[1]);
+  ok(found.length === navKeys.length,
+     `the bar has ${navKeys.length} top-level items (component says ${found.length})`);
+  ok(found.join() === navKeys.join(),
+     `top-level items match the component, in order (component: ${found.join(", ")})`);
+}
 
 function labelsFor(file) {
   const src = fs.readFileSync(`src/lib/i18n/${file}.ts`, "utf8");
@@ -53,7 +74,14 @@ const SCRIPT_WIDTH = { en: 1, es: 1, hi: 1.15, gu: 1.15, ur: 1.1, zh: 1.9 };
 let widest = { locale: "en", labels: labelsFor("en"), cost: 0 };
 for (const code of ["en", "es", "hi", "gu", "ur", "zh"]) {
   const ls = labelsFor(code);
-  if (ls.some((l) => !l)) { console.log(`  (skipping ${code}: could not read all nav labels)`); continue; }
+  // A missing label used to skip the locale silently, which quietly turned the
+  // "widest language" search into "English" and under-measured the bar. Fail
+  // instead: an unmeasured language is not a passing one.
+  if (ls.some((l) => !l)) {
+    const gaps = navKeys.filter((_, i) => !ls[i]);
+    ok(false, `${code}: nav labels missing, so its width was never measured — ${gaps.join(", ")}`);
+    continue;
+  }
   const cost = ls.reduce((sum, l) => sum + l.length * (SCRIPT_WIDTH[code] ?? 1), 0);
   console.log(`  ${code}: ${ls.join(" | ")}  → ${Math.round(cost)} char-units`);
   if (cost > widest.cost) widest = { locale: code, labels: ls, cost };

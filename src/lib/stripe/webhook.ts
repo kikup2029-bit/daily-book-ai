@@ -198,8 +198,7 @@ export function readSubscription(object: Record<string, unknown>): {
   if (!id || !customer) return null;
 
   const items = object.items as
-    | { data?: Array<{ price?: { id?: string }; current_period_end?: unknown }> }
-    | undefined;
+    { data?: Array<{ price?: { id?: string }; current_period_end?: unknown }> } | undefined;
   const firstItem = items?.data?.[0];
   const priceId = firstItem?.price?.id ?? null;
 

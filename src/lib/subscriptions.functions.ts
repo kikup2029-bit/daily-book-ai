@@ -76,15 +76,27 @@ export const startCheckout = createServerFn({ method: "POST" })
       await linkCustomer(admin, context.userId, customerId);
     }
 
+    const { TRIAL_DAYS } = await import("./pricing");
+
+    // One trial per account, ever.
+    //
+    // A stored subscription id means this person has subscribed before — they
+    // took the trial, then cancelled or lapsed. Without this check, cancelling
+    // and re-subscribing would hand out another free week every time, and the
+    // app would never charge anyone who noticed.
+    const hadTrialBefore = existing.stripeSubscriptionId !== null;
+    const trialDays = hadTrialBefore ? 0 : TRIAL_DAYS;
+
     const session = await createCheckoutSession({
       customerId,
       priceId,
       userId: context.userId,
+      trialDays,
       successUrl: `${data.origin}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
       cancelUrl: `${data.origin}/billing/cancelled`,
     });
 
-    return { url: session.url };
+    return { url: session.url, trialDays };
   });
 
 export const openBillingPortal = createServerFn({ method: "POST" })
