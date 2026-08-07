@@ -162,12 +162,35 @@ async function stripeRequest<T>(
 
 /* ------------------------------------------------------------- customers */
 
+export async function customerExists(customerId: string): Promise<boolean> {
+  try {
+    await stripeRequest<{ id: string }>(`/customers/${customerId}`);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function findOrCreateCustomer(input: {
   userId: string;
   email: string;
   existingCustomerId: string | null;
 }): Promise<string> {
-  if (input.existingCustomerId) return input.existingCustomerId;
+  /*
+   * A stored customer id is only valid in the Stripe mode that created it.
+   * Switching an app from sandbox to live leaves every existing row pointing at
+   * a customer live Stripe has never heard of, and the portal dead-ends with
+   * "No such customer" — on the billing page, which is the one screen someone
+   * goes to precisely because something is already wrong.
+   *
+   * So verify before trusting it. One extra API call on a path that already
+   * makes several, in exchange for the app healing itself instead of stranding
+   * the account.
+   */
+  if (input.existingCustomerId) {
+    if (await customerExists(input.existingCustomerId)) return input.existingCustomerId;
+    // Stale — fall through and make a fresh one for this mode.
+  }
 
   const customer = await stripeRequest<{ id: string }>(
     "/customers",

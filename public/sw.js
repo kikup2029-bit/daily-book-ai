@@ -10,7 +10,9 @@
  * Bump VERSION when this file changes; old caches are deleted on activate.
  */
 
-const VERSION = "v2";
+// v3: new logo. The old icon is sitting in every installed copy's shell cache,
+// and without a bump those installs would keep showing it indefinitely.
+const VERSION = "v3";
 const SHELL_CACHE = `simplebooks-shell-${VERSION}`;
 const DATA_CACHE = `simplebooks-data-${VERSION}`;
 const OFFLINE_URL = "/offline.html";

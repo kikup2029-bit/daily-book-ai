@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="SimpleBooks">
+  <!--
+    SimpleBooks logo, standalone.
+
+    Colours are literal here, not CSS variables, because this file gets used
+    outside the app — a favicon, an Instagram avatar, a TikTok profile, an app
+    store listing. Those places have no stylesheet, so a var() would render as
+    black or nothing at all.
+
+    Brand purple  #5B4BE0   (matches the brand token in styles.css)
+    Ink           #101216
+    Tile          #F5F5F7
+
+    Export sizes worth having:
+      1024  app stores
+       512  this file, social avatars
+       180  apple-touch-icon.png
+        32  favicon.ico
+  -->
+  <rect width="512" height="512" rx="112" fill="#F5F5F7"/>
+  <g transform="translate(106.67 106.67) scale(12.5)">
+    <rect x="4" y="2.5" width="16" height="19" rx="2.75" fill="#101216"/>
+    <path d="M13.25 2.5h4v8.25l-2-1.85-2 1.85z" fill="#5B4BE0"/>
+  </g>
+</svg>

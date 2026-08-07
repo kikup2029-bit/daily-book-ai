@@ -1,12 +1,57 @@
 import { cn } from "@/lib/utils";
 
 /**
- * The SimpleBooks mark: three ledger rows with today's picked out in the brand
- * colour. It reads as a list at any size, which is what the app is, and it
- * matches the home screen icon so the installed app and the website feel like
- * the same product.
+ * The SimpleBooks mark: a ledger, with today's line picked out.
+ *
+ * DESIGNED FOR THE SMALLEST SIZE FIRST. A logo lives at 16px in a browser tab
+ * and as a ~40px circle in a social feed, and detail that survives at 200px
+ * turns to mush there. So:
+ *
+ *  - Three shapes, no more. Cover, spine, one accent line.
+ *  - Nothing thinner than 2 units in a 24-unit box — below that, a hairline
+ *    disappears entirely once the browser rounds it to a physical pixel.
+ *  - The accent line is the widest element, so the brand colour is still
+ *    legible as colour when the shape itself has stopped being readable.
+ *  - No text inside the icon. Letters at 16px are noise.
+ *
+ * The single coloured line is the idea of the product: one day's takings,
+ * written down. It also means the mark degrades gracefully — at tiny sizes it
+ * reads as "a book with something in it", which is enough.
  */
-export function BrandMark({ className, size = 40 }: { className?: string; size?: number }) {
+export function BrandMark({
+  className,
+  size = 40,
+  /** Drop the rounded tile — for a favicon or an app icon that gets its own. */
+  bare = false,
+}: {
+  className?: string;
+  size?: number;
+  bare?: boolean;
+}) {
+  const glyph = (
+    <svg
+      width={bare ? size : size * 0.58}
+      height={bare ? size : size * 0.58}
+      viewBox="0 0 24 24"
+      fill="none"
+      role="img"
+      aria-hidden="true"
+    >
+      {/* The cover. One solid silhouette — a book read at 16px is a rectangle,
+          and any attempt to draw a spine as a separate bar just reads as two
+          bars side by side. */}
+      <rect x="4" y="2.5" width="16" height="19" rx="2.75" className="fill-foreground" />
+
+      {/* The bookmark ribbon. This is what makes it a book rather than a card,
+          a note or a pause button, and the notch survives being shrunk because
+          it's a silhouette change, not a detail. It also carries the brand
+          colour, so the mark still reads as ours in a monochrome tab strip. */}
+      <path d="M13.25 2.5h4v8.25l-2-1.85-2 1.85z" className="fill-brand" />
+    </svg>
+  );
+
+  if (bare) return <span className={cn("inline-flex shrink-0", className)}>{glyph}</span>;
+
   return (
     <span
       className={cn(
@@ -16,21 +61,7 @@ export function BrandMark({ className, size = 40 }: { className?: string; size?:
       style={{ width: size, height: size }}
       aria-hidden="true"
     >
-      <svg
-        width={size * 0.55}
-        height={size * 0.55}
-        viewBox="0 0 24 24"
-        fill="none"
-        role="img"
-        aria-hidden="true"
-      >
-        <circle cx="4" cy="6" r="1.6" className="fill-muted-foreground" />
-        <rect x="8" y="5" width="9" height="2" rx="1" className="fill-muted-foreground" />
-        <circle cx="4" cy="12" r="1.9" className="fill-brand" />
-        <rect x="8" y="11" width="13" height="2.2" rx="1.1" className="fill-brand" />
-        <circle cx="4" cy="18" r="1.6" className="fill-muted-foreground" />
-        <rect x="8" y="17" width="6" height="2" rx="1" className="fill-muted-foreground" />
-      </svg>
+      {glyph}
     </span>
   );
 }

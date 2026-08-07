@@ -77,6 +77,93 @@ export function ProGate({
   return <UpgradePanel title={t(title)} usedTrial={subscription?.stripeSubscriptionId != null} />;
 }
 
+/**
+ * The blurred shape of the page you can't see yet.
+ *
+ * Purely decorative — panels, rows and bars, no numbers and no data. That is
+ * deliberate on two counts.
+ *
+ * It can't leak. The real page's data is refused by the server on a free
+ * account, so rendering the actual children here would show error states under
+ * a blur, which looks broken rather than tempting.
+ *
+ * And it can't mislead. Blurring invented figures would put fake money on a
+ * screen inside a bookkeeping app — someone squinting at it might believe those
+ * are their own numbers. Abstract shapes say "there is a screen here" without
+ * ever claiming what is on it.
+ *
+ * aria-hidden and pointer-events-none: it is scenery. A screen reader gets the
+ * panel's actual words instead, and nothing here is clickable.
+ */
+/*
+ * A dead grey block.
+ *
+ * Deliberately NOT the .skeleton class, which is what these started as. That
+ * class pulses on a 1.6s loop forever, and it means one specific thing in this
+ * app: data is on its way. On a paywall it would promise a page that is never
+ * going to arrive, and it would animate behind a blur for as long as the tab
+ * stayed open — which no phone battery should have to pay for.
+ */
+const BAR = "bg-muted-foreground/15";
+
+function LockedPreview() {
+  return (
+    <div
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 select-none overflow-hidden"
+    >
+      <div
+        className="absolute inset-0 blur-[6px] saturate-[0.85] opacity-55 dark:opacity-40"
+        // Fades out towards the edges so it reads as depth rather than as a
+        // second layout competing with the panel in front.
+        style={{
+          maskImage: "radial-gradient(120% 90% at 50% 35%, #000 35%, transparent 85%)",
+          WebkitMaskImage: "radial-gradient(120% 90% at 50% 35%, #000 35%, transparent 85%)",
+        }}
+      >
+        <div className="mx-auto w-full max-w-3xl space-y-4 px-4 pt-2">
+          <div className="grid grid-cols-3 gap-3">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="panel h-[86px] p-4">
+                <div className={`${BAR} h-2.5 w-12 rounded-full`} />
+                <div className={`${BAR} mt-3 h-6 w-20 rounded-md`} />
+              </div>
+            ))}
+          </div>
+
+          <div className="panel p-4">
+            <div className={`${BAR} h-2.5 w-28 rounded-full`} />
+            {/* A chart's silhouette. Varied heights so it reads as data
+                rather than as a loading state that never finished. */}
+            <div className="mt-4 flex h-24 items-end gap-2">
+              {[38, 62, 45, 78, 54, 88, 41, 66, 72, 49, 83, 57].map((h, i) => (
+                <div
+                  key={i}
+                  className="flex-1 rounded-t-[3px] bg-brand/45"
+                  style={{ height: `${h}%` }}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="panel divide-y divide-border">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center gap-3 p-4">
+                <div className={`${BAR} size-8 rounded-full`} />
+                <div className="min-w-0 flex-1">
+                  <div className={`${BAR} h-2.5 w-32 rounded-full`} />
+                  <div className={`${BAR} mt-2 h-2 w-20 rounded-full`} />
+                </div>
+                <div className={`${BAR} h-3.5 w-16 rounded-md`} />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /** Takes an already-translated name, not a key — ProGate resolves it above. */
 function UpgradePanel({ title, usedTrial }: { title: string; usedTrial: boolean }) {
   const { t, tag } = useI18n();
@@ -98,8 +185,12 @@ function UpgradePanel({ title, usedTrial }: { title: string; usedTrial: boolean 
   );
 
   return (
-    <div className="rise mx-auto w-full max-w-xl py-6">
-      <Panel className="floating">
+    <div className="rise relative isolate mx-auto w-full max-w-3xl py-6">
+      <LockedPreview />
+
+      {/* Sits above the blur. max-w-xl keeps the card the same size it was —
+          only the stage behind it got wider. */}
+      <Panel className="floating relative z-10 mx-auto max-w-xl backdrop-blur-[2px]">
         <PanelBody className="px-6 py-8 text-center sm:px-8">
           <span
             aria-hidden="true"

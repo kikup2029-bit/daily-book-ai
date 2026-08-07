@@ -111,12 +111,24 @@ export const openBillingPortal = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => z.object({ origin: z.string().url() }).parse(data))
   .handler(async ({ data, context }) => {
-    const { createPortalSession } = await import("./stripe/client.server");
+    const { createPortalSession, customerExists } = await import("./stripe/client.server");
     const { fetchSubscription } = await import("./subscriptions.server");
 
     const subscription = await fetchSubscription(context.supabase, context.userId);
     if (!subscription.stripeCustomerId) {
       throw new Error("There's no billing account to manage yet.");
+    }
+
+    /*
+     * The stored customer belongs to whichever Stripe mode created it. After a
+     * sandbox-to-live switch the id is real but meaningless, and Stripe answers
+     * "No such customer: cus_…" — an id, on a billing page, to someone who just
+     * wanted to cancel. Say what actually happened instead.
+     */
+    if (!(await customerExists(subscription.stripeCustomerId))) {
+      throw new Error(
+        "This account's billing record was created in a different Stripe environment and no longer exists. Start a new subscription to create a fresh one — nothing you've recorded is affected.",
+      );
     }
 
     const session = await createPortalSession({

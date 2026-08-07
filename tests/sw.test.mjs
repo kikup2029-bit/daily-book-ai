@@ -3,6 +3,19 @@ import vm from "node:vm";
 
 const code = fs.readFileSync("public/sw.js", "utf8");
 
+/*
+ * Cache names are read out of sw.js, not written down here.
+ *
+ * They used to be typed out with the version number in seven places here,
+ * so bumping VERSION — which you are SUPPOSED to do on every shipped change to
+ * the worker — turned every cache assertion into a crash on undefined. A test
+ * that breaks when you do the right thing teaches you to stop doing it.
+ */
+const VERSION = /const VERSION = "([^"]+)"/.exec(code)?.[1];
+if (!VERSION) throw new Error("Couldn't find VERSION in public/sw.js — has it been renamed?");
+const SHELL_CACHE = `simplebooks-shell-${VERSION}`;
+const DATA_CACHE = `simplebooks-data-${VERSION}`;
+
 let pass = 0,
   fail = 0;
 const ok = (cond, label) => {
@@ -108,7 +121,7 @@ for (const method of ["PUT", "PATCH", "DELETE"]) {
 {
   const r = await handle(request("/auth", { mode: "navigate" }));
   ok(r.handled === false, "sign-in page is never cached or served from cache");
-  const shell = stores.get("simplebooks-shell-v2");
+  const shell = stores.get(SHELL_CACHE);
   ok(
     !shell || ![...shell.keys()].some((k) => k.includes("/auth")),
     "nothing auth-shaped in the cache",
@@ -125,7 +138,7 @@ for (const method of ["PUT", "PATCH", "DELETE"]) {
 {
   networkUp = true;
   await handle(request("/_build/app.js"));
-  const shell = stores.get("simplebooks-shell-v2");
+  const shell = stores.get(SHELL_CACHE);
   ok(shell.has("https://app.test/_build/app.js"), "asset stored on first fetch");
 
   networkUp = false;
@@ -160,7 +173,7 @@ for (const method of ["PUT", "PATCH", "DELETE"]) {
 
   // A page never visited, with the offline page precached.
   stores
-    .get("simplebooks-shell-v2")
+    .get(SHELL_CACHE)
     .set("https://app.test/offline.html", { from: "cache", url: "offline" });
   const r2 = await handle(request("/never-seen-page", { mode: "navigate" }));
   ok(
@@ -171,12 +184,12 @@ for (const method of ["PUT", "PATCH", "DELETE"]) {
 
 // --- sign-out wipes the data cache but not the shell ---------------------
 {
-  ok(stores.has("simplebooks-data-v2"), "data cache exists before sign-out");
+  ok(stores.has(DATA_CACHE), "data cache exists before sign-out");
   const event = { data: "clear-data-cache", waitUntil: (p) => p };
   for (const fn of listeners.message ?? []) fn(event);
   await new Promise((r) => setTimeout(r, 10));
-  ok(!stores.has("simplebooks-data-v2"), "figures wiped on sign-out");
-  ok(stores.has("simplebooks-shell-v2"), "app code kept, so it still opens offline");
+  ok(!stores.has(DATA_CACHE), "figures wiped on sign-out");
+  ok(stores.has(SHELL_CACHE), "app code kept, so it still opens offline");
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);
