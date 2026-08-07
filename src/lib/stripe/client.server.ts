@@ -19,7 +19,7 @@
  * in a public bundle.
  */
 
-import { readRuntimeEnv } from "../runtime-env.server";
+import { readRuntimeEnv, visibleEnvNames } from "../runtime-env.server";
 
 const STRIPE_API = "https://api.stripe.com/v1";
 
@@ -49,9 +49,24 @@ function runtimeSecret(key: string): string {
   const value = runtimeValue(key);
 
   if (!value) {
-    throw new Error(
-      `${key} is not set on the server. Add it as a runtime secret (Cloudflare: Settings → Variables and Secrets → Encrypt, or \`wrangler secret put ${key}\`). Do not add it to vite.config.ts — that would put it in the public bundle.`,
-    );
+    /*
+     * Report what the server CAN see, not only what it wanted.
+     *
+     * "Not set on the server" cannot tell apart a missing value from a whole
+     * binding pipeline that delivers nothing, and those need opposite fixes.
+     * Guessing between them cost hours of re-typing a value into a dashboard
+     * that was already correct.
+     *
+     * Names only. A name tells you where to look; a value in an error message
+     * ends up in a screenshot, a bug report, or a log.
+     */
+    const visible = visibleEnvNames();
+    const detail =
+      visible.length === 0
+        ? "The server can see NO variables at all — not one. This is the deploy pipeline dropping every binding, not a missing value, and nothing typed into the Cloudflare dashboard will fix it."
+        : `The server can see: ${visible.join(", ")}. So bindings do arrive, and this one specifically is missing or misspelled.`;
+
+    throw new Error(`${key} is not readable on the server. ${detail}`);
   }
   return value;
 }
