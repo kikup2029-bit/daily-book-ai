@@ -28,14 +28,32 @@ const STRIPE_API = "https://api.stripe.com/v1";
  * falls back to BUILD_TIME_VALUES, which is the inlining path. For Stripe we
  * want the failure, not the fallback.
  */
-function runtimeSecret(key: string): string {
+/**
+ * Reads a runtime value from every place a Cloudflare binding can land.
+ *
+ * Three sources, because which one holds the value depends on how the request
+ * got here: server.ts copies the Worker's bindings onto `process.env`, but that
+ * copy only happens on paths that run through its fetch handler, and the raw
+ * binding object shows up as `env` or `__env__` depending on the adapter.
+ *
+ * Exported because the Stripe Price id needs exactly this lookup and used to do
+ * its own, checking `process.env` alone. That mismatch meant a correctly
+ * configured Worker could still refuse to start checkout with "not set on the
+ * server" — the value was there, just not in the one place that was looked at.
+ * One reader, one answer.
+ */
+export function runtimeValue(key: string): string | null {
   const globalEnv = globalThis as {
     process?: { env?: Record<string, string | undefined> };
     __env__?: Record<string, string | undefined>;
     env?: Record<string, string | undefined>;
   };
 
-  const value = globalEnv.process?.env?.[key] ?? globalEnv.__env__?.[key] ?? globalEnv.env?.[key];
+  return globalEnv.process?.env?.[key] ?? globalEnv.__env__?.[key] ?? globalEnv.env?.[key] ?? null;
+}
+
+function runtimeSecret(key: string): string {
+  const value = runtimeValue(key);
 
   if (!value) {
     throw new Error(

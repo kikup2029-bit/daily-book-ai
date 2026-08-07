@@ -33,7 +33,8 @@ export const startCheckout = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { PLANS } = await import("./pricing");
-    const { createCheckoutSession, findOrCreateCustomer } = await import("./stripe/client.server");
+    const { createCheckoutSession, findOrCreateCustomer, runtimeValue } =
+      await import("./stripe/client.server");
     const { fetchSubscription } = await import("./subscriptions.server");
     const { createServerSupabaseAdmin } = await import("./supabase-admin.server");
     const { linkCustomer } = await import("./subscriptions.server");
@@ -44,8 +45,11 @@ export const startCheckout = createServerFn({ method: "POST" })
 
     // The Price id comes from the server environment, so the amount charged is
     // fixed by configuration rather than by whatever the page posted.
-    const priceId = (globalThis as { process?: { env?: Record<string, string | undefined> } })
-      .process?.env?.[priceEnvVar];
+    // Same reader the Stripe keys use. It checks process.env, __env__ and env,
+    // because which of the three holds a Cloudflare binding depends on the
+    // request path — this used to read process.env only, and reported a
+    // correctly-set variable as missing whenever the value landed elsewhere.
+    const priceId = runtimeValue(priceEnvVar);
     if (!priceId) {
       throw new Error(
         `${priceEnvVar} is not set on the server, so checkout can't start. Create the Price in Stripe and add its id as a runtime variable.`,
