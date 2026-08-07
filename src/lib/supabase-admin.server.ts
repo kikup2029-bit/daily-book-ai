@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import { readRuntimeEnv } from "./runtime-env.server";
 
 /**
  * Server-only Supabase client using the service_role secret key.
@@ -12,10 +13,24 @@ import type { Database } from "@/integrations/supabase/types";
  * commit it to the repo or share it in chat.
  */
 export function createServerSupabaseAdmin() {
-  const url = process.env.SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  // readRuntimeEnv, not process.env. Cloudflare hands bindings to the fetch
+  // handler; `process.env` is empty on a Worker without the nodejs_compat flag,
+  // and this project has none. Reading it directly made a correctly-uploaded
+  // secret report as missing — the same trap that cost an afternoon on the
+  // Stripe keys.
+  const url = readRuntimeEnv("SUPABASE_URL");
+  const serviceKey = readRuntimeEnv("SUPABASE_SERVICE_ROLE_KEY");
+
   if (!url || !serviceKey) {
-    throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY server environment variable");
+    // Name which one is absent. "Missing SUPABASE_SERVICE_ROLE_KEY" while the
+    // URL was the real gap sends you looking in the wrong place.
+    const missing = [
+      !url ? "SUPABASE_URL" : null,
+      !serviceKey ? "SUPABASE_SERVICE_ROLE_KEY" : null,
+    ].filter(Boolean);
+    throw new Error(
+      `Not readable on the server: ${missing.join(" and ")}. Set with: wrangler secret put <NAME> --name daily-book-ai`,
+    );
   }
 
   return createClient<Database>(url, serviceKey, {

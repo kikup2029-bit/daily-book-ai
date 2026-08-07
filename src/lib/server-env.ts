@@ -1,3 +1,5 @@
+import { readRuntimeEnv } from "./runtime-env.server";
+
 /**
  * Reads a server-side environment variable across the different ways a host
  * can expose them.
@@ -23,6 +25,14 @@ const BUILD_TIME_VALUES: Record<string, string | undefined> = {
 };
 
 export function readServerEnv(key: string): string | undefined {
+  // 0. The bindings captured by the Worker's fetch handler. FIRST, because it
+  //    is the only source that is reliably populated on a deployed Worker —
+  //    the others below are all conditional on a Node shim or a build flag
+  //    that this project doesn't have. Everything that reads env goes through
+  //    here, so getting the order wrong breaks the AI keys too, silently.
+  const fromRuntime = readRuntimeEnv(key);
+  if (fromRuntime) return fromRuntime;
+
   // 1. Standard Node-style access (works locally, and on Workers when
   //    process.env is populated from bindings).
   const fromProcess = typeof process !== "undefined" && process.env ? process.env[key] : undefined;
