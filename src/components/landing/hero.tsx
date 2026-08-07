@@ -10,11 +10,12 @@ import { Link } from "@tanstack/react-router";
 import { WifiOff, Sparkles, Clock } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { TRIAL_DAYS } from "@/lib/pricing";
 
 const REASSURANCES = [
   { icon: Clock, text: "About ten seconds an entry" },
   { icon: WifiOff, text: "Keeps working with no signal" },
-  { icon: Sparkles, text: "Free plan, no card needed" },
+  { icon: Sparkles, text: `Free for ${TRIAL_DAYS} days, cancel any time` },
 ];
 
 export function Hero() {
@@ -33,7 +34,7 @@ export function Hero() {
 
         <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
           <Button asChild variant="brand" size="lg">
-            <Link to="/auth">Start free</Link>
+            <Link to="/auth">Start my {TRIAL_DAYS} free days</Link>
           </Button>
           <Button asChild variant="outline" size="lg">
             <a href="#how-it-works">See how it works</a>

@@ -35,6 +35,26 @@ import type { PartialDictionary } from "./translate";
  *   - reminder.notificationTitle — "Today's takings" → "Las ventas de hoy",
  *     which assumes the user sells something. Fine for market traders and
  *     cafés, slightly off for a cleaner billing by the hour.
+ *
+ * Billing terms fixed in this pass (the `billing` section):
+ *   billing → "facturación"      plan → "plan" (Free / Pro left in English,
+ *   they are the product's own names)      checkout → "pago"
+ *   card → "tarjeta"             charge (verb) → "cobrar"
+ *   free trial → "prueba gratis" receipt (payment) → "recibo"
+ *   your books → "tus cuentas" (matches the rest of the file)
+ *
+ * Billing keys a reviewer should check hardest:
+ *   - billing.trialDisclosure_one/_other — the legally load-bearing sentence.
+ *     It must keep all three facts: the price, the exact date of the first
+ *     charge, and that cancelling before then costs nothing. Do not shorten.
+ *   - billing.genericError / billing.cancelledBody — both promise that no
+ *     money moved ("No se cobró nada", "No pagaste nada"). If either reads as
+ *     ambiguous about whether a charge happened, it is wrong.
+ *   - billing.statusPastDue "Pago vencido" vs invoices.overdue "Vencidas" —
+ *     one is money the user owes us, the other money a customer owes them.
+ *     Confirm the two don't read as the same thing.
+ *   - billing.renewsLabel "Se renueva" as a two-word metric label; check it
+ *     doesn't wrap badly next to a long date.
  */
 export const es: PartialDictionary = {
   common: {
@@ -345,6 +365,106 @@ export const es: PartialDictionary = {
     errLineDescription: "Describe para qué es esto.",
     errLineQuantity: "La cantidad tiene que ser mayor que cero.",
     errLinePrice: "El precio no puede ser negativo.",
+  },
+
+  billing: {
+    eyebrow: "Facturación",
+    title: "Tu plan",
+    blurb: "Por lo que estás pagando y todo lo que le puedes cambiar.",
+    loadingPlan: "Cargando tu plan.",
+    loadFailed: "No se pudo cargar tu plan",
+    portalFailed: "No se pudo abrir la facturación",
+    checkoutFailed: "No se pudo iniciar el pago",
+    genericError: "Algo falló de nuestro lado. No se cobró nada.",
+    paymentFailed: "Un pago no se pudo cobrar",
+    paymentFailedBody:
+      "Tu último pago fue rechazado. No se apagó nada — Stripe va a seguir intentando por unos días, y todo lo que pagas sigue funcionando mientras tanto.",
+    paymentFailedFix:
+      "Actualizar la tarjeta casi siempre lo arregla, y el cobro pasa en el siguiente intento.",
+    updateCard: "Actualiza tu tarjeta",
+    statusActive: "Activo",
+    statusTrialing: "Prueba",
+    statusPastDue: "Pago vencido",
+    statusCanceled: "Cancelado",
+    statusIncomplete: "Sin terminar",
+    statusExpired: "Vencido",
+    statusUnpaid: "Sin pagar",
+    statusPaused: "En pausa",
+    proPanelTitle: "Plan SimpleBooks Pro",
+    proUnlocked: "En esta cuenta está desbloqueado todo lo de la app.",
+    planLabel: "Tu plan",
+    pricePerMonth: "{price} al mes",
+    renewsLabel: "Se renueva",
+    proEndsLabel: "Pro termina",
+    chargedAgainHint: "Se te va a cobrar de nuevo en esta fecha.",
+    lastPaidDayHint: "El último día del mes que ya pagaste.",
+    noRenewalDate: "Stripe todavía no ha devuelto una fecha de renovación.",
+    manageBilling: "Administrar facturación",
+    manageBillingHint: "Cambia tu tarjeta, mira recibos o cancela.",
+    proEndingTitle: "Pro está por terminar",
+    proEndsOn:
+      "Pro sigue activo hasta el {date}. Después, esta cuenta vuelve al plan Free y no se te vuelve a cobrar. Nada de lo que anotaste se borra.",
+    proEndsAfterPaidMonth:
+      "Pro sigue activo hasta que se acabe el mes que ya pagaste. Después, esta cuenta vuelve al plan Free y no se te vuelve a cobrar. Nada de lo que anotaste se borra.",
+    changedYourMind: "¿Cambiaste de opinión? Entra a administrar facturación y vuelve a activarlo.",
+    comparePlans: "Compara los planes",
+    currentPlanBadge: "Tu plan",
+    everything: "Todo",
+    openingStripe: "Abriendo Stripe…",
+    onThisPlan: "Esto es lo que tienes hoy.",
+    stripeNote:
+      "El pago lo maneja Stripe en su propia página — los datos de tu tarjeta nunca llegan a SimpleBooks. Puedes cancelar desde aquí cuando quieras y te queda Pro hasta que se acabe el mes que ya pagaste.",
+    successTitle: "Ya tienes Pro",
+    successBody:
+      "El pago se realizó y en esta cuenta está desbloqueado todo. Stripe te va a mandar un recibo a tu correo.",
+    goToBooks: "Ir a tus cuentas",
+    seeYourPlan: "Ver tu plan",
+    confirming: "Confirmando",
+    confirmingTitle: "Confirmando tu pago",
+    confirmingBody:
+      "Ya volviste de Stripe. En vez de tomar ese regreso como prueba, esperamos a que Stripe mismo confirme el pago antes de pasar esta cuenta a Pro — normalmente tarda unos segundos.",
+    canLeavePage: "Puedes salir de esta página. Nada depende de que siga abierta.",
+    notConfirmedTitle: "Esto todavía se está confirmando",
+    notConfirmedBody:
+      "Puede que tu pago siga en proceso. La confirmación suele tardar segundos, pero puede tardar un minuto o dos, y va a terminar tengas o no esta página abierta.",
+    notConfirmedReassure:
+      "De cualquier forma no se pierde nada: si el pago salió bien, Pro se activa solo. Tu página de facturación siempre muestra cómo están las cosas de verdad.",
+    checkFailed: "La última revisión no obtuvo respuesta",
+    checkAgain: "Revisar de nuevo",
+    goToBilling: "Ir a facturación",
+    contactSupport:
+      "Si Pro sigue sin aparecer en unos minutos, escríbele a soporte y menciona la referencia de abajo.",
+    reference: "Referencia: {reference}",
+    cancelledTitle: "Cerraste el pago",
+    cancelledBody:
+      "No pagaste nada y nada cambió. Tus cuentas están tal como las dejaste, y el plan Free sigue igual que antes.",
+    cancelledReassure:
+      "Pro está ahí cuando lo quieras — no hay prisa ni castigo por cerrar la página.",
+    seePlansAgain: "Ver los planes otra vez",
+    backToBooks: "Volver a tus cuentas",
+    checkingPlan: "Revisando tu plan.",
+    featureIsPro: "{feature} es parte de Pro",
+    trialUsed:
+      "Ya usaste tus días gratis. Pro cuesta {price} al mes y puedes cancelar cuando quieras.",
+    tryFree_one: "Pruébalo gratis {count} día junto con todo lo demás de Pro.",
+    tryFree_other: "Pruébalo gratis {count} días junto con todo lo demás de Pro.",
+    startTrial_one: "Empezar mi {count} día gratis",
+    startTrial_other: "Empezar mis {count} días gratis",
+    getPro: "Obtener Pro — {price} al mes",
+    trialDisclosure_one:
+      "Gratis por {count} día. El {date} se cobran {price} a tu tarjeta, y después {price} cada mes. Cancela en cualquier momento antes de esa fecha y no pagas nada.",
+    trialDisclosure_other:
+      "Gratis por {count} días. El {date} se cobran {price} a tu tarjeta, y después {price} cada mes. Cancela en cualquier momento antes de esa fecha y no pagas nada.",
+    recordsStay: "Lo que ya anotaste se queda donde está, en cualquier plan.",
+    exportsAlwaysWork: "Las exportaciones siempre funcionan.",
+    trialEndsToday: "Tu prueba gratis termina hoy",
+    trialLastDay: "Último día de tu prueba gratis",
+    trialDaysLeft_one: "Te queda {count} día de prueba gratis",
+    trialDaysLeft_other: "Te quedan {count} días de prueba gratis",
+    cardChargedOn: "El {date} se cobran {price} a tu tarjeta.",
+    thenPricePerMonth: "Después, {price} al mes.",
+    manageOrCancel: "Administrar o cancelar",
+    hideUntilTomorrow: "Ocultar hasta mañana",
   },
 
   reminder: {

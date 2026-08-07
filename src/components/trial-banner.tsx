@@ -28,7 +28,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 
 export function TrialBanner() {
   const { data: subscription } = useSubscription();
-  const { tag, formatDate } = useI18n();
+  const { t, tag, formatDate } = useI18n();
   const [hidden, setHidden] = useState(true);
 
   const daysLeft = trialDaysLeft(subscription?.trialEndsAt ?? null);
@@ -61,25 +61,27 @@ export function TrialBanner() {
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px]">
           <span className="font-semibold">
             {daysLeft === 0
-              ? "Your free trial ends today"
+              ? t("billing.trialEndsToday")
               : daysLeft === 1
-                ? "Last day of your free trial"
-                : `${daysLeft} days left of your free trial`}
+                ? t("billing.trialLastDay")
+                : t("billing.trialDaysLeft", { count: daysLeft })}
           </span>
 
           {/* The amount and the date, always together — a date with no amount
-              is not a disclosure, and neither is an amount with no date. */}
+              is not a disclosure, and neither is an amount with no date. Both
+              sit inside one sentence, so a translation can put them wherever
+              its own grammar needs them. */}
           <span className="min-w-0 text-muted-foreground">
             {chargeDate
-              ? `Your card is charged ${price} on ${chargeDate}.`
-              : `Then ${price} a month.`}
+              ? t("billing.cardChargedOn", { price, date: chargeDate })
+              : t("billing.thenPricePerMonth", { price })}
           </span>
 
           <Link
             to="/billing"
             className="ml-auto shrink-0 rounded-[var(--radius-8)] px-2 py-1 font-medium text-brand transition-colors duration-[var(--dur-fast)] hover:bg-foreground/10"
           >
-            Manage or cancel
+            {t("billing.manageOrCancel")}
           </Link>
 
           {canDismiss ? (
@@ -94,8 +96,8 @@ export function TrialBanner() {
                 setHidden(true);
               }}
               className="flex size-8 shrink-0 items-center justify-center rounded-[var(--radius-8)] text-muted-foreground transition-colors duration-[var(--dur-fast)] hover:bg-foreground/10 hover:text-foreground"
-              aria-label="Hide until tomorrow"
-              title="Hide until tomorrow"
+              aria-label={t("billing.hideUntilTomorrow")}
+              title={t("billing.hideUntilTomorrow")}
             >
               <X className="size-4" aria-hidden="true" />
             </button>

@@ -323,6 +323,109 @@ export const en = {
     errLinePrice: "Price can't be negative.",
   },
 
+  billing: {
+    eyebrow: "Billing",
+    title: "Your plan",
+    blurb: "What you are paying for, and everything you can change about it.",
+    loadingPlan: "Loading your plan.",
+    loadFailed: "Your plan couldn't be loaded",
+    portalFailed: "Billing couldn't be opened",
+    checkoutFailed: "Checkout couldn't be started",
+    genericError: "Something went wrong on our end. Nothing was charged.",
+    paymentFailed: "A payment didn't go through",
+    paymentFailedBody:
+      "Your last payment was declined. Nothing has been switched off — Stripe will keep trying for a few days, and everything you pay for carries on working while it does.",
+    paymentFailedFix:
+      "Updating the card usually fixes it, and the charge goes through on the next attempt.",
+    updateCard: "Update your card",
+    statusActive: "Active",
+    statusTrialing: "Trial",
+    statusPastDue: "Payment overdue",
+    statusCanceled: "Cancelled",
+    statusIncomplete: "Not finished",
+    statusExpired: "Expired",
+    statusUnpaid: "Unpaid",
+    statusPaused: "Paused",
+    proPanelTitle: "SimpleBooks Pro",
+    proUnlocked: "Everything in the app is unlocked on this account.",
+    planLabel: "Your plan",
+    pricePerMonth: "{price} per month",
+    renewsLabel: "Renews",
+    proEndsLabel: "Pro ends",
+    chargedAgainHint: "You'll be charged again on this date.",
+    lastPaidDayHint: "The last day of the month you've paid for.",
+    noRenewalDate: "No renewal date has come back from Stripe yet.",
+    manageBilling: "Manage billing",
+    manageBillingHint: "Change your card, see receipts, or cancel.",
+    proEndingTitle: "Pro is set to end",
+    proEndsOn:
+      "Pro stays on until {date}. After that this account goes back to the Free plan and you won't be charged again. Nothing you've recorded is deleted.",
+    proEndsAfterPaidMonth:
+      "Pro stays on until the end of the month you've paid for. After that this account goes back to the Free plan and you won't be charged again. Nothing you've recorded is deleted.",
+    changedYourMind: "Changed your mind? Manage billing to start it up again.",
+    comparePlans: "Compare the plans",
+    currentPlanBadge: "Your plan",
+    everything: "Everything",
+    openingStripe: "Opening Stripe…",
+    onThisPlan: "This is what you're on today.",
+    stripeNote:
+      "Payment is handled by Stripe on their own page — card details never reach SimpleBooks. You can cancel from here at any time, and keep Pro until the month you have paid for runs out.",
+    successTitle: "You're on Pro",
+    successBody:
+      "The payment came through and everything is unlocked on this account. A receipt is on its way to your email from Stripe.",
+    goToBooks: "Go to your books",
+    seeYourPlan: "See your plan",
+    confirming: "Confirming",
+    confirmingTitle: "Confirming your payment",
+    confirmingBody:
+      "You're back from Stripe. We wait for Stripe itself to confirm the payment before switching this account to Pro, rather than taking the trip back here as proof — it normally takes a few seconds.",
+    canLeavePage: "You can leave this page. Nothing depends on it staying open.",
+    notConfirmedTitle: "This is still being confirmed",
+    notConfirmedBody:
+      "Your payment may still be going through. Confirmation usually takes seconds but can take a minute or two, and it will finish whether or not this page is open.",
+    notConfirmedReassure:
+      "Nothing is lost either way: if the payment succeeded, Pro switches on by itself. Your billing page always shows where things actually stand.",
+    checkFailed: "The last check didn't get an answer",
+    checkAgain: "Check again",
+    goToBilling: "Go to billing",
+    contactSupport:
+      "If Pro still isn't showing in a few minutes, contact support and quote the reference below.",
+    reference: "Reference: {reference}",
+    cancelledTitle: "Checkout closed",
+    cancelledBody:
+      "You didn't pay anything and nothing has changed. Your books are exactly where you left them, and the Free plan carries on as before.",
+    cancelledReassure:
+      "Pro is there whenever you want it — there's no rush and no penalty for closing the page.",
+    seePlansAgain: "Look at the plans again",
+    backToBooks: "Back to your books",
+    checkingPlan: "Checking your plan.",
+    featureIsPro: "{feature} is part of Pro",
+    trialUsed:
+      "You've already had your free days. Pro is {price} a month and you can cancel whenever you like.",
+    tryFree_one: "Try it free for {count} day along with everything else in Pro.",
+    tryFree_other: "Try it free for {count} days along with everything else in Pro.",
+    startTrial_one: "Start my {count} free day",
+    startTrial_other: "Start my {count} free days",
+    getPro: "Get Pro — {price} a month",
+    // The legally load-bearing sentence for a card-up-front trial. Every
+    // language must keep all three facts: the price, the exact date of the
+    // first charge, and that cancelling before then costs nothing.
+    trialDisclosure_one:
+      "Free for {count} day. On {date} your card is charged {price}, then {price} every month. Cancel any time before then and you pay nothing.",
+    trialDisclosure_other:
+      "Free for {count} days. On {date} your card is charged {price}, then {price} every month. Cancel any time before then and you pay nothing.",
+    recordsStay: "Your existing records stay where they are, on any plan.",
+    exportsAlwaysWork: "Exports always work.",
+    trialEndsToday: "Your free trial ends today",
+    trialLastDay: "Last day of your free trial",
+    trialDaysLeft_one: "{count} day left of your free trial",
+    trialDaysLeft_other: "{count} days left of your free trial",
+    cardChargedOn: "Your card is charged {price} on {date}.",
+    thenPricePerMonth: "Then {price} a month.",
+    manageOrCancel: "Manage or cancel",
+    hideUntilTomorrow: "Hide until tomorrow",
+  },
+
   reminder: {
     eyebrow: "Tools",
     title: "Daily reminder",

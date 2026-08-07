@@ -39,6 +39,32 @@ import type { PartialDictionary } from "./translate";
  *
  * No RLM/LRM control characters here — the document sets dir="rtl" and the
  * browser's bidi algorithm places the Latin {placeholders} correctly.
+ *
+ * Billing terms fixed in this pass (the `billing` section), same shopkeeper
+ * register as the rest of the file:
+ *   billing     → "بلنگ"        plan → "پلان" (Free / Pro keep their English
+ *   names, they are what the product calls its tiers)
+ *   card        → "کارڈ"        checkout → "چیک آؤٹ"
+ *   charged     → "پیسے لیے جائیں گے" / "پیسے کٹ جاتے ہیں", not the formal
+ *                 "چارج کیا جائے گا"
+ *   free trial  → "مفت آزمائش"  receipt → "رسید", as in the invoice section
+ *   your books  → "حساب", as everywhere else in this file
+ *
+ * Billing keys a reviewer should check hardest:
+ *  - billing.trialDisclosure_one/_other — legally load-bearing. It must keep
+ *    all three facts: the price, the exact date of the first charge, and that
+ *    cancelling before then costs nothing. Do not shorten or soften it.
+ *  - billing.genericError "آپ سے کوئی پیسہ نہیں لیا گیا" and
+ *    billing.cancelledBody "آپ نے کچھ نہیں دیا" — both must be unmistakable
+ *    that no money moved.
+ *  - billing.statusPastDue "ادائیگی باقی" is money the user owes us, while
+ *    invoices.overdue "تاریخ گزر گئی" is money a customer owes them. Confirm
+ *    the two read as different things.
+ *  - billing.renewsLabel "دوبارہ چالو ہوگا" is long for a metric label above a
+ *    date; a shorter phrasing may be better if it wraps.
+ *  - The {price} and {date} values are Latin script inside Urdu sentences.
+ *    Please check on a real device that the bidi algorithm places them where
+ *    the sentence expects, especially in cardChargedOn and trialDisclosure.
  */
 export const ur: PartialDictionary = {
   common: {
@@ -347,6 +373,105 @@ export const ur: PartialDictionary = {
     errLineDescription: "بتائیں یہ کس چیز کے لیے ہے۔",
     errLineQuantity: "تعداد صفر سے زیادہ ہونی چاہیے۔",
     errLinePrice: "قیمت منفی نہیں ہو سکتی۔",
+  },
+
+  billing: {
+    eyebrow: "بلنگ",
+    title: "آپ کا پلان",
+    blurb: "آپ کس چیز کے پیسے دے رہے ہیں، اور اس میں کیا کیا بدل سکتے ہیں۔",
+    loadingPlan: "آپ کا پلان کھل رہا ہے۔",
+    loadFailed: "آپ کا پلان نہیں کھل سکا",
+    portalFailed: "بلنگ نہیں کھل سکی",
+    checkoutFailed: "چیک آؤٹ شروع نہیں ہو سکا",
+    genericError: "ہماری طرف سے کچھ گڑبڑ ہو گئی۔ آپ سے کوئی پیسہ نہیں لیا گیا۔",
+    paymentFailed: "ایک ادائیگی نہیں ہو سکی",
+    paymentFailedBody:
+      "آپ کی پچھلی ادائیگی رد ہو گئی۔ کچھ بھی بند نہیں کیا گیا — Stripe کچھ دن تک کوشش کرتا رہے گا، اور تب تک وہ سب کچھ چلتا رہے گا جس کے آپ پیسے دیتے ہیں۔",
+    paymentFailedFix:
+      "کارڈ بدل دینے سے عام طور پر بات بن جاتی ہے، اور اگلی کوشش میں پیسے کٹ جاتے ہیں۔",
+    updateCard: "اپنا کارڈ بدلیں",
+    statusActive: "چالو",
+    statusTrialing: "آزمائش",
+    statusPastDue: "ادائیگی باقی",
+    statusCanceled: "منسوخ",
+    statusIncomplete: "ادھورا",
+    statusExpired: "مدت ختم",
+    statusUnpaid: "بغیر ادائیگی",
+    statusPaused: "روکا ہوا",
+    proPanelTitle: "SimpleBooks پرو",
+    proUnlocked: "اس اکاؤنٹ پر ایپ کی ہر چیز کھلی ہوئی ہے۔",
+    planLabel: "آپ کا پلان",
+    pricePerMonth: "{price} ماہانہ",
+    renewsLabel: "دوبارہ چالو ہوگا",
+    proEndsLabel: "پرو ختم ہوگا",
+    chargedAgainHint: "اسی تاریخ کو آپ سے دوبارہ پیسے لیے جائیں گے۔",
+    lastPaidDayHint: "جس مہینے کے آپ پیسے دے چکے ہیں اس کا آخری دن۔",
+    noRenewalDate: "Stripe کی طرف سے ابھی کوئی تاریخ نہیں آئی۔",
+    manageBilling: "بلنگ سنبھالیں",
+    manageBillingHint: "کارڈ بدلیں، رسیدیں دیکھیں، یا منسوخ کریں۔",
+    proEndingTitle: "پرو ختم ہونے والا ہے",
+    proEndsOn:
+      "پرو {date} تک چالو رہے گا۔ اس کے بعد یہ اکاؤنٹ فری پلان پر واپس چلا جائے گا اور آپ سے دوبارہ پیسے نہیں لیے جائیں گے۔ آپ کا لکھا ہوا کچھ بھی نہیں مٹتا۔",
+    proEndsAfterPaidMonth:
+      "جس مہینے کے آپ پیسے دے چکے ہیں، پرو اس کے آخر تک چالو رہے گا۔ اس کے بعد یہ اکاؤنٹ فری پلان پر واپس چلا جائے گا اور آپ سے دوبارہ پیسے نہیں لیے جائیں گے۔ آپ کا لکھا ہوا کچھ بھی نہیں مٹتا۔",
+    changedYourMind: "ارادہ بدل گیا؟ بلنگ سنبھالیں میں جا کر اسے دوبارہ چالو کر سکتے ہیں۔",
+    comparePlans: "پلان کا موازنہ کریں",
+    currentPlanBadge: "آپ کا پلان",
+    everything: "سب کچھ",
+    openingStripe: "Stripe کھل رہا ہے…",
+    onThisPlan: "آج آپ اسی پر ہیں۔",
+    stripeNote:
+      "ادائیگی Stripe اپنے صفحے پر سنبھالتا ہے — کارڈ کی تفصیل کبھی SimpleBooks تک نہیں پہنچتی۔ آپ یہیں سے جب چاہیں منسوخ کر سکتے ہیں، اور جس مہینے کے پیسے دے چکے ہیں اس کے ختم ہونے تک پرو چلتا رہے گا۔",
+    successTitle: "آپ پرو پر ہیں",
+    successBody:
+      "ادائیگی ہو گئی اور اس اکاؤنٹ پر سب کچھ کھل گیا ہے۔ Stripe کی طرف سے رسید آپ کے ای میل پر آ رہی ہے۔",
+    goToBooks: "اپنے حساب پر جائیں",
+    seeYourPlan: "اپنا پلان دیکھیں",
+    confirming: "تصدیق ہو رہی ہے",
+    confirmingTitle: "آپ کی ادائیگی کی تصدیق ہو رہی ہے",
+    confirmingBody:
+      "آپ Stripe سے واپس آ گئے ہیں۔ یہاں واپس آ جانے کو ہی ثبوت ماننے کے بجائے، اکاؤنٹ کو پرو کرنے سے پہلے ہم Stripe سے ہی ادائیگی کی تصدیق کا انتظار کرتے ہیں — عام طور پر چند سیکنڈ لگتے ہیں۔",
+    canLeavePage: "آپ یہ صفحہ بند کر سکتے ہیں۔ اس کے کھلے رہنے پر کچھ منحصر نہیں۔",
+    notConfirmedTitle: "اس کی تصدیق ابھی باقی ہے",
+    notConfirmedBody:
+      "ہو سکتا ہے آپ کی ادائیگی ابھی چل رہی ہو۔ تصدیق میں عام طور پر چند سیکنڈ لگتے ہیں، مگر ایک دو منٹ بھی لگ سکتے ہیں، اور یہ صفحہ کھلا ہو یا نہ ہو، کام مکمل ہو جائے گا۔",
+    notConfirmedReassure:
+      "دونوں صورتوں میں کچھ ضائع نہیں ہوتا: اگر ادائیگی ہو گئی تو پرو خود بخود چالو ہو جائے گا۔ اصل صورتحال ہمیشہ آپ کے بلنگ صفحے پر نظر آتی ہے۔",
+    checkFailed: "پچھلی جانچ کا کوئی جواب نہیں ملا",
+    checkAgain: "دوبارہ جانچیں",
+    goToBilling: "بلنگ پر جائیں",
+    contactSupport:
+      "اگر چند منٹ بعد بھی پرو نظر نہ آئے تو سپورٹ سے رابطہ کریں اور نیچے دیا حوالہ نمبر بتائیں۔",
+    reference: "حوالہ: {reference}",
+    cancelledTitle: "چیک آؤٹ بند ہو گیا",
+    cancelledBody:
+      "آپ نے کچھ نہیں دیا اور کچھ نہیں بدلا۔ آپ کا حساب جہاں تھا وہیں ہے، اور فری پلان پہلے کی طرح چل رہا ہے۔",
+    cancelledReassure: "پرو جب چاہیں لے سکتے ہیں — نہ کوئی جلدی ہے، نہ صفحہ بند کرنے کی کوئی سزا۔",
+    seePlansAgain: "پلان دوبارہ دیکھیں",
+    backToBooks: "اپنے حساب پر واپس",
+    checkingPlan: "آپ کا پلان دیکھا جا رہا ہے۔",
+    featureIsPro: "{feature} پرو کا حصہ ہے",
+    trialUsed:
+      "آپ کے مفت دن ختم ہو چکے ہیں۔ پرو {price} ماہانہ ہے اور آپ جب چاہیں منسوخ کر سکتے ہیں۔",
+    tryFree_one: "پرو کی باقی ہر چیز کے ساتھ اسے {count} دن مفت آزمائیں۔",
+    tryFree_other: "پرو کی باقی ہر چیز کے ساتھ اسے {count} دن مفت آزمائیں۔",
+    startTrial_one: "میرا {count} مفت دن شروع کریں",
+    startTrial_other: "میرے {count} مفت دن شروع کریں",
+    getPro: "پرو لیں — {price} ماہانہ",
+    trialDisclosure_one:
+      "{count} دن مفت۔ {date} کو آپ کے کارڈ سے {price} لیے جائیں گے، پھر ہر مہینے {price}۔ اس سے پہلے جب چاہیں منسوخ کر دیں، آپ کو کچھ نہیں دینا پڑے گا۔",
+    trialDisclosure_other:
+      "{count} دن مفت۔ {date} کو آپ کے کارڈ سے {price} لیے جائیں گے، پھر ہر مہینے {price}۔ اس سے پہلے جب چاہیں منسوخ کر دیں، آپ کو کچھ نہیں دینا پڑے گا۔",
+    recordsStay: "آپ کا پہلے کا لکھا ہوا جہاں ہے وہیں رہے گا، چاہے کوئی بھی پلان ہو۔",
+    exportsAlwaysWork: "ایکسپورٹ ہمیشہ چلتا ہے۔",
+    trialEndsToday: "آپ کی مفت آزمائش آج ختم ہو رہی ہے",
+    trialLastDay: "آپ کی مفت آزمائش کا آخری دن",
+    trialDaysLeft_one: "آپ کی مفت آزمائش کا {count} دن باقی",
+    trialDaysLeft_other: "آپ کی مفت آزمائش کے {count} دن باقی",
+    cardChargedOn: "{date} کو آپ کے کارڈ سے {price} لیے جائیں گے۔",
+    thenPricePerMonth: "پھر {price} ماہانہ۔",
+    manageOrCancel: "سنبھالیں یا منسوخ کریں",
+    hideUntilTomorrow: "کل تک چھپائیں",
   },
 
   reminder: {

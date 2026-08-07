@@ -15,7 +15,7 @@ import { Link } from "@tanstack/react-router";
 import { Check } from "lucide-react";
 
 import { useI18n } from "@/lib/i18n";
-import { PLAN_LIST, formatPrice } from "@/lib/pricing";
+import { PLAN_LIST, TRIAL_DAYS, formatPrice } from "@/lib/pricing";
 import { Badge } from "@/components/ui/kit";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -32,8 +32,8 @@ export function Pricing() {
       <SectionHeading
         id="pricing-heading"
         eyebrow="Pricing"
-        title="Start free. Move up only if it earns its keep"
-        description="No trial that expires on you and nothing to cancel if you stay on the free plan."
+        title={`Try everything free for ${TRIAL_DAYS} days`}
+        description={`We ask for a card so the trial can roll straight into a subscription. Cancel any time before day ${TRIAL_DAYS + 1} and nothing is charged.`}
       />
 
       <div className="mx-auto mt-10 grid max-w-3xl gap-5 sm:grid-cols-2">

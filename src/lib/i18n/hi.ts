@@ -4,6 +4,23 @@ import type { PartialDictionary } from "./translate";
  * Hindi translation.
  * NEEDS REVIEW BY A NATIVE SPEAKER before anyone relies on it for financial decisions.
  * Machine-assisted first pass; uncertain terminology: Everyday polite आप register. Loanwords chosen for invoice (इनवॉइस), receipt (रसीद), budget (बजट), cash (कैश), draft (ड्राफ्ट), and entry (एंट्री).
+ *
+ * Billing terms fixed in this pass (the `billing` section): billing → बिलिंग,
+ * plan → प्लान, Pro → प्रो, card → कार्ड, charge (verb) → "पैसे लिए जाएँगे" /
+ * "पैसा कटा", free trial → "मुफ़्त ट्रायल", checkout → चेकआउट, receipt → रसीद.
+ * Free and Pro stay in English/Latin where they name the product's own tiers.
+ *
+ * Billing keys a native reviewer should check hardest:
+ *  - billing.trialDisclosure_one/_other — legally load-bearing. It must keep
+ *    all three facts: the price, the exact date of the first charge, and that
+ *    cancelling before then costs nothing. Do not shorten it.
+ *  - billing.genericError and billing.cancelledBody both promise no money
+ *    moved ("कोई पैसा नहीं कटा", "आपने कुछ भी नहीं दिया"). If either can be
+ *    read as "we might have charged you", it is wrong.
+ *  - "पैसे लिए जाएँगे" is used for a card being charged, rather than the
+ *    banking-form "शुल्क लिया जाएगा". Confirm it sounds plain, not vague.
+ *  - billing.renewsLabel "रिन्यू होगा" is a loanword used as a metric label;
+ *    "नवीनीकरण" is the formal alternative if the loan reads badly.
  */
 export const hi: PartialDictionary = {
   common: {
@@ -309,6 +326,104 @@ export const hi: PartialDictionary = {
     errLineDescription: "वर्णन करें कि यह किस लिए है।",
     errLineQuantity: "मात्रा शून्य से अधिक होनी चाहिए.",
     errLinePrice: "कीमत नकारात्मक नहीं हो सकती.",
+  },
+  billing: {
+    eyebrow: "बिलिंग",
+    title: "आपका प्लान",
+    blurb: "आप किस चीज़ के पैसे दे रहे हैं, और उसमें आप क्या-क्या बदल सकते हैं।",
+    loadingPlan: "आपका प्लान लोड हो रहा है।",
+    loadFailed: "आपका प्लान लोड नहीं हो सका",
+    portalFailed: "बिलिंग नहीं खुल सकी",
+    checkoutFailed: "चेकआउट शुरू नहीं हो सका",
+    genericError: "हमारी तरफ़ से कुछ गड़बड़ हो गई। कोई पैसा नहीं कटा।",
+    paymentFailed: "एक भुगतान नहीं हो पाया",
+    paymentFailedBody:
+      "आपका पिछला भुगतान अस्वीकार हो गया। कुछ भी बंद नहीं किया गया है — Stripe कुछ दिन तक कोशिश करता रहेगा, और तब तक वह सब चलता रहेगा जिसके आप पैसे देते हैं।",
+    paymentFailedFix:
+      "कार्ड बदल देने से आम तौर पर बात बन जाती है, और अगली कोशिश में पैसा कट जाता है।",
+    updateCard: "अपना कार्ड बदलें",
+    statusActive: "चालू",
+    statusTrialing: "ट्रायल",
+    statusPastDue: "भुगतान बाकी",
+    statusCanceled: "रद्द",
+    statusIncomplete: "अधूरा",
+    statusExpired: "समाप्त",
+    statusUnpaid: "बिना भुगतान",
+    statusPaused: "रोका हुआ",
+    proPanelTitle: "SimpleBooks प्रो",
+    proUnlocked: "इस खाते पर ऐप की हर चीज़ खुली हुई है।",
+    planLabel: "आपका प्लान",
+    pricePerMonth: "{price} हर महीने",
+    renewsLabel: "रिन्यू होगा",
+    proEndsLabel: "प्रो खत्म होगा",
+    chargedAgainHint: "इसी तारीख को आपसे फिर पैसे लिए जाएँगे।",
+    lastPaidDayHint: "जिस महीने के आपने पैसे दिए हैं उसका आखिरी दिन।",
+    noRenewalDate: "Stripe से अभी तक कोई तारीख नहीं आई है।",
+    manageBilling: "बिलिंग संभालें",
+    manageBillingHint: "कार्ड बदलें, रसीदें देखें, या रद्द करें।",
+    proEndingTitle: "प्रो खत्म होने वाला है",
+    proEndsOn:
+      "प्रो {date} तक चालू रहेगा। उसके बाद यह खाता फ्री प्लान पर लौट जाएगा और आपसे फिर पैसे नहीं लिए जाएँगे। आपका लिखा हुआ कुछ भी नहीं मिटता।",
+    proEndsAfterPaidMonth:
+      "जिस महीने के आपने पैसे दिए हैं, प्रो उसके आखिर तक चालू रहेगा। उसके बाद यह खाता फ्री प्लान पर लौट जाएगा और आपसे फिर पैसे नहीं लिए जाएँगे। आपका लिखा हुआ कुछ भी नहीं मिटता।",
+    changedYourMind: "मन बदल गया? बिलिंग संभालें में जाकर इसे फिर से चालू कर सकते हैं।",
+    comparePlans: "प्लान की तुलना करें",
+    currentPlanBadge: "आपका प्लान",
+    everything: "सब कुछ",
+    openingStripe: "Stripe खुल रहा है…",
+    onThisPlan: "आज आप इसी पर हैं।",
+    stripeNote:
+      "भुगतान Stripe अपने पेज पर संभालता है — कार्ड की जानकारी SimpleBooks तक कभी नहीं पहुँचती। आप यहीं से कभी भी रद्द कर सकते हैं, और जिस महीने के पैसे दे चुके हैं वह खत्म होने तक प्रो चलता रहेगा।",
+    successTitle: "आप प्रो पर हैं",
+    successBody:
+      "भुगतान हो गया और इस खाते पर सब कुछ खुल गया है। Stripe की तरफ से रसीद आपके ईमेल पर आ रही है।",
+    goToBooks: "अपने हिसाब पर जाएँ",
+    seeYourPlan: "अपना प्लान देखें",
+    confirming: "पुष्टि हो रही है",
+    confirmingTitle: "आपके भुगतान की पुष्टि हो रही है",
+    confirmingBody:
+      "आप Stripe से लौट आए हैं। इस पेज पर वापस आ जाने को ही सबूत मानने के बजाय, खाते को प्रो करने से पहले हम Stripe से ही भुगतान की पुष्टि का इंतज़ार करते हैं — इसमें आम तौर पर कुछ सेकंड लगते हैं।",
+    canLeavePage: "आप यह पेज बंद कर सकते हैं। इसके खुले रहने पर कुछ भी निर्भर नहीं है।",
+    notConfirmedTitle: "इसकी पुष्टि अभी बाकी है",
+    notConfirmedBody:
+      "हो सकता है आपका भुगतान अभी चल रहा हो। पुष्टि में आम तौर पर कुछ सेकंड लगते हैं, पर कभी-कभी एक-दो मिनट भी लग सकते हैं, और यह पेज खुला हो या न हो, काम पूरा हो जाएगा।",
+    notConfirmedReassure:
+      "दोनों ही हाल में कुछ नहीं जाता: अगर भुगतान हो गया होगा तो प्रो अपने आप चालू हो जाएगा। असल में क्या स्थिति है, यह आपका बिलिंग पेज हमेशा दिखाता है।",
+    checkFailed: "पिछली जाँच का कोई जवाब नहीं मिला",
+    checkAgain: "फिर से जाँचें",
+    goToBilling: "बिलिंग पर जाएँ",
+    contactSupport:
+      "अगर कुछ मिनट बाद भी प्रो न दिखे, तो सपोर्ट से संपर्क करें और नीचे दिया रेफरेंस बताएँ।",
+    reference: "रेफरेंस: {reference}",
+    cancelledTitle: "चेकआउट बंद हो गया",
+    cancelledBody:
+      "आपने कुछ भी नहीं दिया और कुछ भी नहीं बदला। आपका हिसाब जहाँ था वहीं है, और फ्री प्लान पहले की तरह चलता रहेगा।",
+    cancelledReassure: "प्रो जब चाहें तब ले सकते हैं — न कोई जल्दी है, न पेज बंद करने की कोई सज़ा।",
+    seePlansAgain: "प्लान फिर से देखें",
+    backToBooks: "अपने हिसाब पर वापस",
+    checkingPlan: "आपका प्लान जाँचा जा रहा है।",
+    featureIsPro: "{feature} प्रो का हिस्सा है",
+    trialUsed:
+      "आपके मुफ़्त दिन खत्म हो चुके हैं। प्रो {price} हर महीने का है और आप जब चाहें रद्द कर सकते हैं।",
+    tryFree_one: "प्रो की बाकी हर चीज़ के साथ इसे {count} दिन मुफ़्त आज़माएँ।",
+    tryFree_other: "प्रो की बाकी हर चीज़ के साथ इसे {count} दिन मुफ़्त आज़माएँ।",
+    startTrial_one: "मेरा {count} मुफ़्त दिन शुरू करें",
+    startTrial_other: "मेरे {count} मुफ़्त दिन शुरू करें",
+    getPro: "प्रो लें — {price} हर महीने",
+    trialDisclosure_one:
+      "{count} दिन मुफ़्त। {date} को आपके कार्ड से {price} लिए जाएँगे, उसके बाद हर महीने {price}। उससे पहले कभी भी रद्द कर दें तो आपको कुछ भी नहीं देना पड़ेगा।",
+    trialDisclosure_other:
+      "{count} दिन मुफ़्त। {date} को आपके कार्ड से {price} लिए जाएँगे, उसके बाद हर महीने {price}। उससे पहले कभी भी रद्द कर दें तो आपको कुछ भी नहीं देना पड़ेगा।",
+    recordsStay: "आपका पहले का लिखा हुआ जहाँ है वहीं रहेगा, चाहे कोई भी प्लान हो।",
+    exportsAlwaysWork: "एक्सपोर्ट हमेशा चलते हैं।",
+    trialEndsToday: "आपका मुफ़्त ट्रायल आज खत्म हो रहा है",
+    trialLastDay: "आपके मुफ़्त ट्रायल का आखिरी दिन",
+    trialDaysLeft_one: "आपके मुफ़्त ट्रायल का {count} दिन बाकी",
+    trialDaysLeft_other: "आपके मुफ़्त ट्रायल के {count} दिन बाकी",
+    cardChargedOn: "{date} को आपके कार्ड से {price} लिए जाएँगे।",
+    thenPricePerMonth: "उसके बाद {price} हर महीने।",
+    manageOrCancel: "संभालें या रद्द करें",
+    hideUntilTomorrow: "कल तक छुपाएँ",
   },
   reminder: {
     eyebrow: "औजार",

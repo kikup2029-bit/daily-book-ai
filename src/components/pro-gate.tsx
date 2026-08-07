@@ -28,7 +28,7 @@ import { Check, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, Panel, PanelBody } from "@/components/ui/kit";
 import { useI18n } from "@/lib/i18n";
-import { PLANS, TRIAL_DAYS, formatPrice, trialDisclosure, type Feature } from "@/lib/pricing";
+import { PLANS, TRIAL_DAYS, firstChargeDate, formatPrice, type Feature } from "@/lib/pricing";
 import { startCheckout } from "@/lib/subscriptions.functions";
 import { useHasFeature } from "@/lib/use-subscription";
 
@@ -42,6 +42,7 @@ export function ProGate({
   title: string;
   children: ReactNode;
 }) {
+  const { t } = useI18n();
   const { allowed, loading, subscription } = useHasFeature(feature);
 
   // While the plan is still loading, show nothing rather than a paywall that
@@ -53,7 +54,7 @@ export function ProGate({
           <PanelBody className="pt-5">
             <span className="skeleton block h-4 w-28" aria-hidden="true" />
             <span className="skeleton mt-3 block h-8 w-48" aria-hidden="true" />
-            <p className="sr-only">Checking your plan.</p>
+            <p className="sr-only">{t("billing.checkingPlan")}</p>
           </PanelBody>
         </Panel>
       </div>
@@ -66,7 +67,7 @@ export function ProGate({
 }
 
 function UpgradePanel({ title, usedTrial }: { title: string; usedTrial: boolean }) {
-  const { tag } = useI18n();
+  const { t, tag } = useI18n();
   const checkout = useServerFn(startCheckout);
 
   const start = useMutation({
@@ -77,6 +78,12 @@ function UpgradePanel({ title, usedTrial }: { title: string; usedTrial: boolean 
   });
 
   const price = formatPrice(PLANS.pro.priceCents, tag);
+  // The day the first charge lands, spelled out in the reader's own calendar
+  // wording. It goes into the disclosure sentence as a value, never glued on
+  // the end of one.
+  const chargeDate = new Intl.DateTimeFormat(tag, { day: "numeric", month: "long" }).format(
+    firstChargeDate(),
+  );
 
   return (
     <div className="rise mx-auto w-full max-w-xl py-6">
@@ -90,13 +97,13 @@ function UpgradePanel({ title, usedTrial }: { title: string; usedTrial: boolean 
           </span>
 
           <h2 className="font-display mt-5 text-[22px] leading-tight tracking-[-0.01em]">
-            {title} is part of Pro
+            {t("billing.featureIsPro", { feature: title })}
           </h2>
 
           <p className="mx-auto mt-2 max-w-sm text-[14px] leading-relaxed text-muted-foreground">
             {usedTrial
-              ? `You've already had your free days. Pro is ${price} a month and you can cancel whenever you like.`
-              : `Try it free for ${TRIAL_DAYS} days along with everything else in Pro.`}
+              ? t("billing.trialUsed", { price })
+              : t("billing.tryFree", { count: TRIAL_DAYS })}
           </p>
 
           <ul className="mx-auto mt-6 max-w-xs space-y-2 text-left">
@@ -110,10 +117,10 @@ function UpgradePanel({ title, usedTrial }: { title: string; usedTrial: boolean 
 
           {start.isError ? (
             <div className="mt-6 text-left">
-              <Alert tone="negative" title="Checkout couldn't be started">
+              <Alert tone="negative" title={t("billing.checkoutFailed")}>
                 {start.error instanceof Error && start.error.message
                   ? start.error.message
-                  : "Something went wrong on our end. Nothing was charged."}
+                  : t("billing.genericError")}
               </Alert>
             </div>
           ) : null}
@@ -125,7 +132,9 @@ function UpgradePanel({ title, usedTrial }: { title: string; usedTrial: boolean 
             loading={start.isPending}
             onClick={() => start.mutate()}
           >
-            {usedTrial ? `Get Pro — ${price} a month` : PLANS.pro.cta}
+            {usedTrial
+              ? t("billing.getPro", { price })
+              : t("billing.startTrial", { count: TRIAL_DAYS })}
           </Button>
 
           {/*
@@ -135,16 +144,20 @@ function UpgradePanel({ title, usedTrial }: { title: string; usedTrial: boolean 
           */}
           {!usedTrial ? (
             <p className="mx-auto mt-3 max-w-sm text-[12px] leading-relaxed text-muted-foreground">
-              {trialDisclosure(tag)}
+              {t("billing.trialDisclosure", { count: TRIAL_DAYS, date: chargeDate, price })}
             </p>
           ) : null}
 
+          {/*
+            Two whole sentences, not one sentence with a link buried in it. A
+            fragment lifted out of the middle of an English sentence ends up
+            somewhere else entirely once the sentence is translated.
+          */}
           <p className="mt-5 text-[12px] text-muted-foreground">
-            Your existing records stay where they are, and{" "}
+            {t("billing.recordsStay")}{" "}
             <Link to="/export" className="text-brand hover:underline">
-              exports always work
-            </Link>{" "}
-            — on any plan.
+              {t("billing.exportsAlwaysWork")}
+            </Link>
           </p>
         </PanelBody>
       </Panel>

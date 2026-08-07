@@ -12,6 +12,7 @@ import { ChevronDown } from "lucide-react";
 import { LOCALES, LOCALE_LIST } from "@/lib/i18n";
 
 import { Section, SectionHeading } from "@/components/landing/section";
+import { TRIAL_DAYS } from "@/lib/pricing";
 
 const NATIVE_NAMES = LOCALE_LIST.map((code) => LOCALES[code].native).join(" · ");
 
@@ -24,7 +25,7 @@ const FAQS: Array<{ question: string; answer: ReactNode }> = [
   {
     question: "Can I cancel?",
     answer:
-      "Yes, any time, from your account settings — no phone call and no notice period. You keep Pro until the end of the month you've already paid for, then drop back to the free plan. Your entries stay where they are; you don't lose your history for cancelling.",
+      "Yes, any time, in one click from the Billing page — no phone call, no notice period, no one trying to talk you out of it. Cancel during the free week and you are never charged. Cancel later and you keep Pro until the month you have paid for runs out, then drop to the free plan. Your entries stay exactly where they are, and exports keep working whatever plan you are on.",
   },
   {
     question: "Who can see my figures?",
@@ -43,8 +44,7 @@ const FAQS: Array<{ question: string; answer: ReactNode }> = [
   },
   {
     question: "How does billing work?",
-    answer:
-      "The free plan is free and never asks for a card. Pro is a monthly charge taken through Stripe, which handles the card details — they don't pass through SimpleBooks. Stripe is the authority on what you're charged, and you get a receipt by email each month.",
+    answer: `Pro is free for the first ${TRIAL_DAYS} days. We ask for your card at the start so the trial can turn into a subscription without you doing anything — and we tell you, in the app and by the countdown at the top of every page, exactly when the first charge lands and what it will be. Cancel before then and nothing is taken. Payments are handled by Stripe, which holds the card details; they never pass through SimpleBooks.`,
   },
 ];
 

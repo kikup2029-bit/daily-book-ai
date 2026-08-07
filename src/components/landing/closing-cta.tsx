@@ -8,6 +8,7 @@
 import { Link } from "@tanstack/react-router";
 
 import { Button } from "@/components/ui/button";
+import { TRIAL_DAYS } from "@/lib/pricing";
 
 import { Section } from "@/components/landing/section";
 
@@ -19,12 +20,12 @@ export function ClosingCta() {
           Start with today&rsquo;s takings
         </h2>
         <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
-          One entry is enough to begin. The free plan doesn&rsquo;t ask for a card and doesn&rsquo;t
-          run out.
+          One entry is enough to begin. Everything is free for {TRIAL_DAYS} days — cancel before the
+          week is up and you pay nothing at all.
         </p>
         <div className="mt-7 flex justify-center">
           <Button asChild variant="brand" size="lg">
-            <Link to="/auth">Start free</Link>
+            <Link to="/auth">Start my {TRIAL_DAYS} free days</Link>
           </Button>
         </div>
       </div>

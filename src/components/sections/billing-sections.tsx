@@ -8,9 +8,10 @@
  * that checkout finished, never proof that money moved. So it waits for the
  * server to say so, and says so honestly if it hasn't yet.
  *
- * The dictionary has no billing section yet, so the strings here are written in
- * English rather than through t(). They are all plain sentences ready to be
- * lifted into en.ts and translated in one pass — see the handover note.
+ * Every sentence on these screens comes from the `billing` section of the
+ * dictionary. Nothing here joins fragments together: a price and its cadence,
+ * or a date and the charge that lands on it, are one key each, because where
+ * the number falls against the words differs per language.
  */
 
 import { useEffect, useState } from "react";
@@ -36,15 +37,15 @@ import { getSubscription, openBillingPortal, startCheckout } from "@/lib/subscri
 import { useSubscription } from "@/lib/use-subscription";
 
 /** Stripe's status words, said the way a shopkeeper would say them. */
-const STATUS_LABEL: Record<string, string> = {
-  active: "Active",
-  trialing: "Trial",
-  past_due: "Payment overdue",
-  canceled: "Cancelled",
-  incomplete: "Not finished",
-  incomplete_expired: "Expired",
-  unpaid: "Unpaid",
-  paused: "Paused",
+const STATUS_KEY: Record<string, string> = {
+  active: "billing.statusActive",
+  trialing: "billing.statusTrialing",
+  past_due: "billing.statusPastDue",
+  canceled: "billing.statusCanceled",
+  incomplete: "billing.statusIncomplete",
+  incomplete_expired: "billing.statusExpired",
+  unpaid: "billing.statusUnpaid",
+  paused: "billing.statusPaused",
 };
 
 function statusTone(status: string | null): "neutral" | "positive" | "warning" | "negative" {
@@ -63,16 +64,22 @@ function statusTone(status: string | null): "neutral" | "positive" | "warning" |
  */
 const dayOf = (iso: string) => iso.slice(0, 10);
 
-/** The message the server sent, or something true if it sent nothing useful. */
-function reason(error: unknown): string {
+/**
+ * The message the server sent, or something true if it sent nothing useful.
+ *
+ * The fallback is passed in already translated: a server message arrives in
+ * whatever language the server speaks, but our own apology should be in the
+ * reader's.
+ */
+function reason(error: unknown, fallback: string): string {
   const message = error instanceof Error ? error.message.trim() : "";
-  return message || "Something went wrong on our end. Nothing was charged.";
+  return message || fallback;
 }
 
 /* ============================================================= home ====== */
 
 export function BillingHome() {
-  const { formatDate, tag } = useI18n();
+  const { formatDate, t, tag } = useI18n();
   const { data: subscription, isLoading, error } = useSubscription();
 
   const checkout = useServerFn(startCheckout);
@@ -99,15 +106,15 @@ export function BillingHome() {
   return (
     <div className="rise mx-auto w-full max-w-4xl">
       <PageHeader
-        eyebrow="Billing"
-        title="Your plan"
-        description="What you are paying for, and everything you can change about it."
+        eyebrow={t("billing.eyebrow")}
+        title={t("billing.title")}
+        description={t("billing.blurb")}
       />
 
       {error ? (
         <div className="pb-6">
-          <Alert tone="negative" title="Your plan couldn't be loaded">
-            {reason(error)}
+          <Alert tone="negative" title={t("billing.loadFailed")}>
+            {reason(error, t("billing.genericError"))}
           </Alert>
         </div>
       ) : null}
@@ -118,21 +125,16 @@ export function BillingHome() {
             <span className="skeleton block h-4 w-24" aria-hidden="true" />
             <span className="skeleton mt-3 block h-8 w-40" aria-hidden="true" />
             <span className="skeleton mt-3 block h-3.5 w-full max-w-sm" aria-hidden="true" />
-            <p className="sr-only">Loading your plan.</p>
+            <p className="sr-only">{t("billing.loadingPlan")}</p>
           </PanelBody>
         </Panel>
       ) : null}
 
       {!isLoading && subscription?.needsAttention ? (
         <div className="pb-6">
-          <Alert tone="warning" title="A payment didn't go through">
-            <p>
-              Your last payment was declined. Nothing has been switched off — Stripe will keep
-              trying for a few days, and everything you pay for carries on working while it does.
-            </p>
-            <p className="mt-2">
-              Updating the card usually fixes it, and the charge goes through on the next attempt.
-            </p>
+          <Alert tone="warning" title={t("billing.paymentFailed")}>
+            <p>{t("billing.paymentFailedBody")}</p>
+            <p className="mt-2">{t("billing.paymentFailedFix")}</p>
             <Button
               variant="brand"
               size="sm"
@@ -140,7 +142,7 @@ export function BillingHome() {
               loading={manage.isPending}
               onClick={() => manage.mutate()}
             >
-              <CreditCard aria-hidden="true" /> Update your card
+              <CreditCard aria-hidden="true" /> {t("billing.updateCard")}
             </Button>
           </Alert>
         </div>
@@ -148,16 +150,16 @@ export function BillingHome() {
 
       {manage.isError ? (
         <div className="pb-6">
-          <Alert tone="negative" title="Billing couldn't be opened">
-            {reason(manage.error)}
+          <Alert tone="negative" title={t("billing.portalFailed")}>
+            {reason(manage.error, t("billing.genericError"))}
           </Alert>
         </div>
       ) : null}
 
       {startPro.isError ? (
         <div className="pb-6">
-          <Alert tone="negative" title="Checkout couldn't be started">
-            {reason(startPro.error)}
+          <Alert tone="negative" title={t("billing.checkoutFailed")}>
+            {reason(startPro.error, t("billing.genericError"))}
           </Alert>
         </div>
       ) : null}
@@ -177,7 +179,7 @@ export function BillingHome() {
       {!isLoading && subscription && !pro ? (
         <section aria-labelledby="plans-heading">
           <h2 id="plans-heading" className="sr-only">
-            Compare the plans
+            {t("billing.comparePlans")}
           </h2>
           <div className="grid gap-4 sm:grid-cols-2">
             {PLAN_LIST.map((plan) => (
@@ -191,11 +193,7 @@ export function BillingHome() {
               />
             ))}
           </div>
-          <p className="mt-4 text-[13px] text-muted-foreground">
-            Payment is handled by Stripe on their own page — card details never reach SimpleBooks.
-            You can cancel from here at any time, and keep Pro until the month you have paid for
-            runs out.
-          </p>
+          <p className="mt-4 text-[13px] text-muted-foreground">{t("billing.stripeNote")}</p>
         </section>
       ) : null}
     </div>
@@ -221,61 +219,63 @@ function ProPanel({
   onManage: () => void;
   managing: boolean;
 }) {
-  const label = status ? (STATUS_LABEL[status] ?? status) : "Active";
+  const { t } = useI18n();
+  // A status Stripe invented since this was written falls through to t() as an
+  // unknown key, which shows the raw word — better than quietly calling it
+  // something it isn't on a page about money.
+  const label = status ? t(STATUS_KEY[status] ?? status) : t("billing.statusActive");
 
   return (
     <div className="space-y-4">
       <Panel>
         <PanelHeader
-          title="SimpleBooks Pro"
-          description="Everything in the app is unlocked on this account."
+          title={t("billing.proPanelTitle")}
+          description={t("billing.proUnlocked")}
           action={<Badge tone={statusTone(status)}>{label}</Badge>}
         />
         <PanelBody className="grid gap-6 pt-1 sm:grid-cols-2">
           <Metric
-            label="Your plan"
+            label={t("billing.planLabel")}
             value={PLANS.pro.name}
             emphasis="compact"
-            hint={`${formatPrice(PLANS.pro.priceCents, locale)} ${PLANS.pro.cadence}`}
+            hint={t("billing.pricePerMonth", {
+              price: formatPrice(PLANS.pro.priceCents, locale),
+            })}
           />
           <Metric
-            label={cancelAtPeriodEnd ? "Pro ends" : "Renews"}
+            label={cancelAtPeriodEnd ? t("billing.proEndsLabel") : t("billing.renewsLabel")}
             value={renews ? formatDate(renews, "long") : "—"}
             emphasis="compact"
             hint={
               renews
                 ? cancelAtPeriodEnd
-                  ? "The last day of the month you've paid for."
-                  : "You'll be charged again on this date."
-                : "No renewal date has come back from Stripe yet."
+                  ? t("billing.lastPaidDayHint")
+                  : t("billing.chargedAgainHint")
+                : t("billing.noRenewalDate")
             }
           />
         </PanelBody>
         <PanelFooter>
           <Button variant="brand" loading={managing} onClick={onManage}>
-            <CreditCard aria-hidden="true" /> Manage billing
+            <CreditCard aria-hidden="true" /> {t("billing.manageBilling")}
           </Button>
           <span className="text-[12px] text-muted-foreground">
-            Change your card, see receipts, or cancel.
+            {t("billing.manageBillingHint")}
           </span>
         </PanelFooter>
       </Panel>
 
       {cancelAtPeriodEnd ? (
-        <Alert tone="neutral" title="Pro is set to end">
+        <Alert tone="neutral" title={t("billing.proEndingTitle")}>
+          {/* The date sits inside the sentence, not next to it — a sentence
+              built by joining a date onto a fragment lands wrong in half these
+              languages. */}
           {renews ? (
-            <p>
-              Pro stays on until {formatDate(renews, "long")}. After that this account goes back to
-              the Free plan and you won't be charged again. Nothing you've recorded is deleted.
-            </p>
+            <p>{t("billing.proEndsOn", { date: formatDate(renews, "long") })}</p>
           ) : (
-            <p>
-              Pro stays on until the end of the month you've paid for. After that this account goes
-              back to the Free plan and you won't be charged again. Nothing you've recorded is
-              deleted.
-            </p>
+            <p>{t("billing.proEndsAfterPaidMonth")}</p>
           )}
-          <p className="mt-2">Changed your mind? Manage billing to start it up again.</p>
+          <p className="mt-2">{t("billing.changedYourMind")}</p>
         </Alert>
       ) : null}
     </div>
@@ -297,6 +297,8 @@ function PlanCard({
   onStart?: () => void;
   starting: boolean;
 }) {
+  const { t } = useI18n();
+
   return (
     <Panel className={plan.featured ? "border-brand-border" : undefined}>
       <PanelHeader
@@ -304,10 +306,10 @@ function PlanCard({
         description={plan.tagline}
         action={
           current ? (
-            <Badge>Your plan</Badge>
+            <Badge>{t("billing.currentPlanBadge")}</Badge>
           ) : plan.featured ? (
             <Badge tone="brand">
-              <Sparkles className="size-3" aria-hidden="true" /> Everything
+              <Sparkles className="size-3" aria-hidden="true" /> {t("billing.everything")}
             </Badge>
           ) : null
         }
@@ -328,11 +330,11 @@ function PlanCard({
       <PanelFooter>
         {onStart ? (
           <Button variant="brand" loading={starting} onClick={onStart}>
-            {starting ? "Opening Stripe…" : plan.cta}
+            {starting ? t("billing.openingStripe") : plan.cta}
           </Button>
         ) : (
           <span className="text-[13px] text-muted-foreground">
-            {current ? "This is what you're on today." : plan.cta}
+            {current ? t("billing.onThisPlan") : plan.cta}
           </span>
         )}
       </PanelFooter>
@@ -356,6 +358,7 @@ const WAIT_MS = 20_000;
  * for the server's own answer, and never claims success on its own.
  */
 export function BillingSuccess({ sessionId }: { sessionId?: string }) {
+  const { t } = useI18n();
   const fetchSubscription = useServerFn(getSubscription);
   const [waitedLongEnough, setWaitedLongEnough] = useState(false);
 
@@ -384,19 +387,18 @@ export function BillingSuccess({ sessionId }: { sessionId?: string }) {
             <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-success-soft text-success">
               <Check className="size-6" aria-hidden="true" />
             </span>
-            <h1 className="mt-4 text-[22px] leading-tight">You're on Pro</h1>
+            <h1 className="mt-4 text-[22px] leading-tight">{t("billing.successTitle")}</h1>
             <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
-              The payment came through and everything is unlocked on this account. A receipt is on
-              its way to your email from Stripe.
+              {t("billing.successBody")}
             </p>
             <div className="mt-6 flex flex-wrap justify-center gap-2">
               <Button asChild variant="brand">
                 <Link to="/dashboard">
-                  Go to your books <ArrowRight aria-hidden="true" />
+                  {t("billing.goToBooks")} <ArrowRight aria-hidden="true" />
                 </Link>
               </Button>
               <Button asChild variant="outline">
-                <Link to="/billing">See your plan</Link>
+                <Link to="/billing">{t("billing.seeYourPlan")}</Link>
               </Button>
             </div>
           </PanelBody>
@@ -404,37 +406,32 @@ export function BillingSuccess({ sessionId }: { sessionId?: string }) {
       ) : waitedLongEnough ? (
         <Panel>
           <PanelBody className="pt-6">
-            <h1 className="text-[22px] leading-tight">This is still being confirmed</h1>
+            <h1 className="text-[22px] leading-tight">{t("billing.notConfirmedTitle")}</h1>
+            <p className="mt-2 text-sm text-muted-foreground">{t("billing.notConfirmedBody")}</p>
             <p className="mt-2 text-sm text-muted-foreground">
-              Your payment may still be going through. Confirmation usually takes seconds but can
-              take a minute or two, and it will finish whether or not this page is open.
-            </p>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Nothing is lost either way: if the payment succeeded, Pro switches on by itself. Your
-              billing page always shows where things actually stand.
+              {t("billing.notConfirmedReassure")}
             </p>
             {error ? (
               <div className="mt-4">
-                <Alert tone="neutral" title="The last check didn't get an answer">
-                  {reason(error)}
+                <Alert tone="neutral" title={t("billing.checkFailed")}>
+                  {reason(error, t("billing.genericError"))}
                 </Alert>
               </div>
             ) : null}
             <div className="mt-6 flex flex-wrap gap-2">
               <Button variant="brand" loading={isFetching} onClick={() => void refetch()}>
-                Check again
+                {t("billing.checkAgain")}
               </Button>
               <Button asChild variant="outline">
-                <Link to="/billing">Go to billing</Link>
+                <Link to="/billing">{t("billing.goToBilling")}</Link>
               </Button>
             </div>
             <p className="mt-5 border-t pt-4 text-[13px] text-muted-foreground">
-              If Pro still isn't showing in a few minutes, contact support and quote the reference
-              below.
+              {t("billing.contactSupport")}
             </p>
             {sessionId ? (
               <p className="num mt-1.5 break-all text-[12px] text-muted-foreground">
-                Reference: {sessionId}
+                {t("billing.reference", { reference: sessionId })}
               </p>
             ) : null}
           </PanelBody>
@@ -445,18 +442,12 @@ export function BillingSuccess({ sessionId }: { sessionId?: string }) {
             <div aria-live="polite">
               <span className="flex items-center gap-2 text-muted-foreground">
                 <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                <span className="eyebrow">Confirming</span>
+                <span className="eyebrow">{t("billing.confirming")}</span>
               </span>
-              <h1 className="mt-3 text-[22px] leading-tight">Confirming your payment</h1>
-              <p className="mt-2 text-sm text-muted-foreground">
-                You're back from Stripe. We wait for Stripe itself to confirm the payment before
-                switching this account to Pro, rather than taking the trip back here as proof — it
-                normally takes a few seconds.
-              </p>
+              <h1 className="mt-3 text-[22px] leading-tight">{t("billing.confirmingTitle")}</h1>
+              <p className="mt-2 text-sm text-muted-foreground">{t("billing.confirmingBody")}</p>
             </div>
-            <p className="mt-4 text-[13px] text-muted-foreground">
-              You can leave this page. Nothing depends on it staying open.
-            </p>
+            <p className="mt-4 text-[13px] text-muted-foreground">{t("billing.canLeavePage")}</p>
           </PanelBody>
         </Panel>
       )}
@@ -467,25 +458,22 @@ export function BillingSuccess({ sessionId }: { sessionId?: string }) {
 /* ======================================================== cancelled ====== */
 
 export function BillingCancelled() {
+  const { t } = useI18n();
+
   return (
     <BillingNotice>
       <Panel>
         <PanelBody className="pt-6">
-          <h1 className="text-[22px] leading-tight">Checkout closed</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            You didn't pay anything and nothing has changed. Your books are exactly where you left
-            them, and the Free plan carries on as before.
-          </p>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Pro is there whenever you want it — there's no rush and no penalty for closing the page.
-          </p>
+          <h1 className="text-[22px] leading-tight">{t("billing.cancelledTitle")}</h1>
+          <p className="mt-2 text-sm text-muted-foreground">{t("billing.cancelledBody")}</p>
+          <p className="mt-2 text-sm text-muted-foreground">{t("billing.cancelledReassure")}</p>
           <div className="mt-6 flex flex-wrap gap-2">
             <Button asChild variant="outline">
-              <Link to="/billing">Look at the plans again</Link>
+              <Link to="/billing">{t("billing.seePlansAgain")}</Link>
             </Button>
             <Button asChild variant="brand">
               <Link to="/dashboard">
-                Back to your books <ArrowRight aria-hidden="true" />
+                {t("billing.backToBooks")} <ArrowRight aria-hidden="true" />
               </Link>
             </Button>
           </div>

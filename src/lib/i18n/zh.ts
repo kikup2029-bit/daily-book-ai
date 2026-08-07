@@ -4,6 +4,23 @@ import type { PartialDictionary } from "./translate";
  * Simplified Chinese translation.
  * NEEDS REVIEW BY A NATIVE SPEAKER before anyone relies on it for financial decisions.
  * Machine-assisted first pass; uncertain terminology: Uses compact everyday mainland Chinese and only _other plural variants.
+ *
+ * Billing terms fixed in this pass (the `billing` section): billing → 账单,
+ * plan → 方案, card (payment card) → 银行卡, charge (verb) → 扣款/收费,
+ * free trial → 免费试用, checkout → 结账, receipt → 收据, your books → 账本.
+ * Free and Pro stay in Latin script — they are the product's own tier names —
+ * except billing.proPanelTitle, where "Pro 版" reads better as a heading.
+ *
+ * Billing keys a native reviewer should check hardest:
+ *  - billing.trialDisclosure_other — legally load-bearing. It must keep all
+ *    three facts: the price, the exact date of the first charge, and that
+ *    cancelling before then costs nothing. Do not shorten it.
+ *  - billing.genericError "没有扣任何费用" and billing.cancelledBody
+ *    "你没有付任何钱" — both must be unmistakable that no money moved.
+ *  - 扣款 vs 收费: 扣款 is used where money leaves the card, 收费 where we
+ *    charge for the plan. Confirm the split reads naturally.
+ *  - billing.statusPastDue 付款逾期 (the user owes us) against invoices.overdue
+ *    逾期 (a customer owes them) — these should not blur together.
  */
 export const zh: PartialDictionary = {
   common: {
@@ -296,6 +313,95 @@ export const zh: PartialDictionary = {
     errLineDescription: "描述一下这是做什么用的。",
     errLineQuantity: "数量必须大于零。",
     errLinePrice: "价格不能为负数。",
+  },
+  billing: {
+    eyebrow: "账单",
+    title: "你的方案",
+    blurb: "你正在为什么付费，以及可以更改的一切。",
+    loadingPlan: "正在加载你的方案。",
+    loadFailed: "无法加载你的方案",
+    portalFailed: "无法打开账单管理",
+    checkoutFailed: "无法开始结账",
+    genericError: "我们这边出了点问题。没有扣任何费用。",
+    paymentFailed: "有一笔付款没有成功",
+    paymentFailedBody:
+      "你上一次付款被拒绝了。我们没有关闭任何功能——Stripe 会在接下来几天继续尝试，在此期间你付费的一切照常可用。",
+    paymentFailedFix: "更新银行卡通常就能解决，下一次尝试就会扣款成功。",
+    updateCard: "更新你的银行卡",
+    statusActive: "生效中",
+    statusTrialing: "试用中",
+    statusPastDue: "付款逾期",
+    statusCanceled: "已取消",
+    statusIncomplete: "未完成",
+    statusExpired: "已过期",
+    statusUnpaid: "未付款",
+    statusPaused: "已暂停",
+    proPanelTitle: "SimpleBooks Pro 版",
+    proUnlocked: "这个账户已解锁应用里的全部功能。",
+    planLabel: "你的方案",
+    pricePerMonth: "每月 {price}",
+    renewsLabel: "续费日",
+    proEndsLabel: "Pro 结束日",
+    chargedAgainHint: "这一天会再次向你收费。",
+    lastPaidDayHint: "你已付费的这个月的最后一天。",
+    noRenewalDate: "Stripe 还没有返回续费日期。",
+    manageBilling: "管理账单",
+    manageBillingHint: "更换银行卡、查看收据，或取消。",
+    proEndingTitle: "Pro 即将结束",
+    proEndsOn:
+      "Pro 会一直用到 {date}。之后这个账户回到 Free 方案，不会再向你收费。你记下的内容不会被删除。",
+    proEndsAfterPaidMonth:
+      "Pro 会用到你已付费的这个月结束。之后这个账户回到 Free 方案，不会再向你收费。你记下的内容不会被删除。",
+    changedYourMind: "改主意了？到管理账单里可以重新开通。",
+    comparePlans: "比较各个方案",
+    currentPlanBadge: "你的方案",
+    everything: "全部功能",
+    openingStripe: "正在打开 Stripe…",
+    onThisPlan: "这是你今天用的方案。",
+    stripeNote:
+      "付款由 Stripe 在他们自己的页面上处理——银行卡信息永远不会到达 SimpleBooks。你可以随时从这里取消，并且能把 Pro 用到你已付费的那个月结束。",
+    successTitle: "你已开通 Pro",
+    successBody: "付款已完成，这个账户上的一切都已解锁。Stripe 会把收据发到你的邮箱。",
+    goToBooks: "去看你的账本",
+    seeYourPlan: "查看你的方案",
+    confirming: "确认中",
+    confirmingTitle: "正在确认你的付款",
+    confirmingBody:
+      "你已从 Stripe 返回。我们不会把这次跳转当作付款凭证，而是等 Stripe 自己确认付款后，才把这个账户切换到 Pro——通常只要几秒。",
+    canLeavePage: "你可以离开这个页面。它开着与否都不影响。",
+    notConfirmedTitle: "还在确认中",
+    notConfirmedBody:
+      "你的付款可能还在处理。确认通常只要几秒，但也可能要一两分钟，而且不管这个页面开不开着都会完成。",
+    notConfirmedReassure:
+      "无论如何都不会有损失：如果付款成功了，Pro 会自动开通。你的账单页面永远显示真实的状态。",
+    checkFailed: "上一次检查没有得到回应",
+    checkAgain: "再检查一次",
+    goToBilling: "去账单页面",
+    contactSupport: "如果过几分钟 Pro 还是没有出现，请联系客服并提供下面的编号。",
+    reference: "编号：{reference}",
+    cancelledTitle: "结账已关闭",
+    cancelledBody:
+      "你没有付任何钱，也没有任何改变。你的账本还是你离开时的样子，Free 方案照常继续。",
+    cancelledReassure: "想用 Pro 时随时都可以——不用着急，关掉页面也没有任何影响。",
+    seePlansAgain: "再看看各个方案",
+    backToBooks: "回到你的账本",
+    checkingPlan: "正在检查你的方案。",
+    featureIsPro: "{feature} 属于 Pro",
+    trialUsed: "你的免费天数已经用完了。Pro 每月 {price}，你可以随时取消。",
+    tryFree_other: "免费试用 {count} 天，Pro 里的其他功能也一起用。",
+    startTrial_other: "开始我的 {count} 天免费试用",
+    getPro: "开通 Pro——每月 {price}",
+    trialDisclosure_other:
+      "免费 {count} 天。{date} 会从你的银行卡扣 {price}，之后每月 {price}。在那之前随时取消，你一分钱都不用付。",
+    recordsStay: "你已经记下的内容会留在原处，任何方案都一样。",
+    exportsAlwaysWork: "导出功能始终可用。",
+    trialEndsToday: "你的免费试用今天结束",
+    trialLastDay: "免费试用的最后一天",
+    trialDaysLeft_other: "免费试用还剩 {count} 天",
+    cardChargedOn: "{date} 会从你的银行卡扣 {price}。",
+    thenPricePerMonth: "之后每月 {price}。",
+    manageOrCancel: "管理或取消",
+    hideUntilTomorrow: "隐藏到明天",
   },
   reminder: {
     eyebrow: "工具",
