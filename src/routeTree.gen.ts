@@ -16,6 +16,7 @@ import { Route as BillingCancelledRouteImport } from './routes/billing.cancelled
 import { Route as BillingSuccessRouteImport } from './routes/billing.success'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as AuthenticatedAddRouteImport } from './routes/_authenticated/add'
 import { Route as AuthenticatedAskRouteImport } from './routes/_authenticated/ask'
 import { Route as AuthenticatedBillingRouteImport } from './routes/_authenticated/billing'
@@ -76,6 +77,11 @@ const PrivacyRoute = PrivacyRouteImport.update({
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WelcomeRoute = WelcomeRouteImport.update({
+  id: '/welcome',
+  path: '/welcome',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAddRoute = AuthenticatedAddRouteImport.update({
@@ -221,6 +227,7 @@ export interface FileRoutesByFullPath {
   '/billing/success': typeof BillingSuccessRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
+  '/welcome': typeof WelcomeRoute
   '/add': typeof AuthenticatedAddRoute
   '/ask': typeof AuthenticatedAskRoute
   '/billing': typeof AuthenticatedBillingRoute
@@ -256,6 +263,7 @@ export interface FileRoutesByTo {
   '/billing/success': typeof BillingSuccessRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
+  '/welcome': typeof WelcomeRoute
   '/add': typeof AuthenticatedAddRoute
   '/ask': typeof AuthenticatedAskRoute
   '/billing': typeof AuthenticatedBillingRoute
@@ -293,6 +301,7 @@ export interface FileRoutesById {
   '/billing/success': typeof BillingSuccessRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
+  '/welcome': typeof WelcomeRoute
   '/_authenticated/add': typeof AuthenticatedAddRoute
   '/_authenticated/ask': typeof AuthenticatedAskRoute
   '/_authenticated/billing': typeof AuthenticatedBillingRoute
@@ -330,6 +339,7 @@ export interface FileRouteTypes {
     | '/billing/success'
     | '/privacy'
     | '/terms'
+    | '/welcome'
     | '/add'
     | '/ask'
     | '/billing'
@@ -365,6 +375,7 @@ export interface FileRouteTypes {
     | '/billing/success'
     | '/privacy'
     | '/terms'
+    | '/welcome'
     | '/add'
     | '/ask'
     | '/billing'
@@ -401,6 +412,7 @@ export interface FileRouteTypes {
     | '/billing/success'
     | '/privacy'
     | '/terms'
+    | '/welcome'
     | '/_authenticated/add'
     | '/_authenticated/ask'
     | '/_authenticated/billing'
@@ -438,6 +450,7 @@ export interface RootRouteChildren {
   BillingSuccessRoute: typeof BillingSuccessRoute
   PrivacyRoute: typeof PrivacyRoute
   TermsRoute: typeof TermsRoute
+  WelcomeRoute: typeof WelcomeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -489,6 +502,13 @@ declare module '@tanstack/react-router' {
       path: '/terms'
       fullPath: '/terms'
       preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/welcome': {
+      id: '/welcome'
+      path: '/welcome'
+      fullPath: '/welcome'
+      preLoaderRoute: typeof WelcomeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/add': {
@@ -754,6 +774,7 @@ const rootRouteChildren: RootRouteChildren = {
   BillingSuccessRoute: BillingSuccessRoute,
   PrivacyRoute: PrivacyRoute,
   TermsRoute: TermsRoute,
+  WelcomeRoute: WelcomeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

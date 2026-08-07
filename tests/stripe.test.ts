@@ -11,6 +11,13 @@ import {
   PLANS, planHasFeature, formatPrice, withinInvoiceLimit,
   TRIAL_DAYS, firstChargeDate, trialDaysLeft, trialDisclosure,
 } from "../src/lib/pricing.ts";
+import { en } from "../src/lib/i18n/en.ts";
+import { es } from "../src/lib/i18n/es.ts";
+import { hi } from "../src/lib/i18n/hi.ts";
+import { gu } from "../src/lib/i18n/gu.ts";
+import { ur } from "../src/lib/i18n/ur.ts";
+import { zh } from "../src/lib/i18n/zh.ts";
+import { makeTranslator } from "../src/lib/i18n/translate.ts";
 
 let pass = 0, fail = 0;
 const ok = (c: boolean, l: string) => { if (c) pass++; else { fail++; console.log("FAIL: " + l); } };
@@ -236,6 +243,70 @@ ok(withinInvoiceLimit("pro", 9999), "Pro has no invoice cap");
   ok(/cancel/i.test(disclosure), "the disclosure says how to avoid the charge");
   ok(/pay nothing|no charge|free/i.test(disclosure),
      "the disclosure says cancelling costs nothing");
+}
+
+/*
+ * --- the post-signup trial offer (/welcome)
+ *
+ * This screen is the only place the trial is sold, and it takes a card. Two
+ * things about it are a contract rather than copy, so they are asserted here
+ * instead of trusted to survive the next redesign:
+ *
+ *   The fine print names the trial length AND the price. A "free trial" pitch
+ *   that doesn't say what happens when the free part ends is the exact pattern
+ *   the FTC's negative-option rules exist to stop.
+ *
+ *   The way out is present in every language. If billing.welcomeContinueFree
+ *   ever goes missing from a translation, a reader of that language is left on
+ *   a screen whose only visible answer is "give us your card". The free path
+ *   disappearing quietly in a locale nobody on the team reads is precisely how
+ *   that happens by accident.
+ */
+{
+  const billing = en.billing as Record<string, string | undefined>;
+
+  ok(typeof billing.welcomeTitle === "string", "the welcome screen has a heading");
+  ok(typeof billing.welcomeBody_other === "string", "the welcome screen says what Pro includes");
+  ok(typeof billing.welcomeFinePrint_other === "string", "the welcome screen has fine print");
+  ok(typeof billing.welcomeStartTrial === "string", "the welcome screen has a start-trial button");
+  ok(typeof billing.welcomeContinueFree === "string", "the welcome screen has a stay-on-Free button");
+
+  // Rendered the way the screen renders it, so a placeholder that stopped
+  // being substituted would fail here rather than ship as literal "{price}".
+  const t = makeTranslator(en, en, "en", "en-US");
+  const finePrint = t("billing.welcomeFinePrint", {
+    count: TRIAL_DAYS,
+    price: formatPrice(PLANS.pro.priceCents),
+  });
+  ok(finePrint.includes(String(TRIAL_DAYS)), "the fine print names the length of the trial");
+  ok(finePrint.includes(formatPrice(PLANS.pro.priceCents)),
+     "the fine print names the price that gets charged afterwards");
+  ok(!/\{\w+\}/.test(finePrint), "every placeholder in the fine print is actually filled in");
+  ok(/cancel/i.test(finePrint), "the fine print says the subscription can be cancelled");
+
+  const trialCta = t("billing.welcomeStartTrial", { count: TRIAL_DAYS });
+  ok(trialCta.includes(String(TRIAL_DAYS)) && !/\{\w+\}/.test(trialCta),
+     "the trial button reads the length from the config rather than hard-coding it");
+
+  // Neither number may be typed into the copy: they belong to pricing.ts, and
+  // a literal here would go stale the day the price or the trial length moves.
+  for (const key of ["welcomeTitle", "welcomeBody_one", "welcomeBody_other",
+                     "welcomeFinePrint_one", "welcomeFinePrint_other", "welcomeStartTrial"]) {
+    const value = billing[key] ?? "";
+    ok(!value.includes("9.99"), `${key} takes the price from the config, not from a literal`);
+    ok(!new RegExp(`\\b${TRIAL_DAYS}\\b`).test(value),
+       `${key} takes the trial length from the config, not from a literal`);
+  }
+
+  for (const [name, dict] of [["es", es], ["hi", hi], ["gu", gu], ["ur", ur], ["zh", zh]] as const) {
+    const section = (dict.billing ?? {}) as Record<string, string | undefined>;
+    ok(typeof section.welcomeContinueFree === "string" && section.welcomeContinueFree.length > 0,
+       `${name} keeps the "continue with Free" way out of the trial offer`);
+    ok(typeof section.welcomeFinePrint_other === "string" &&
+       section.welcomeFinePrint_other.includes("{price}") &&
+       section.welcomeFinePrint_other.includes("{count}"),
+       `${name} keeps both the price and the trial length in the fine print`);
+  }
 }
 
 /**

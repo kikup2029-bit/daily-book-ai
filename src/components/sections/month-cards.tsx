@@ -104,7 +104,10 @@ export function OutlookCard() {
         </div>
 
         {forecast.shortfallDate ? (
-          <Alert tone="negative" title={t("month.shortfallTitle", { date: forecast.shortfallDate })}>
+          <Alert
+            tone="negative"
+            title={t("month.shortfallTitle", { date: forecast.shortfallDate })}
+          >
             <span className="num">
               {t("month.lowestPoint", {
                 amount: signedMoney(forecast.lowestPoint.balance),

@@ -34,7 +34,12 @@ export function Hero() {
 
         <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
           <Button asChild variant="brand" size="lg">
-            <Link to="/auth">Start my {TRIAL_DAYS} free days</Link>
+            {/*
+              This button makes an account, and no card is asked for on the
+              other side of it — so it cannot promise a trial. The trial is
+              offered once, on /welcome, where the disclosure sits next to it.
+            */}
+            <Link to="/auth">Start free</Link>
           </Button>
           <Button asChild variant="outline" size="lg">
             <a href="#how-it-works">See how it works</a>

@@ -598,6 +598,15 @@ export const hi: PartialDictionary = {
     thenPricePerMonth: "उसके बाद {price} हर महीने।",
     manageOrCancel: "संभालें या रद्द करें",
     hideUntilTomorrow: "कल तक छुपाएँ",
+    welcomeTitle: "सब कुछ आज़माकर देखना है?",
+    welcomeBody_one:
+      "SimpleBooks प्रो {count} दिन मुफ़्त आज़माएँ। इसमें AI से अपने आंकड़ों के जवाब, रसीद स्कैन, बिना किसी हद के इनवॉइस, बजट, एक्सपोर्ट, बिना नेट के सिंक और सारी भाषाएँ मिलती हैं।",
+    welcomeBody_other:
+      "SimpleBooks प्रो {count} दिन मुफ़्त आज़माएँ। इसमें AI से अपने आंकड़ों के जवाब, रसीद स्कैन, बिना किसी हद के इनवॉइस, बजट, एक्सपोर्ट, बिना नेट के सिंक और सारी भाषाएँ मिलती हैं।",
+    welcomeFinePrint_one: "{count} दिन मुफ़्त, उसके बाद {price} हर महीने। जब चाहें रद्द कर दें।",
+    welcomeFinePrint_other: "{count} दिन मुफ़्त, उसके बाद {price} हर महीने। जब चाहें रद्द कर दें।",
+    welcomeStartTrial: "मेरा {count} दिन का प्रो ट्रायल शुरू करें",
+    welcomeContinueFree: "नहीं, फ्री प्लान पर ही चलते हैं",
   },
   reminder: {
     eyebrow: "औजार",

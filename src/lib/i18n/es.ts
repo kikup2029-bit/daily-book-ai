@@ -402,7 +402,8 @@ export const es: PartialDictionary = {
     weekly: "cada semana",
     monthly: "cada mes",
     detectedDetail_one: "{amount} {frequency} · visto {count} vez · el próximo cerca del {date}",
-    detectedDetail_other: "{amount} {frequency} · visto {count} veces · el próximo cerca del {date}",
+    detectedDetail_other:
+      "{amount} {frequency} · visto {count} veces · el próximo cerca del {date}",
     dismissDetected: "Descartar {name}",
     trackBill: "Seguir este pago",
 
@@ -642,6 +643,17 @@ export const es: PartialDictionary = {
     thenPricePerMonth: "Después, {price} al mes.",
     manageOrCancel: "Administrar o cancelar",
     hideUntilTomorrow: "Ocultar hasta mañana",
+    welcomeTitle: "¿Quieres probarlo todo?",
+    welcomeBody_one:
+      "Prueba SimpleBooks Pro gratis por {count} día. Tienes respuestas con IA sobre tus números, escaneo de recibos, facturas sin límite, presupuestos, exportaciones, sincronización sin conexión y todos los idiomas.",
+    welcomeBody_other:
+      "Prueba SimpleBooks Pro gratis por {count} días. Tienes respuestas con IA sobre tus números, escaneo de recibos, facturas sin límite, presupuestos, exportaciones, sincronización sin conexión y todos los idiomas.",
+    welcomeFinePrint_one:
+      "Gratis por {count} día, y después {price} al mes. Cancela cuando quieras.",
+    welcomeFinePrint_other:
+      "Gratis por {count} días, y después {price} al mes. Cancela cuando quieras.",
+    welcomeStartTrial: "Empezar mi prueba de Pro de {count} días",
+    welcomeContinueFree: "No, gracias, seguir con Free",
   },
 
   reminder: {

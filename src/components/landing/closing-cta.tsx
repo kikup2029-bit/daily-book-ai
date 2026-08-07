@@ -25,7 +25,8 @@ export function ClosingCta() {
         </p>
         <div className="mt-7 flex justify-center">
           <Button asChild variant="brand" size="lg">
-            <Link to="/auth">Start my {TRIAL_DAYS} free days</Link>
+            {/* Account creation, not checkout — see the note in hero.tsx. */}
+            <Link to="/auth">Start free</Link>
           </Button>
         </div>
       </div>

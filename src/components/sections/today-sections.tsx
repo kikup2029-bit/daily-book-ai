@@ -665,7 +665,9 @@ export function StreaksCard() {
             <Metric
               key={tile.label}
               label={tile.label}
-              value={<span className="num">{t("dashboard.streakDays", { count: tile.value })}</span>}
+              value={
+                <span className="num">{t("dashboard.streakDays", { count: tile.value })}</span>
+              }
               hint={
                 tile.best > tile.value ? (
                   <span className="num">{t("dashboard.streakBest", { count: tile.best })}</span>
@@ -783,9 +785,7 @@ export function QuickAdd({ entries }: { entries: EntryRow[] }) {
       }),
     onSuccess: (result) => {
       setSaved(
-        result.queued
-          ? t("dashboard.savedOnDevice", { summary: parsed.summary })
-          : parsed.summary,
+        result.queued ? t("dashboard.savedOnDevice", { summary: parsed.summary }) : parsed.summary,
       );
       setText("");
       setTimeout(() => setSaved(null), 3000);

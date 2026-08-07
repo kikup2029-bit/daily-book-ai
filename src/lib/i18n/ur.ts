@@ -695,6 +695,15 @@ export const ur: PartialDictionary = {
     thenPricePerMonth: "پھر {price} ماہانہ۔",
     manageOrCancel: "سنبھالیں یا منسوخ کریں",
     hideUntilTomorrow: "کل تک چھپائیں",
+    welcomeTitle: "سب کچھ آزما کر دیکھنا ہے؟",
+    welcomeBody_one:
+      "SimpleBooks پرو {count} دن مفت آزمائیں۔ اس میں AI سے اپنے حساب کے بارے میں جواب، رسید کا اسکین، بغیر حد کے انوائس، بجٹ، ایکسپورٹ، بغیر انٹرنیٹ کے سنک اور ساری زبانیں شامل ہیں۔",
+    welcomeBody_other:
+      "SimpleBooks پرو {count} دن مفت آزمائیں۔ اس میں AI سے اپنے حساب کے بارے میں جواب، رسید کا اسکین، بغیر حد کے انوائس، بجٹ، ایکسپورٹ، بغیر انٹرنیٹ کے سنک اور ساری زبانیں شامل ہیں۔",
+    welcomeFinePrint_one: "{count} دن مفت، پھر {price} ماہانہ۔ جب چاہیں منسوخ کر دیں۔",
+    welcomeFinePrint_other: "{count} دن مفت، پھر {price} ماہانہ۔ جب چاہیں منسوخ کر دیں۔",
+    welcomeStartTrial: "میری {count} دن کی پرو آزمائش شروع کریں",
+    welcomeContinueFree: "نہیں شکریہ، فری پلان پر ہی چلتے ہیں",
   },
 
   reminder: {

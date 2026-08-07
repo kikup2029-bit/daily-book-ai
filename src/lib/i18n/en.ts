@@ -608,6 +608,27 @@ export const en = {
     thenPricePerMonth: "Then {price} a month.",
     manageOrCancel: "Manage or cancel",
     hideUntilTomorrow: "Hide until tomorrow",
+
+    // --- the one-time trial offer shown after sign-up (/welcome)
+    //
+    // The number of days and the price are placeholders on purpose: they are
+    // read from src/lib/pricing.ts at render time, so a change there can never
+    // leave a stale "7" or "$9.99" behind on this screen.
+    //
+    // welcomeContinueFree is not optional decoration. It is the visible,
+    // full-size way past this screen without handing over a card, and it must
+    // survive every future edit and every translation.
+    welcomeTitle: "Want to try everything?",
+    welcomeBody_one:
+      "Try SimpleBooks Pro free for {count} day. Get AI insights, receipt scanning, unlimited invoices, budgets, exports, offline syncing, and every supported language.",
+    welcomeBody_other:
+      "Try SimpleBooks Pro free for {count} days. Get AI insights, receipt scanning, unlimited invoices, budgets, exports, offline syncing, and every supported language.",
+    welcomeFinePrint_one: "Free for {count} day, then {price}/month. Cancel anytime.",
+    welcomeFinePrint_other: "Free for {count} days, then {price}/month. Cancel anytime.",
+    // No plural variants: "{count}-day" is attributive and doesn't inflect in
+    // English. Languages that do inflect it may add _one/_other themselves.
+    welcomeStartTrial: "Start my {count}-day Pro trial",
+    welcomeContinueFree: "No thanks, continue with Free",
   },
 
   reminder: {

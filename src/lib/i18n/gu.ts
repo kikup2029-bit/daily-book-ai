@@ -666,6 +666,15 @@ export const gu: PartialDictionary = {
     thenPricePerMonth: "પછી મહિને {price}.",
     manageOrCancel: "સંભાળો કે રદ કરો",
     hideUntilTomorrow: "કાલ સુધી છુપાવો",
+    welcomeTitle: "બધું અજમાવી જોવું છે?",
+    welcomeBody_one:
+      "SimpleBooks પ્રો {count} દિવસ મફત વાપરી જુઓ. તેમાં AI પાસેથી તમારા ચોપડા વિશે જવાબ, રસીદનું સ્કેન, ગમે તેટલા ઇન્વોઇસ, બજેટ, એક્સપોર્ટ, નેટ વગર પણ સિંક અને બધી ભાષાઓ મળે છે.",
+    welcomeBody_other:
+      "SimpleBooks પ્રો {count} દિવસ મફત વાપરી જુઓ. તેમાં AI પાસેથી તમારા ચોપડા વિશે જવાબ, રસીદનું સ્કેન, ગમે તેટલા ઇન્વોઇસ, બજેટ, એક્સપોર્ટ, નેટ વગર પણ સિંક અને બધી ભાષાઓ મળે છે.",
+    welcomeFinePrint_one: "{count} દિવસ મફત, પછી મહિને {price}. ગમે ત્યારે રદ કરી શકો છો.",
+    welcomeFinePrint_other: "{count} દિવસ મફત, પછી મહિને {price}. ગમે ત્યારે રદ કરી શકો છો.",
+    welcomeStartTrial: "મારી {count} દિવસની પ્રો અજમાયશ શરૂ કરો",
+    welcomeContinueFree: "ના, આભાર — ફ્રી પ્લાનમાં જ આગળ વધો",
   },
 
   reminder: {

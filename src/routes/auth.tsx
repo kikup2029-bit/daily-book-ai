@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Check, Eye, EyeOff, Lock, ShieldCheck, Wifi } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -61,17 +61,35 @@ function AuthPage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  /*
+   * Which door this session came through.
+   *
+   * The effect below sends anyone with a session to their books, and it fires
+   * on *any* session appearing — including the one signing up creates. A brand
+   * new account has to see the trial offer first, and without this flag the
+   * effect would win that race every time and the offer would never appear.
+   *
+   * A ref, not state: it has to be readable by the auth-state listener the
+   * instant the event arrives, without waiting for a re-render.
+   */
+  const cameFromSignUp = useRef(false);
+
+  const goAfterAuth = useCallback(() => {
+    if (cameFromSignUp.current) navigate({ to: "/welcome", replace: true });
+    else navigate({ to: "/dashboard", replace: true });
+  }, [navigate]);
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/dashboard", replace: true });
+      if (data.session) goAfterAuth();
     });
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (session && (event === "SIGNED_IN" || event === "INITIAL_SESSION")) {
-        navigate({ to: "/dashboard", replace: true });
+        goAfterAuth();
       }
     });
     return () => sub.subscription.unsubscribe();
-  }, [navigate]);
+  }, [goAfterAuth]);
 
   const onSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -85,12 +103,23 @@ function AuthPage() {
     setBusy(true);
     try {
       if (mode === "signup") {
+        // Set before the request goes out: signUp can hand back a session, and
+        // the auth-state listener may fire on it before this line is reached
+        // again. Marking the intent first is what makes the redirect land on
+        // the trial offer instead of the dashboard.
+        cameFromSignUp.current = true;
         const { data, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
           options: { emailRedirectTo: window.location.origin },
         });
         if (signUpError) throw signUpError;
+
+        // A session came back with the sign-up: the account exists and is
+        // signed in already, so make the offer now rather than leaving it to
+        // the listener. Either path ends up on /welcome, because the flag is
+        // already set — this one just doesn't wait for an event.
+        if (data.session) goAfterAuth();
 
         if (!data.session && data.user) {
           // Project may still require email confirmation. Try a best-effort
@@ -109,10 +138,16 @@ function AuthPage() {
           }
         }
       } else {
+        // Signing in to an existing account never sees the offer: it is made
+        // once, at sign-up. Cleared here in case a failed sign-up left it set.
+        cameFromSignUp.current = false;
         const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
         if (signInError) throw signInError;
       }
     } catch (err) {
+      // Nothing was signed in, so no session event is coming and the flag can
+      // be cleared without racing anything.
+      cameFromSignUp.current = false;
       // Supabase's own message is passed through as it arrives — it's the only
       // thing that says *what* failed, and it isn't ours to translate.
       setError(err instanceof Error ? err.message : t("auth.errGeneric"));
@@ -122,6 +157,7 @@ function AuthPage() {
   };
 
   const switchMode = () => {
+    cameFromSignUp.current = false;
     setMode(mode === "signin" ? "signup" : "signin");
     setError(null);
     setNotice(null);

@@ -607,6 +607,12 @@ export const zh: PartialDictionary = {
     thenPricePerMonth: "之后每月 {price}。",
     manageOrCancel: "管理或取消",
     hideUntilTomorrow: "隐藏到明天",
+    welcomeTitle: "想把所有功能都试一遍吗？",
+    welcomeBody_other:
+      "免费试用 SimpleBooks Pro {count} 天。包含 AI 解读你的数字、收据扫描、发票不限量、预算、导出、离线同步，以及支持的所有语言。",
+    welcomeFinePrint_other: "免费 {count} 天，之后每月 {price}。随时可以取消。",
+    welcomeStartTrial: "开始我的 {count} 天 Pro 试用",
+    welcomeContinueFree: "不用了，继续使用 Free 方案",
   },
   reminder: {
     eyebrow: "工具",

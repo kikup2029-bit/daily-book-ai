@@ -569,7 +569,10 @@ export function InsightsSection() {
           {/* The amount and the date live inside the sentence: "lowest point"
               doesn't come first in every language. */}
           {forecast.shortfallDate ? (
-            <Alert tone="negative" title={t("month.shortfallTitle", { date: forecast.shortfallDate })}>
+            <Alert
+              tone="negative"
+              title={t("month.shortfallTitle", { date: forecast.shortfallDate })}
+            >
               <span className="num">
                 {t("month.lowestPoint", {
                   amount: signedMoney(forecast.lowestPoint.balance),
@@ -973,7 +976,9 @@ export function GoalsSection() {
                     {remaining > 0
                       ? t("month.goalToGo", { amount: money(remaining) })
                       : t("month.goalReached")}
-                    {goal.target_date ? ` · ${t("month.goalByDate", { date: goal.target_date })}` : ""}
+                    {goal.target_date
+                      ? ` · ${t("month.goalByDate", { date: goal.target_date })}`
+                      : ""}
                   </p>
                 </li>
               );
