@@ -49,10 +49,14 @@ export const startCheckout = createServerFn({ method: "POST" })
     // because which of the three holds a Cloudflare binding depends on the
     // request path — this used to read process.env only, and reported a
     // correctly-set variable as missing whenever the value landed elsewhere.
-    const priceId = runtimeValue(priceEnvVar);
+    // Environment first, committed fallback second. The fallback is a public
+    // Price id, not a credential — see the note on stripePriceFallback. It is
+    // here so a deploy pipeline that drops plain-text variables cannot stop
+    // anyone from paying.
+    const priceId = runtimeValue(priceEnvVar) ?? plan.stripePriceFallback;
     if (!priceId) {
       throw new Error(
-        `${priceEnvVar} is not set on the server, so checkout can't start. Create the Price in Stripe and add its id as a runtime variable.`,
+        `No Stripe Price is configured for ${plan.name}. Set ${priceEnvVar}, or put the id in stripePriceFallback in pricing.ts.`,
       );
     }
 

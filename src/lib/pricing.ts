@@ -105,6 +105,19 @@ export type Plan = {
    * test and live mode can differ without a code change. Free has none.
    */
   stripePriceEnvVar: string | null;
+  /**
+   * The Stripe Price id to use when the environment variable is unreadable.
+   *
+   * A Price id is NOT a secret. It names a product; it cannot charge anyone,
+   * refund anyone, or read a customer's details. Only the secret key can do
+   * those, and that stays a runtime secret with no fallback of any kind.
+   *
+   * This exists because treating a public identifier like a secret cost real
+   * hours: the deploy pipeline silently drops plain-text variables, so checkout
+   * refused to start while the value sat correctly in the dashboard. The env
+   * var still wins when it is readable — this is the floor, not the override.
+   */
+  stripePriceFallback: string | null;
   featured: boolean;
   /** Hard caps for the free tier. null means no limit. */
   limits: {
@@ -154,6 +167,7 @@ export const PLANS: Record<PlanId, Plan> = {
     ],
     cta: "Continue on Free",
     stripePriceEnvVar: null,
+    stripePriceFallback: null,
     featured: false,
     limits: { invoicesPerMonth: 0, entriesPerMonth: null, devices: 1 },
   },
@@ -200,6 +214,11 @@ export const PLANS: Record<PlanId, Plan> = {
     ],
     cta: `Start my ${TRIAL_DAYS} free days`,
     stripePriceEnvVar: "STRIPE_PRICE_PRO_MONTHLY",
+    // The SANDBOX price. Going live means replacing this with the live account's
+    // id, or setting STRIPE_PRICE_PRO_MONTHLY, which takes precedence.
+    // A test-mode id used with a live secret key fails loudly at Stripe rather
+    // than charging the wrong amount — the two modes cannot be mixed silently.
+    stripePriceFallback: "price_1U1Z3hEQK9OJjO7XRE5aQEkZ",
     featured: true,
     limits: { invoicesPerMonth: null, entriesPerMonth: null, devices: null },
   },

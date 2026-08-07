@@ -31,9 +31,21 @@
  * them.
  */
 
-let runtimeEnv: Record<string, string> | null = null;
+/*
+ * Stored on globalThis, NOT in a module variable.
+ *
+ * The bundler splits the Worker entry and the server functions into separate
+ * chunks. A module-scoped variable can end up duplicated across them — the
+ * fetch handler writes to one copy, the checkout handler reads another, and the
+ * value is empty for reasons that are invisible from the code. globalThis is
+ * one object per isolate, so both chunks see the same thing whatever the
+ * bundler decides to do.
+ */
+const SLOT = "__simplebooks_runtime_env__";
 
-/** Called once per request from the Worker's fetch handler, before routing. */
+type Holder = { [SLOT]?: Record<string, string> };
+
+/** Called on every request from the Worker's fetch handler, before routing. */
 export function setRuntimeEnv(env: unknown): void {
   if (!env || typeof env !== "object") return;
 
@@ -43,7 +55,7 @@ export function setRuntimeEnv(env: unknown): void {
     // and anything expecting an env var would choke on them.
     if (typeof value === "string") collected[key] = value;
   }
-  runtimeEnv = collected;
+  (globalThis as Holder)[SLOT] = collected;
 }
 
 /**
@@ -54,7 +66,8 @@ export function setRuntimeEnv(env: unknown): void {
  * everywhere.
  */
 export function readRuntimeEnv(key: string): string | null {
-  if (runtimeEnv && runtimeEnv[key]) return runtimeEnv[key];
+  const captured = (globalThis as Holder)[SLOT];
+  if (captured && captured[key]) return captured[key];
 
   const globalEnv = globalThis as {
     process?: { env?: Record<string, string | undefined> };
@@ -63,6 +76,22 @@ export function readRuntimeEnv(key: string): string | null {
   };
 
   return globalEnv.process?.env?.[key] ?? globalEnv.__env__?.[key] ?? globalEnv.env?.[key] ?? null;
+}
+
+/**
+ * Which variable names the server can currently see. Names only, never values.
+ *
+ * This exists because "not set on the server" is a useless error on its own: it
+ * cannot distinguish a missing variable from a variable that is present but
+ * unreachable, and those need opposite fixes. Listing the names that ARE
+ * visible answers that in one line — if the list is empty, nothing is getting
+ * through and the problem is plumbing; if it has entries but not the one you
+ * wanted, the problem really is that variable.
+ */
+export function visibleEnvNames(): string[] {
+  const captured = (globalThis as Holder)[SLOT];
+  const fromProcess = (globalThis as { process?: { env?: Record<string, unknown> } }).process?.env;
+  return [...new Set([...Object.keys(captured ?? {}), ...Object.keys(fromProcess ?? {})])].sort();
 }
 
 /**
