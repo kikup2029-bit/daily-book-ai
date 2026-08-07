@@ -21,6 +21,55 @@ import type { PartialDictionary } from "./translate";
  *    charge for the plan. Confirm the split reads naturally.
  *  - billing.statusPastDue 付款逾期 (the user owes us) against invoices.overdue
  *    逾期 (a customer owes them) — these should not blur together.
+ *
+ * Month / dashboard / entry-form terms fixed in this pass (the whole `month`
+ * section, plus the gaps in `dashboard` and `entryForm`), same register:
+ *   budget         → 预算 (as nav.budgets); its cap is 上限, over is 超了,
+ *                    nearly-over is 快到上限 — never common.close 关闭
+ *   goal           → 目标 (nav.goals 储蓄目标); reached → 已达成
+ *   recurring rule → 固定支出 — described, not coined; 每周/每月 for how often
+ *   set aside      → 预留 (for tax) / 攒 (for a savings goal), never 省
+ *   outlook        → 接下来的情况 — a phrase, not a noun; the section title
+ *                    reuses nav.canYouCover 够不够支付
+ *   shortfall      → 钱可能会不够 — a plain warning, not a noun
+ *   streak         → 连续记账 / 连续赚钱 / 连续不花钱; 最好成绩 for the record
+ *   track (a bill) → 跟踪    plain English → 大白话
+ *   your books     → 账本, as everywhere else in this file
+ *
+ * Deliberate choices worth knowing before re-wording anything:
+ *  - month.taxHint keeps the category keyword “tax” in Latin script. The code
+ *    that counts tax payments matches /\btax(es)?\b|\birs\b|\bhmrc\b|\bcra\b/i
+ *    in English only (src/lib/insights.ts), so telling a Chinese reader to type
+ *    “税” would silently stop their payments counting — they would think money
+ *    was set aside when it wasn't. Translate this word only once the matcher
+ *    learns Chinese.
+ *  - dashboard.listeningHint keeps its spoken example in English, because the
+ *    mic feeds the English-only quick-add parser (src/lib/quick-entry.ts).
+ *    NOTE for product: dashboard.quickAddPlaceholder and quickAddBlurb were
+ *    already translated into Chinese in an earlier pass and so teach a phrase
+ *    the parser cannot read. Left as found — outside this pass — but they
+ *    should be reverted to English or the parser taught Chinese.
+ *  - entryForm.whereExamples swaps Shell/Home Depot for 加油站 and 五金店 —
+ *    they are illustrations, not parser input, and the US chains mean nothing
+ *    to a mainland shopkeeper.
+ *
+ * New keys a native reviewer should check hardest:
+ *  - month.staysPositive 整段时间里你的余额都保持为正 — English is "in the
+ *    black", i.e. the balance never goes negative. It is NOT a claim of profit.
+ *    If it reads as "you are making a profit", re-word it.
+ *  - month.over 超了 (budget exceeded) vs month.nearLimit 快到上限 (not yet
+ *    exceeded). They sit side by side as badges and must differ at a glance.
+ *  - month.shouldSetAside 应该预留 / month.alreadyPaid 已经缴了 /
+ *    month.stillToSetAside 还要预留 — three metrics in a row; confirm nobody
+ *    can read "still to set aside" as "already handled".
+ *  - month.lossThisMonth uses 亏损, the ordinary money word, while common.loss
+ *    still says 损失 (which reads as damage). Confirm and consider aligning
+ *    common.loss — that key is outside this pass.
+ *  - entryForm.whatForExamples follows whatForPlaceholder's 补给品 for
+ *    "supplies", but dashboard.quickAddPlaceholder says 物资. One of the two
+ *    should win; a reviewer should pick.
+ *  - month.dueInDays_other and month.inDays_other are both “{count} 天后”; they
+ *    appear in different panels, so confirm that reads right in each.
  */
 export const zh: PartialDictionary = {
   common: {
@@ -54,6 +103,7 @@ export const zh: PartialDictionary = {
     signOut: "登出",
     keepIt: "保留",
     moreActions: "更多操作",
+    send: "发送",
     language: "语言",
     changeLanguage: "更改语言",
   },
@@ -135,17 +185,33 @@ export const zh: PartialDictionary = {
   },
   dashboard: {
     eyebrow: "今天",
+    blurb: "你到目前记下的一切，以及值得看一眼的地方。",
     position: "你今天站的地方",
+    todaysNet: "今天的净额",
+    nothingToday: "今天还没有记任何东西。",
+    aheadToday: "今天到目前是赚的。",
+    behindToday: "今天到目前是亏的。",
+    evenToday: "今天到目前不赚不亏。",
     allTime: "所有时间",
+    allTimeIn: "收入 {amount}",
+    allTimeOut: "支出 {amount}",
+    allTimeNet: "净额 {amount}",
     safeToSpend: "今天可以安全消费",
     nothingLeft: "今天没有剩下什么",
     quickAdd: "快速添加",
     quickAddBlurb: "只需输入“在 Costco 购买杂货 20 美元”或“赚 300 美元”即可。",
     quickAddVoice: "或者点击麦克风并说出来。",
     quickAddPlaceholder: "花费 20 购买物资",
+    quickAddInputLabel: "快速添加记录",
     listening: "正在听……",
+    listeningHint: "正在听——说一句像“spent twenty dollars on lunch”这样的话。",
     startListening: "通过语音添加",
     stopListening: "停止聆听",
+    readingThatAs: "识别为",
+    noCategory: "没有类别",
+    atMerchant: "在 {merchant}",
+    onDate: "日期 {date}",
+    addIt: "添加这一笔",
     savedOnDevice: "保存在此设备上 — {summary}",
     recentEntries: "最近的记录",
     recentBlurb: "最新的优先。点击一行上的菜单可更改或删除它。",
@@ -154,7 +220,27 @@ export const zh: PartialDictionary = {
     logFirst: "记录你的第一个记录",
     loadFailed: "无法加载你的记录。 {message}",
     moreEntries: "{count} 更多 — 查看一切",
-    billsDueSoon: "账单即将到期",
+    billsDueSoon_other: "有 {count} 笔账单快到期了",
+    billsDueSoonBlurb: "最好提前备好钱，别被打个措手不及。",
+    streakLogging: "连续记账",
+    streakProfitable: "连续赚钱",
+    streakNoSpend: "连续不花钱",
+    streakDays_other: "{count} 天",
+    streakBest: "最好成绩：{count}",
+    streakYourBest: "你目前的最好成绩",
+    streakNice_other: "不错——你已经连续 {count} 天把账本记得清清楚楚。",
+    streakStart: "每天记上一笔，连续记录就开始累积了。",
+    aheadDaysThisMonth: "这个月你记了 {active} 天，其中 {profitable} 天是赚的。",
+    askBlurb: "用大白话问你的数字——不用会计术语。",
+    askPlaceholder: "问一个问题…",
+    askThinking: "正在翻你的账本…",
+    askFailed: "抱歉，出了点问题：{message}",
+    askFailedUnknown: "抱歉，出了点问题。请再试一次。",
+    askMostSpent: "我花得最多的是什么？",
+    askThisWeek: "我这周怎么样？",
+    askMakingMoney: "我在赚钱吗？",
+    askCanIAfford: "$200 我花得起吗？",
+    askHowMuchSpent: "我一共花了多少？",
     uncategorised: "未分类",
     hasReceipt: "有收据",
     viewReceipt: "查看收据",
@@ -171,21 +257,33 @@ export const zh: PartialDictionary = {
   entryForm: {
     title: "今天的进入",
     blurb: "记下什么进来了，什么出去了。",
+    fullEntry: "完整记录",
+    fullEntryBlurb: "需要填日期、收据或分享给谁的时候用。",
     moneyMade: "钱赚了",
     moneySpent: "花的钱",
     whatFor: "做什么的",
     whatForPlaceholder: "补给品",
+    whatForExamples: "补给品、房租、库存…",
     where: "在哪里",
     wherePlaceholder: "好市多",
+    whereExamples: "好市多、加油站、五金店…",
     paidWith: "支付方式",
     cash: "现金",
     card: "卡片",
     other: "其他",
     receiptPhoto: "收据照片",
+    receiptPrivateHint: "可选——只有你能看到。",
+    receiptAttaching: "正在附上“{name}”——只有你能看到。",
+    receiptReading: "正在读你的收据…",
     whoCanSee: "谁能看到这个",
     justMe: "只有我",
     shareIt: "分享",
     splitIt: "拆分它",
+    shareNoneBlurb: "只有你能看到这一笔。",
+    shareVisibleBlurb: "{household} 能看到，但谁也不欠谁的钱。",
+    shareSplitBlurb: "{household} 能看到，而且这笔钱由大家平摊。",
+    staysPrivate: "不会有任何东西离开你的账本。",
+    saveEntry: "保存记录",
     saved: "已保存。",
     errAmounts: "请输入有效金额。",
     errEmpty: "在储蓄之前添加赚到的钱或花掉的钱。",
@@ -222,6 +320,113 @@ export const zh: PartialDictionary = {
     saveChanges: "保存更改",
     errNeedsAmount: "入场需要资金流入或资金流出。使用删除将其删除。",
     count_other: "{count} 记录",
+  },
+  month: {
+    previous: "上个月",
+    next: "下个月",
+    profitThisMonth: "本月利润",
+    lossThisMonth: "本月亏损",
+    breakEvenThisMonth: "本月不赚不亏",
+    budgetOver: "{category} 超预算了",
+    budgetAtPercent: "{category} 已用掉预算的 {percent}%",
+    nothingSpent: "本月还没有支出",
+    nothingSpentBlurb: "你记下支出后，这里会按金额从大到小显示钱都花到哪些类别去了。",
+    whereMoneyWentBlurb: "本月的每一笔支出，金额最大的在前。",
+    dayByDayBlurb: "每根柱子是那天的净额。在横线以上的是你赚了的日子，在横线以下的是没赚到的日子。",
+    dayNumber: "{day} 号",
+
+    weekTitle: "用大白话说说你的一周",
+    weekRange: "{from} 到 {to}",
+    loadingWeek: "正在读你的一周…",
+
+    outlookTitle: "接下来要花的钱，够不够支付？",
+    outlookBlurb_other: "接下来 {days} 天，按你最近 {count} 天的情况和你设好的账单来算。",
+    loadingOutlook: "正在算接下来的情况…",
+    whereYouAre: "你现在的净额",
+    inDays_other: "{count} 天后",
+    shortfallTitle: "注意——{date} 前后你的钱可能会不够。",
+    staysPositive: "整段时间里你的余额都保持为正。",
+    lowestPoint: "最低点是 {date} 的 {amount}。",
+    typicalDay: "平常一天：进 {moneyIn}，出 {moneyOut}。",
+    billsComingUp: "接下来的账单",
+    roughGuess_other: "这只是个粗略估计——你才记了 {count} 天。记得越久，估得越准。",
+
+    taxNoRateTools: "在“工具”页设一个百分比，我就一直帮你算要留出多少税款。",
+    taxNoRateBelow: "在下面设一个百分比，我就一直帮你算要留出多少税款。",
+    taxHoldingBack: "{period} 你收到 {amount}，按 {percent}% 留出税款。",
+    shouldSetAside: "应该预留",
+    alreadyPaid: "已经缴了",
+    stillToSetAside: "还要预留",
+    taxHint: "记录缴税时，把类别写成 “tax”，这里才会算进去。这不是税务建议——税率请找会计确认。",
+    loadingTax: "正在算你要预留的税款…",
+
+    busyDaysBlurb: "一周里每天的平均收入。",
+    busyDaysNotEnough: "再多记几周，我就能告诉你一周里哪几天生意最好、哪几天最清淡。",
+    loadingBusyDays: "正在看你的一周…",
+    bestAndQuiet: "{best} 是你生意最好的一天，{worst} 最清淡。",
+    bestAndQuietBoth:
+      "{best} 是你生意最好的一天（比平均高 {bestPercent}%），{worst} 最清淡（比平均低 {worstPercent}%）。",
+    bestAndQuietBestOnly: "{best} 是你生意最好的一天（比平均高 {bestPercent}%），{worst} 最清淡。",
+    bestAndQuietWorstOnly:
+      "{best} 是你生意最好的一天，{worst} 最清淡（比平均低 {worstPercent}%）。",
+
+    whatsDue: "有什么要付",
+    loadingBills: "正在加载你的账单",
+    billsTotal: "接下来 45 天有 {amount} 的账单要付。",
+    thisWeek: "本周",
+    nextThreeWeeks: "接下来 3 周",
+    later: "更晚",
+    dueToday: "今天",
+    dueTomorrow: "明天",
+    dueInDays_other: "{count} 天后",
+
+    detectedTitle: "看着像一笔固定账单",
+    detectedBlurb:
+      "我在你的记录里发现这些在反复出现。把它们跟踪起来，它们就会出现在接下来的预估和账单提醒里。",
+    maybe: "可能",
+    weekly: "每周",
+    monthly: "每月",
+    detectedDetail_other: "{amount} {frequency} · 出现过 {count} 次 · 下次大约在 {date}",
+    dismissDetected: "忽略 {name}",
+    trackBill: "跟踪这笔账单",
+
+    goalsBlurb: "你正在为它攒钱的东西——看看离目标还有多远。",
+    reached: "已达成",
+    goalToGo: "还差 {amount}",
+    goalReached: "目标已达成",
+    goalByDate: "{date} 之前",
+    removeGoal: "删除“{name}”目标",
+    noGoals: "还没有目标。",
+    goalNamePlaceholder: "新烤箱",
+    goalTarget: "目标金额",
+    goalSaved: "已经攒了",
+    goalTargetDate: "目标日期（可选）",
+    saveGoal: "保存目标",
+
+    budgetsTitle: "预算上限",
+    budgetsBlurb: "给每个类别设一个每月上限，然后看着这些条。",
+    over: "超了",
+    nearLimit: "快到上限",
+    removeBudget: "删除“{name}”预算",
+    noBudgets: "还没有设预算。",
+    monthlyLimit: "每月上限",
+    saveBudget: "保存预算",
+
+    recurringTitle: "固定支出",
+    recurringBlurb: "会重复的账单，我们自动帮你记上。",
+    cancelled: "已取消",
+    recurringDetail: "{amount} · {frequency} · 从 {date} 起",
+    editRule: "编辑“{name}”",
+    cancelRule: "取消“{name}”",
+    deleteRule: "删除“{name}”",
+    noRecurring: "还没有固定支出。",
+    recurringPlaceholder: "房租",
+    howOften: "多久一次？",
+    everyWeek: "每周",
+    everyMonth: "每月",
+    starting: "从哪天开始",
+    updateRecurring: "更新固定支出",
+    addRecurring: "添加固定支出",
   },
   invoices: {
     eyebrow: "发票",

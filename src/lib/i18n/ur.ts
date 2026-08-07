@@ -65,6 +65,52 @@ import type { PartialDictionary } from "./translate";
  *  - The {price} and {date} values are Latin script inside Urdu sentences.
  *    Please check on a real device that the bidi algorithm places them where
  *    the sentence expects, especially in cardChargedOn and trialDisclosure.
+ *
+ * Month/dashboard/entry-form terms fixed in this pass (the `month` section in
+ * full, plus the gaps in `dashboard` and `entryForm`), same shopkeeper register:
+ *   budget         → "بجٹ" (loanword, as in nav.budgets); its cap is "حد"
+ *   goal           → "ہدف" (nav.goals already says "بچت کے ہدف")
+ *   recurring rule → "ہر بار آنے والا خرچ" — described, not coined. "ریکرنگ"
+ *                    is not a word a shopkeeper says.
+ *   set aside      → "الگ رکھنا", never "بچانا" (which reads as saving up)
+ *   outlook        → "آگے کا حساب"; the section title reuses nav.canYouCover
+ *   shortfall      → "پیسے کم پڑ سکتے ہیں", a plain warning not a noun
+ *   streak         → "سلسلہ"       track (a bill) → "ٹریک کریں" (loanword)
+ *   net            → "نیٹ", as in common.net    plain English → "سیدھی سادی بات"
+ *   your books     → "حساب", as everywhere else in this file
+ *
+ * Deliberate choices worth knowing before you re-word anything:
+ *  - month.taxHint keeps the category keyword “tax” in Latin script. The code
+ *    that counts tax payments matches /tax|taxes|irs|hmrc|cra/ in English only,
+ *    so telling an Urdu reader to type "ٹیکس" would silently stop their
+ *    payments counting — they would think money was set aside when it wasn't.
+ *    Translate this word only when the matcher learns Urdu.
+ *  - dashboard.listeningHint keeps its spoken example in English for the same
+ *    reason as quickAddBlurb: the mic feeds the English quick-add parser.
+ *  - entryForm.whereExamples swaps Shell/Home Depot for "پیٹرول پمپ" and
+ *    "ہارڈویئر کی دکان" — they are illustrations, not parser input, and the US
+ *    chains mean nothing in a Pakistani shop.
+ *
+ * New keys a reviewer should check hardest:
+ *  - month.staysPositive "آپ کے پیسے پورے رہتے ہیں" — English is "in the black",
+ *    i.e. the balance never goes negative. It is NOT a claim of profit. If this
+ *    reads as "you are making a profit", it must be re-worded.
+ *  - month.over "حد سے آگے" (budget exceeded) vs month.nearLimit "حد کے قریب"
+ *    (nearly there, not yet exceeded). These sit next to each other as badges
+ *    and must be unmistakably different at a glance.
+ *  - month.reached "پورا ہو گیا" is a savings goal met — a good thing — while
+ *    month.over is a budget blown. Confirm the tone reads right for each.
+ *  - month.alreadyPaid "پہلے ادا ہو چکا" is tax the user has already paid, not
+ *    an invoice a customer paid (invoices.statusPaid "ادا ہو گیا").
+ *  - month.dueTomorrow "کل" — Urdu کل is both yesterday and tomorrow. Only the
+ *    due-date context makes it future. Check it can't be read as "overdue".
+ *  - month.cancelled "بند" for a stopped recurring rule, chosen over "منسوخ"
+ *    (used for invoices/billing) so a paused rule doesn't read as voided.
+ *  - month.goalNamePlaceholder "نیا اوون" — a placeholder example only. Swap it
+ *    for whatever a Pakistani shopkeeper would actually save up for.
+ *  - dashboard.aheadDaysThisMonth carries two counts, {profitable} of {active}.
+ *    The order is flipped from English to suit Urdu; confirm it still says the
+ *    profitable days are the subset.
  */
 export const ur: PartialDictionary = {
   common: {
@@ -98,6 +144,7 @@ export const ur: PartialDictionary = {
     signOut: "سائن آؤٹ",
     keepIt: "رہنے دیں",
     moreActions: "مزید کام",
+    send: "بھیجیں",
     language: "زبان",
     changeLanguage: "زبان بدلیں",
   },
@@ -184,17 +231,33 @@ export const ur: PartialDictionary = {
 
   dashboard: {
     eyebrow: "آج",
+    blurb: "اب تک آپ نے جو کچھ لکھا ہے، اور جس پر ایک نظر ڈالنی چاہیے۔",
     position: "آج آپ کہاں کھڑے ہیں",
+    todaysNet: "آج کا نیٹ",
+    nothingToday: "آج ابھی تک کچھ نہیں لکھا۔",
+    aheadToday: "آج آپ فائدے میں ہیں۔",
+    behindToday: "آج آپ نقصان میں ہیں۔",
+    evenToday: "آج ابھی تک نہ نفع نہ نقصان۔",
     allTime: "شروع سے اب تک",
+    allTimeIn: "{amount} آئے",
+    allTimeOut: "{amount} گئے",
+    allTimeNet: "{amount} نیٹ",
     safeToSpend: "آج اتنا خرچ کر سکتے ہیں",
     nothingLeft: "آج کے لیے کچھ نہیں بچا",
     quickAdd: "جھٹ پٹ لکھیں",
     quickAddBlurb: "بس لکھ دیں — “spent 20 at costco on groceries” یا “made 300”۔",
     quickAddVoice: "یا مائیک دبا کر بول دیں۔",
     quickAddPlaceholder: "spent 20 on supplies",
+    quickAddInputLabel: "جھٹ پٹ انٹری لکھیں",
     listening: "سن رہے ہیں…",
+    listeningHint: "سن رہے ہیں — کچھ ایسے بولیں جیسے “spent twenty dollars on lunch”۔",
     startListening: "بول کر لکھوائیں",
     stopListening: "سننا بند کریں",
+    readingThatAs: "اسے یوں پڑھا جا رہا ہے",
+    noCategory: "کوئی قسم نہیں",
+    atMerchant: "{merchant} پر",
+    onDate: "{date} کو",
+    addIt: "شامل کر دیں",
     savedOnDevice: "اسی فون میں محفوظ ہو گیا — {summary}",
     recentEntries: "حال کی انٹریاں",
     recentBlurb: "نئی سب سے اوپر۔ کسی سطر کے مینو پر ٹیپ کر کے اسے بدلیں یا ہٹائیں۔",
@@ -203,7 +266,31 @@ export const ur: PartialDictionary = {
     logFirst: "پہلی انٹری لکھیں",
     loadFailed: "آپ کی انٹریاں نہیں کھل سکیں۔ {message}",
     moreEntries: "{count} مزید — سب کچھ دیکھیں",
-    billsDueSoon: "جلد دینے والے بل",
+    billsDueSoon_one: "ایک بل جلد دینا ہے",
+    billsDueSoon_other: "{count} بل جلد دینے ہیں",
+    billsDueSoonBlurb: "وقت سے پہلے نپٹا لیں، ورنہ بعد میں بھاری پڑ سکتا ہے۔",
+    streakLogging: "لکھنے کا سلسلہ",
+    streakProfitable: "نفع کا سلسلہ",
+    streakNoSpend: "بغیر خرچ کے دن",
+    streakDays_one: "{count} دن",
+    streakDays_other: "{count} دن",
+    streakBest: "سب سے بہتر: {count}",
+    streakYourBest: "اب تک کا آپ کا بہترین",
+    streakNice_one: "زبردست — {count} دن سے آپ کا حساب پورا ہے۔",
+    streakNice_other: "زبردست — لگاتار {count} دن سے آپ کا حساب پورا ہے۔",
+    streakStart: "ہر روز کچھ نہ کچھ لکھیں، آپ کا سلسلہ بننا شروع ہو جائے گا۔",
+    aheadDaysThisMonth:
+      "اس مہینے آپ نے جو {active} دن لکھے، اُن میں سے {profitable} دن آپ فائدے میں رہے۔",
+    askBlurb: "اپنے حساب کے بارے میں سیدھی سادی بات میں پوچھیں — کوئی اکاؤنٹنگ کی اصطلاح نہیں۔",
+    askPlaceholder: "کوئی سوال پوچھیں…",
+    askThinking: "آپ کا حساب دیکھا جا رہا ہے…",
+    askFailed: "معاف کیجیے، کچھ گڑبڑ ہو گئی: {message}",
+    askFailedUnknown: "معاف کیجیے، کچھ گڑبڑ ہو گئی۔ دوبارہ کوشش کریں۔",
+    askMostSpent: "میں نے سب سے زیادہ کس چیز پر خرچ کیا؟",
+    askThisWeek: "اس ہفتے میرا کیسا چل رہا ہے؟",
+    askMakingMoney: "کیا میں کما رہا ہوں؟",
+    askCanIAfford: "کیا میں $200 خرچ کر سکتا ہوں؟",
+    askHowMuchSpent: "میں نے کتنا خرچ کیا ہے؟",
     uncategorised: "بغیر قسم",
     hasReceipt: "رسید لگی ہے",
     viewReceipt: "رسید دیکھیں",
@@ -221,21 +308,33 @@ export const ur: PartialDictionary = {
   entryForm: {
     title: "آج کی انٹری",
     blurb: "لکھ لیں جو آیا اور جو گیا۔",
+    fullEntry: "پوری انٹری",
+    fullEntryBlurb: "جب تاریخ، رسید یا یہ بتانا ہو کہ کس کے ساتھ شیئر ہے۔",
     moneyMade: "کمائی",
     moneySpent: "خرچ",
     whatFor: "کس چیز کے لیے",
     whatForPlaceholder: "سامان",
+    whatForExamples: "سامان، کرایہ، مال…",
     where: "کہاں",
     wherePlaceholder: "Costco",
+    whereExamples: "Costco، پیٹرول پمپ، ہارڈویئر کی دکان…",
     paidWith: "کیسے دیا",
     cash: "نقد",
     card: "کارڈ",
     other: "دوسرا",
     receiptPhoto: "رسید کی تصویر",
+    receiptPrivateHint: "ضروری نہیں — یہ صرف آپ دیکھ سکتے ہیں۔",
+    receiptAttaching: "“{name}” لگ رہی ہے — یہ صرف آپ دیکھ سکتے ہیں۔",
+    receiptReading: "آپ کی رسید پڑھی جا رہی ہے…",
     whoCanSee: "یہ کون دیکھ سکتا ہے",
     justMe: "صرف میں",
     shareIt: "شیئر",
     splitIt: "بانٹ دیں",
+    shareNoneBlurb: "یہ صرف آپ دیکھیں گے۔",
+    shareVisibleBlurb: "{household} اسے دیکھ سکتے ہیں، مگر کسی پر کسی کا کچھ باقی نہیں رہتا۔",
+    shareSplitBlurb: "{household} اسے دیکھ سکتے ہیں اور یہ برابر بٹ جاتا ہے۔",
+    staysPrivate: "آپ کے حساب سے کچھ باہر نہیں جاتا۔",
+    saveEntry: "انٹری محفوظ کریں",
     saved: "محفوظ ہو گیا۔",
     errAmounts: "درست رقم لکھیں۔",
     errEmpty: "محفوظ کرنے سے پہلے کمائی یا خرچ لکھ دیں۔",
@@ -275,6 +374,130 @@ export const ur: PartialDictionary = {
     errNeedsAmount: "انٹری میں آمدنی یا خرچ ہونا ضروری ہے۔ ہٹانا ہو تو مٹا دیں استعمال کریں۔",
     count_one: "{count} انٹری",
     count_other: "{count} انٹریاں",
+  },
+
+  month: {
+    previous: "پچھلا مہینہ",
+    next: "اگلا مہینہ",
+    profitThisMonth: "اس مہینے کا نفع",
+    lossThisMonth: "اس مہینے کا نقصان",
+    breakEvenThisMonth: "اس مہینے نہ نفع نہ نقصان",
+    budgetOver: "{category} بجٹ سے آگے نکل گئی",
+    budgetAtPercent: "{category} بجٹ کے {percent}% پر ہے",
+    nothingSpent: "اس مہینے ابھی کوئی خرچ نہیں",
+    nothingSpentBlurb:
+      "جیسے ہی آپ خرچ لکھنا شروع کریں گے، یہاں نظر آئے گا کہ آپ کا پیسہ کن قسموں میں گیا — سب سے بڑی پہلے۔",
+    whereMoneyWentBlurb: "اس مہینے کا ہر خرچ، سب سے بڑا پہلے۔",
+    dayByDayBlurb:
+      "ہر پٹی اُس دن کا نیٹ ہے۔ لکیر سے اوپر والی پٹیاں وہ دن ہیں جب آپ فائدے میں رہے، نیچے والی وہ دن جب نہیں۔",
+    dayNumber: "دن {day}",
+
+    weekTitle: "آپ کا ہفتہ سیدھی سادی بات میں",
+    weekRange: "{from} سے {to} تک",
+    loadingWeek: "آپ کا ہفتہ پڑھا جا رہا ہے…",
+
+    outlookTitle: "جو آگے آ رہا ہے، اُس کے پیسے پورے ہوں گے؟",
+    outlookBlurb_one:
+      "اگلے {days} دن — آپ کے پچھلے {count} دن اور آپ کے لگائے ہوئے بلوں کے حساب سے۔",
+    outlookBlurb_other:
+      "اگلے {days} دن — آپ کے پچھلے {count} دنوں اور آپ کے لگائے ہوئے بلوں کے حساب سے۔",
+    loadingOutlook: "آگے کا حساب لگایا جا رہا ہے…",
+    whereYouAre: "ابھی آپ کہاں ہیں",
+    inDays_one: "{count} دن میں",
+    inDays_other: "{count} دنوں میں",
+    shortfallTitle: "خیال رکھیں — {date} کے آس پاس پیسے کم پڑ سکتے ہیں۔",
+    staysPositive: "پورے عرصے آپ کے پیسے پورے رہتے ہیں۔",
+    lowestPoint: "سب سے کم رقم {date} کو {amount} رہے گی۔",
+    typicalDay: "عام دن: {moneyIn} آتے ہیں، {moneyOut} جاتے ہیں۔",
+    billsComingUp: "آگے آنے والے بل",
+    roughGuess_one:
+      "یہ موٹا اندازہ ہے — آپ نے ابھی صرف {count} دن لکھا ہے۔ جیسے جیسے آپ لکھتے جائیں گے، یہ اور درست ہوتا جائے گا۔",
+    roughGuess_other:
+      "یہ موٹا اندازہ ہے — آپ نے ابھی صرف {count} دن لکھے ہیں۔ جیسے جیسے آپ لکھتے جائیں گے، یہ اور درست ہوتا جائے گا۔",
+
+    taxNoRateTools:
+      "ٹولز والے صفحے پر ایک فیصد لگا دیں، پھر میں حساب رکھتا رہوں گا کہ ٹیکس کے لیے کتنا الگ رکھنا ہے۔",
+    taxNoRateBelow:
+      "نیچے ایک فیصد لگا دیں، پھر میں حساب رکھتا رہوں گا کہ ٹیکس کے لیے کتنا الگ رکھنا ہے۔",
+    taxHoldingBack: "{period} میں جو {amount} آئے، اُن کا {percent}% الگ رکھا جا رہا ہے۔",
+    shouldSetAside: "اتنا الگ رکھنا چاہیے",
+    alreadyPaid: "پہلے ادا ہو چکا",
+    stillToSetAside: "ابھی الگ رکھنا باقی",
+    taxHint:
+      "ٹیکس کی ادائیگی لکھتے وقت قسم میں “tax” لکھ دیں، تب ہی وہ یہاں گنی جائے گی۔ یہ ٹیکس کا مشورہ نہیں — اپنی شرح کسی اکاؤنٹنٹ سے پکی کر لیں۔",
+    loadingTax: "ٹیکس کے لیے الگ رکھی رقم جوڑی جا رہی ہے…",
+
+    busyDaysBlurb: "ہفتے کے ہر دن اوسطاً کتنی آمدنی ہوئی۔",
+    busyDaysNotEnough:
+      "کچھ ہفتے اور لکھتے رہیں، پھر میں بتاؤں گا کہ ہفتے کے کون سے دن آپ کے سب سے اچھے ہیں اور کون سے سب سے سست۔",
+    loadingBusyDays: "آپ کا ہفتہ دیکھا جا رہا ہے…",
+    bestAndQuiet: "{best} آپ کا سب سے اچھا دن ہے، اور {worst} سب سے سست۔",
+    bestAndQuietBoth:
+      "{best} آپ کا سب سے اچھا دن ہے (اوسط سے {bestPercent}% اوپر)، اور {worst} سب سے سست ({worstPercent}% نیچے)۔",
+    bestAndQuietBestOnly:
+      "{best} آپ کا سب سے اچھا دن ہے (اوسط سے {bestPercent}% اوپر)، اور {worst} سب سے سست۔",
+    bestAndQuietWorstOnly:
+      "{best} آپ کا سب سے اچھا دن ہے، اور {worst} سب سے سست ({worstPercent}% نیچے)۔",
+
+    whatsDue: "کیا دینا ہے",
+    loadingBills: "آپ کے بل کھل رہے ہیں",
+    billsTotal: "اگلے 45 دنوں میں {amount} کے بل ہیں۔",
+    thisWeek: "اس ہفتے",
+    nextThreeWeeks: "اگلے 3 ہفتے",
+    later: "اُس کے بعد",
+    dueToday: "آج",
+    dueTomorrow: "کل",
+    dueInDays_one: "{count} دن میں",
+    dueInDays_other: "{count} دنوں میں",
+
+    detectedTitle: "یہ ہر بار آنے والا بل لگتا ہے",
+    detectedBlurb:
+      "یہ آپ کی انٹریوں میں بار بار نظر آئے۔ انہیں ٹریک کریں تو یہ آگے کے حساب اور بل کی یاد دہانی میں بھی آنے لگیں گے۔",
+    maybe: "شاید",
+    weekly: "ہر ہفتے",
+    monthly: "ہر مہینے",
+    detectedDetail_one: "{amount} {frequency} · {count} بار نظر آیا · اگلا {date} کے آس پاس",
+    detectedDetail_other: "{amount} {frequency} · {count} بار نظر آیا · اگلا {date} کے آس پاس",
+    dismissDetected: "{name} ہٹا دیں",
+    trackBill: "اس بل کو ٹریک کریں",
+
+    goalsBlurb: "کوئی چیز جس کے لیے آپ پیسے جوڑ رہے ہیں — دیکھیں آپ کتنے قریب پہنچے۔",
+    reached: "پورا ہو گیا",
+    goalToGo: "{amount} اور باقی",
+    goalReached: "ہدف پورا ہو گیا",
+    goalByDate: "{date} تک",
+    removeGoal: "{name} کا ہدف ہٹا دیں",
+    noGoals: "ابھی کوئی ہدف نہیں۔",
+    goalNamePlaceholder: "نیا اوون",
+    goalTarget: "ہدف کی رقم",
+    goalSaved: "اب تک جوڑے",
+    goalTargetDate: "ہدف کی تاریخ (ضروری نہیں)",
+    saveGoal: "ہدف محفوظ کریں",
+
+    budgetsTitle: "بجٹ کی حد",
+    budgetsBlurb: "ہر قسم کے لیے مہینے کی حد لگائیں اور پٹیوں پر نظر رکھیں۔",
+    over: "حد سے آگے",
+    nearLimit: "حد کے قریب",
+    removeBudget: "{name} کا بجٹ ہٹا دیں",
+    noBudgets: "ابھی کوئی بجٹ نہیں لگایا۔",
+    monthlyLimit: "مہینے کی حد",
+    saveBudget: "بجٹ محفوظ کریں",
+
+    recurringTitle: "ہر بار آنے والے خرچ",
+    recurringBlurb: "جو بل ہر بار آتے ہیں، وہ خود بخود لکھ دیے جاتے ہیں۔",
+    cancelled: "بند",
+    recurringDetail: "{amount} · {frequency} · {date} سے",
+    editRule: "{name} بدلیں",
+    cancelRule: "{name} بند کریں",
+    deleteRule: "{name} مٹا دیں",
+    noRecurring: "ابھی کوئی ہر بار آنے والا خرچ نہیں۔",
+    recurringPlaceholder: "کرایہ",
+    howOften: "کتنی بار؟",
+    everyWeek: "ہر ہفتے",
+    everyMonth: "ہر مہینے",
+    starting: "کب سے",
+    updateRecurring: "ہر بار آنے والا خرچ بدلیں",
+    addRecurring: "ہر بار آنے والا خرچ شامل کریں",
   },
 
   invoices: {
