@@ -122,9 +122,18 @@ async function stripeRequest<T>(
   const headers: Record<string, string> = {
     Authorization: `Bearer ${stripeSecretKey()}`,
     "Content-Type": "application/x-www-form-urlencoded",
-    // Pinning the version means Stripe changing its defaults can't silently
-    // change the shape of what we parse.
-    "Stripe-Version": "2024-06-20",
+    /*
+     * Pinned so Stripe changing its defaults can't silently reshape what we
+     * parse. Raised from 2024-06-20 because accounts on Managed Payments are
+     * refused outright below 2025-03-31.basil — checkout failed with "Managed
+     * Payments is not supported on API version 2024-06-20".
+     *
+     * This version moves `current_period_end` off the subscription and onto
+     * each subscription item. readSubscription() already reads both shapes, so
+     * the renewal date survives the bump — see the note there. If that ever
+     * gets simplified back to one shape, this line is why it can't be.
+     */
+    "Stripe-Version": "2025-03-31.basil",
   };
   // Lets Stripe collapse a retry into the original call rather than charging
   // twice if the network drops after the request but before the response.
