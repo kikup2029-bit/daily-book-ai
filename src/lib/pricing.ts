@@ -214,10 +214,25 @@ export const PLANS: Record<PlanId, Plan> = {
     ],
     cta: `Start my ${TRIAL_DAYS} free days`,
     stripePriceEnvVar: "STRIPE_PRICE_PRO_MONTHLY",
-    // The SANDBOX price. Going live means replacing this with the live account's
-    // id, or setting STRIPE_PRICE_PRO_MONTHLY, which takes precedence.
-    // A test-mode id used with a live secret key fails loudly at Stripe rather
-    // than charging the wrong amount — the two modes cannot be mixed silently.
+    /*
+     * The SANDBOX price — the safe default. It cannot move real money, so a
+     * misconfigured deploy fails loudly instead of charging someone.
+     *
+     * The LIVE price is  price_1U1r4MEMSZ3AoM69CiBJCtLO
+     *
+     * Going live does NOT mean editing this line. Set the environment variable
+     * instead, which takes precedence:
+     *
+     *   wrangler secret put STRIPE_PRICE_PRO_MONTHLY --name daily-book-ai
+     *
+     * Keeping live mode in configuration rather than in code means the switch
+     * needs no commit, no build and no deploy — and reverting is one command if
+     * something looks wrong, instead of a code change under pressure.
+     *
+     * All three must move together: secret key, webhook secret, price. A test
+     * id with a live key is rejected by Stripe outright, which is the failure
+     * direction you want — it can't quietly charge the wrong amount.
+     */
     stripePriceFallback: "price_1U1Z3hEQK9OJjO7XRE5aQEkZ",
     featured: true,
     limits: { invoicesPerMonth: null, entriesPerMonth: null, devices: null },
