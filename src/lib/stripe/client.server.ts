@@ -19,6 +19,8 @@
  * in a public bundle.
  */
 
+import { readRuntimeEnv } from "../runtime-env.server";
+
 const STRIPE_API = "https://api.stripe.com/v1";
 
 /**
@@ -29,27 +31,18 @@ const STRIPE_API = "https://api.stripe.com/v1";
  * want the failure, not the fallback.
  */
 /**
- * Reads a runtime value from every place a Cloudflare binding can land.
+ * Reads a runtime value.
  *
- * Three sources, because which one holds the value depends on how the request
- * got here: server.ts copies the Worker's bindings onto `process.env`, but that
- * copy only happens on paths that run through its fetch handler, and the raw
- * binding object shows up as `env` or `__env__` depending on the adapter.
+ * Delegates to runtime-env.server.ts, which holds the bindings the Worker's
+ * fetch handler was given. It used to read `process.env` directly, which is
+ * empty on a deployed Worker without the nodejs_compat flag — so a correctly
+ * configured variable reported as missing. See that file for the full story.
  *
- * Exported because the Stripe Price id needs exactly this lookup and used to do
- * its own, checking `process.env` alone. That mismatch meant a correctly
- * configured Worker could still refuse to start checkout with "not set on the
- * server" — the value was there, just not in the one place that was looked at.
- * One reader, one answer.
+ * Exported because the Stripe Price id needs the same lookup, and previously
+ * had its own narrower copy of it.
  */
 export function runtimeValue(key: string): string | null {
-  const globalEnv = globalThis as {
-    process?: { env?: Record<string, string | undefined> };
-    __env__?: Record<string, string | undefined>;
-    env?: Record<string, string | undefined>;
-  };
-
-  return globalEnv.process?.env?.[key] ?? globalEnv.__env__?.[key] ?? globalEnv.env?.[key] ?? null;
+  return readRuntimeEnv(key);
 }
 
 function runtimeSecret(key: string): string {

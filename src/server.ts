@@ -1,18 +1,22 @@
 import "./lib/error-capture";
 
+import { setRuntimeEnv } from "./lib/runtime-env.server";
+
 /**
- * Copies the Worker's runtime bindings onto process.env.
+ * Makes the Worker's bindings reachable from ordinary module code.
  *
- * Cloudflare hands secrets to the fetch handler as `env`, not as process.env.
- * Server code written the ordinary way looks at process.env, so this bridges
- * the two once per request.
- *
- * This is what makes it possible to keep the Stripe secret OUT of the built
- * bundle: it can live purely as a runtime secret and still be readable by the
- * server. Nothing here ever runs in a browser.
+ * setRuntimeEnv() is the one that actually matters in production. The
+ * process.env copy below is a convenience for anything reading it directly, and
+ * it is allowed to do nothing: on a deployed Worker without `nodejs_compat`
+ * there is no `process`, which is exactly the trap this used to fall into —
+ * it returned silently and every runtime variable read as missing.
  */
 function exposeRuntimeEnv(env: unknown): void {
   if (!env || typeof env !== "object") return;
+
+  // Not conditional on anything. This is the path that works everywhere.
+  setRuntimeEnv(env);
+
   const globalProcess = (globalThis as { process?: { env?: Record<string, unknown> } }).process;
   if (!globalProcess?.env) return;
 
