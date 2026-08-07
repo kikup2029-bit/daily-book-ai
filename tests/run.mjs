@@ -16,6 +16,7 @@ const checks = [
   ["translations", ["--experimental-strip-types", "tests/i18n.test.ts"]],
   ["payments", ["--experimental-strip-types", "tests/stripe.test.ts"]],
   ["service worker", ["tests/sw.test.mjs"]],
+  ["iphone safe areas", ["tests/safe-area.test.mjs"]],
   ["money signs", ["tests/money.test.mjs"]],
   ["colour contrast", ["tests/contrast.mjs"]],
   ["responsive layout", ["tests/responsive.mjs"]],

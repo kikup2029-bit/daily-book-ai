@@ -81,7 +81,7 @@ function WelcomePage() {
   );
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-10 sm:px-6">
+    <div className="screen-y flex min-h-screen flex-col items-center justify-center bg-background px-4 sm:px-6">
       <div className="rise w-full max-w-lg">
         <div className="mb-7 flex items-center justify-center gap-3">
           <BrandMark size={38} />

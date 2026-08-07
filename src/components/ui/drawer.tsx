@@ -38,7 +38,9 @@ const DrawerContent = React.forwardRef<
     <DrawerPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto flex-col rounded-t-[10px] border bg-background",
+        // pb-safe: pinned to bottom-0, and DrawerFooter's p-4 is 16px against a
+        // 34px home indicator — an action button would sit inside the swipe area.
+        "pb-safe fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto flex-col rounded-t-[10px] border bg-background",
         className,
       )}
       {...props}

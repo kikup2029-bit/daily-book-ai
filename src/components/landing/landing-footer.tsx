@@ -16,7 +16,10 @@ export function LandingFooter() {
     "rounded-[var(--radius-8)] text-[13px] text-muted-foreground transition-colors duration-[var(--dur-fast)] hover:text-foreground";
 
   return (
-    <footer className="border-t border-border bg-surface-2">
+    // pb-safe on the <footer>, not on the inner container, so the surface
+    // colour still paints all the way to the bottom of the glass while the
+    // links sit above the home indicator instead of inside its swipe area.
+    <footer className="pb-safe border-t border-border bg-surface-2">
       <div className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
           <WordMark />

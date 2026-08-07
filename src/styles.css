@@ -456,6 +456,51 @@
     padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
   }
 
+  /*
+   * DON'T pair .pt-safe with a Tailwind py-* on the same element.
+   *
+   * Both live in @layer utilities, so which one wins is decided by source
+   * order, and that order is whatever the build happens to emit. `pt-safe
+   * py-10` is a coin flip between "40px" and "the inset" — and it silently
+   * lands the wrong way on exactly one class of device.
+   *
+   * .pt-safe / .pb-safe are for elements with NO vertical padding of their
+   * own: a sticky bar, a footer, an overlay. When a screen needs both its own
+   * breathing room AND the inset, use .screen-y, which owns both numbers so
+   * they can't disagree.
+   */
+
+  /*
+   * Vertical padding for a screen with no app chrome above it — sign-in, the
+   * lock screen, the post-signup offer, checkout results, error pages.
+   *
+   * These render outside the shell, so the header's .pt-safe isn't there to
+   * protect them, and on a notched iPhone their first line would sit under the
+   * clock and battery. 2.5rem is the base; the inset is added, never replaced.
+   */
+  .screen-y {
+    padding-top: calc(2.5rem + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(2.5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  /*
+   * For a control pinned into the top corner with `absolute`.
+   *
+   * .screen-y on the parent does nothing for these: `top` is measured from the
+   * padding EDGE, so an absolutely positioned child ignores the parent's
+   * padding entirely and sits wherever `top` says — under the Dynamic Island,
+   * in this case. The offset has to be built into the child.
+   */
+  .top-corner-safe {
+    top: calc(0.75rem + env(safe-area-inset-top, 0px));
+  }
+
+  @media (min-width: 640px) {
+    .top-corner-safe {
+      top: calc(1.25rem + env(safe-area-inset-top, 0px));
+    }
+  }
+
   /* ---- state --------------------------------------------------------- */
 
   /* Placeholder block shown while data loads. */

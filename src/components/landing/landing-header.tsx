@@ -14,7 +14,10 @@ import { Button } from "@/components/ui/button";
 
 export function LandingHeader() {
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-background/85 backdrop-blur-md">
+    // pt-safe for the same reason the app header has it: pinned at top-0 on a
+    // notched iPhone, the 64px bar sits almost entirely under the clock and
+    // battery — taking "Start free", "Sign in" and the language picker with it.
+    <header className="pt-safe sticky top-0 z-50 border-b border-border bg-background/85 backdrop-blur-md">
       <div className="mx-auto flex h-16 w-full max-w-5xl items-center gap-1.5 px-4 sm:gap-3 sm:px-6">
         <Link
           to="/"

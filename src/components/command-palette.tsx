@@ -253,7 +253,11 @@ export function CommandPalette() {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-start justify-center p-3 pt-[10vh] sm:p-4 sm:pt-[12vh]">
+    // pb-safe because the bottom guard here is only p-3 (12px) against a 34px
+    // home indicator. Nothing collides today — but the moment the iOS keyboard
+    // opens for the search field, the visual viewport shrinks and the footer
+    // row lands in the swipe area.
+    <div className="fixed inset-0 z-[100] flex items-start justify-center px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-[10vh] sm:px-4 sm:pb-[calc(1rem+env(safe-area-inset-bottom,0px))] sm:pt-[12vh]">
       <button
         type="button"
         className="absolute inset-0 bg-black/55 backdrop-blur-sm"

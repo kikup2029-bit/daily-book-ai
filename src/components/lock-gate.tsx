@@ -114,7 +114,7 @@ export function LockGate({ children }: { children: React.ReactNode }) {
   if (isLoading || locked === null) {
     return (
       <div
-        className="flex min-h-screen flex-col items-center justify-center gap-3 px-4"
+        className="screen-y flex min-h-screen flex-col items-center justify-center gap-3 px-4"
         aria-busy="true"
       >
         <span className="skeleton size-11 rounded-[var(--radius-14)]" aria-hidden="true" />
@@ -129,7 +129,11 @@ export function LockGate({ children }: { children: React.ReactNode }) {
   const throttled = attempts >= 5;
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-sm flex-col justify-center px-4 py-10">
+    // screen-y, not py-10: this renders outside the app shell, so there's no
+    // header above it holding the notch back. It's also the first thing you see
+    // when you reopen the installed app, which makes it the most likely screen
+    // in the whole product to be seen on a phone.
+    <main className="screen-y mx-auto flex min-h-screen w-full max-w-sm flex-col justify-center px-4">
       <div className="rise">
         {/* who you are, and why you're looking at this screen */}
         <div className="mb-6 flex items-center gap-3">

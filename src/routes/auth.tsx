@@ -224,14 +224,14 @@ function AuthPage() {
       </aside>
 
       {/* ---------- the form ---------- */}
-      <main className="relative flex items-center justify-center px-5 py-12 sm:px-8">
+      <main className="screen-y relative flex items-center justify-center px-5 sm:px-8">
         {/*
           The one screen where the language picker has to exist outside the app
           shell: someone who can't read English needs to change it *before* they
           have an account to sign into. Tucked into the corner so it's findable
           without competing with the form.
         */}
-        <div className="absolute end-3 top-3 sm:end-5 sm:top-5">
+        <div className="top-corner-safe absolute end-3 sm:end-5">
           <LanguageSwitcher />
         </div>
 

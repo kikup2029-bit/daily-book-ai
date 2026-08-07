@@ -492,7 +492,7 @@ export function BillingCancelled() {
  */
 function BillingNotice({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12 sm:px-6">
+    <div className="screen-y flex min-h-screen items-center justify-center bg-background px-4 sm:px-6">
       <main className="rise w-full max-w-lg">{children}</main>
     </div>
   );
