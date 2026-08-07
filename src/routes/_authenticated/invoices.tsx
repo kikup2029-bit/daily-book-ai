@@ -4,7 +4,7 @@ import { ProGate } from "@/components/pro-gate";
 import { InvoicesList } from "@/components/sections/invoices-sections";
 
 const Page = () => (
-  <ProGate feature="unlimitedInvoices" title="Invoicing">
+  <ProGate feature="unlimitedInvoices" title="nav.invoices">
     <InvoicesList />
   </ProGate>
 );

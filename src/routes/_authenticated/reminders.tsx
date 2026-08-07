@@ -1,7 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { ReminderSettings } from "@/components/daily-reminder";
+import { ProGate } from "@/components/pro-gate";
 import { PageHeader } from "@/components/ui/kit";
+import { useI18n } from "@/lib/i18n";
+
+const Page = () => (
+  <ProGate feature="dailyReminder" title="nav.reminder">
+    <RemindersPage />
+  </ProGate>
+);
 
 export const Route = createFileRoute("/_authenticated/reminders")({
   head: () => ({
@@ -13,16 +21,20 @@ export const Route = createFileRoute("/_authenticated/reminders")({
       },
     ],
   }),
-  component: RemindersPage,
+  component: Page,
 });
 
 function RemindersPage() {
+  // The heading was three hard-coded English strings sitting above a panel that
+  // was already translated — same bug as the paywall title, one page down. The
+  // keys already existed in all six languages; nobody had wired them up.
+  const { t } = useI18n();
   return (
     <div className="rise mx-auto w-full max-w-3xl">
       <PageHeader
-        eyebrow="Tools"
-        title="Daily reminder"
-        description="Every number in this app comes from entries you log. A small nudge at the right time is the difference between a habit and a good intention."
+        eyebrow={t("reminder.eyebrow")}
+        title={t("reminder.title")}
+        description={t("reminder.pageBlurb")}
       />
       <ReminderSettings />
     </div>

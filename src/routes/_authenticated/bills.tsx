@@ -1,8 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+import { ProGate } from "@/components/pro-gate";
 import { BillsPage } from "@/components/sections/month-sections";
 
-const Page = BillsPage;
+const Page = () => (
+  <ProGate feature="billsCalendar" title="nav.bills">
+    <BillsPage />
+  </ProGate>
+);
 
 export const Route = createFileRoute("/_authenticated/bills")({
   head: () => ({

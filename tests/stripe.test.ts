@@ -207,6 +207,42 @@ ok(!planHasFeature("free", "unlimitedInvoices"), "invoicing is Pro");
 ok(!planHasFeature("free", "householdSharing"), "sharing is Pro");
 ok(!planHasFeature("free", "budgetsAndGoals"), "budgets and goals are Pro");
 
+/*
+ * --- what the trial is actually worth
+ *
+ * Free keeps the book: log the day, see today's and this month's totals, take
+ * the lot out as CSV or PDF, in any of the six languages. Everything that reads
+ * the book back to you moved to Pro. Each id below is asserted on both sides —
+ * present in Pro AND absent from Free — because a feature added to Pro and
+ * forgotten in Free's list is free for everyone, and nothing in the UI would
+ * say so.
+ */
+const GATED_FEATURES = ["entrySearch", "insights", "cashTools", "billsCalendar", "dailyReminder"] as const;
+
+for (const feature of GATED_FEATURES) {
+  ok(PLANS.pro.features.includes(feature), `Pro includes ${feature}`);
+  ok(!PLANS.free.features.includes(feature), `Free does NOT include ${feature}`);
+  ok(planHasFeature("pro", feature), `planHasFeature agrees Pro has ${feature}`);
+  ok(!planHasFeature("free", feature), `planHasFeature agrees Free does not have ${feature}`);
+}
+
+/*
+ * The bullets are the advert, and an advert for something the paywall then
+ * refuses is worse than no bullet at all. Free may not name a paid screen.
+ */
+{
+  const freeCopy = PLANS.free.bullets.join(" | ").toLowerCase();
+  for (const forbidden of ["search", "streak", "margin", "cash drawer", "tax", "bills",
+                           "reminder", "invoice", "budget", "goal", "household"]) {
+    ok(!freeCopy.includes(forbidden),
+       `Free's bullets don't advertise "${forbidden}", which is now behind the paywall`);
+  }
+  ok(/export/.test(freeCopy), "Free's bullets still promise exports, because Free still does them");
+  ok(/language/.test(freeCopy), "Free's bullets still promise every language");
+  ok(/log|money in/.test(freeCopy), "Free's bullets still say you can write the day down");
+  ok(/total/.test(freeCopy), "Free's bullets still say you get your totals");
+}
+
 ok(PLANS.pro.stripePriceEnvVar !== null, "Pro maps to a Stripe price via an env var");
 ok(PLANS.free.stripePriceEnvVar === null, "Free has no Stripe price — it can't be bought");
 ok(!withinInvoiceLimit("free", 0), "free makes no invoices at all — the cap is zero");
@@ -332,6 +368,97 @@ function codeOnly(source: string): string {
      "the only thing the browser may name is the plan id");
   ok(/requireSupabaseAuth/.test(source),
      "every billing function is behind authentication");
+}
+
+/*
+ * --- the paywall speaks the reader's language
+ *
+ * <ProGate title> takes a DICTIONARY KEY. It used to take English, which meant
+ * the upgrade panel said "Savings goals is part of Pro" in the middle of an
+ * otherwise Gujarati page — on the one screen in the app that asks for a card.
+ * Someone adding the eighteenth gated route will copy the seventeenth, so the
+ * only durable fix is a test that reads the route files and refuses prose.
+ *
+ * Asserting on the source rather than on a rendered component: the mistake is
+ * made at the call site, and there is no runtime type that can tell a key from
+ * a sentence.
+ */
+{
+  const fs = await import("node:fs");
+  const DIR = "src/routes/_authenticated";
+  const t = makeTranslator(en, en, "en", "en-US");
+
+  /** Route file -> the feature it must sit behind. */
+  const EXPECTED_GATES: Record<string, string> = {
+    "ask.tsx": "aiQuestions",
+    "bills.tsx": "billsCalendar",
+    "budgets.tsx": "budgetsAndGoals",
+    "busydays.tsx": "insights",
+    "categories.tsx": "insights",
+    "daybyday.tsx": "insights",
+    "drawer.tsx": "cashTools",
+    "entries.tsx": "entrySearch",
+    "goals.tsx": "budgetsAndGoals",
+    "household.tsx": "householdSharing",
+    "invoice-new.tsx": "unlimitedInvoices",
+    "invoices.tsx": "unlimitedInvoices",
+    "margins.tsx": "cashTools",
+    "outlook.tsx": "insights",
+    "reminders.tsx": "dailyReminder",
+    "streaks.tsx": "insights",
+    "tax.tsx": "cashTools",
+    "week.tsx": "insights",
+  };
+
+  /*
+   * Routes that must stay reachable with no subscription at all. /export is
+   * a promise in the Terms; the rest are the book itself and the ways back to
+   * paying. A gate appearing on any of these is a bug, not a pricing decision.
+   */
+  const MUST_STAY_FREE = ["dashboard.tsx", "add.tsx", "monthly.tsx", "export.tsx",
+                          "help.tsx", "lock.tsx", "billing.tsx"];
+
+  const seen = new Set<string>();
+
+  for (const name of fs.readdirSync(DIR).sort()) {
+    if (!name.endsWith(".tsx")) continue;
+    const source = fs.readFileSync(`${DIR}/${name}`, "utf8");
+    const importsGate = /from "@\/components\/pro-gate"/.test(source);
+
+    if (MUST_STAY_FREE.includes(name)) {
+      ok(!importsGate, `${name} is not behind the paywall — Free must keep it`);
+      continue;
+    }
+    if (!importsGate) continue;
+
+    seen.add(name);
+    const uses = [...source.matchAll(/<ProGate\b([^>]*)>/g)];
+    ok(uses.length > 0, `${name} imports ProGate and actually wraps its page in it`);
+
+    for (const [, props] of uses) {
+      const feature = /feature="([^"]*)"/.exec(props)?.[1] ?? "";
+      const title = /title="([^"]*)"/.exec(props)?.[1] ?? "";
+
+      ok(EXPECTED_GATES[name] === feature,
+         `${name} is gated on ${EXPECTED_GATES[name] ?? "(unexpected route)"}, not "${feature}"`);
+
+      // The whole point: a key, never a sentence.
+      ok(!/\s/.test(title), `${name} passes a title with no spaces in it — a key, not prose`);
+      ok(/^[a-z][A-Za-z0-9]*(\.[A-Za-z0-9_]+)+$/.test(title),
+         `${name} passes a dotted dictionary key as title, got "${title}"`);
+      // A key that isn't in the dictionary renders as the raw key, which is
+      // just as broken as English — and just as invisible in review.
+      ok(t(title) !== title, `${name}'s title key "${title}" exists in the dictionary`);
+      // nav.* is already translated into all six languages. Inventing a new key
+      // would land it in exactly one of them.
+      ok(title.startsWith("nav."),
+         `${name} reuses a nav.* key, which every language already has`);
+    }
+  }
+
+  for (const name of Object.keys(EXPECTED_GATES)) {
+    ok(seen.has(name), `${name} is behind a ProGate`);
+  }
 }
 
 // --- the secret must not be inlined into the bundle

@@ -11,7 +11,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database } from "@/integrations/supabase/types";
-import { PLANS, type PlanId } from "./pricing";
+import { PLANS, type Feature, type PlanId } from "./pricing";
 import { grantsPro, needsAttention, readSubscription } from "./stripe/webhook";
 
 type Client = SupabaseClient<Database>;
@@ -121,6 +121,27 @@ export async function hasFeature(
 ): Promise<boolean> {
   const subscription = await fetchSubscription(supabase, userId);
   return PLANS[subscription.plan].features.includes(feature);
+}
+
+/**
+ * Refuses the request unless the account may use a Pro-only feature.
+ *
+ * The other half of <ProGate>. That component decides what to *draw*; this
+ * decides what may actually be read or written, and it is the only one of the
+ * two an attacker has to get past — a browser can be told to render anything,
+ * but it cannot make this function return.
+ *
+ * Throws rather than returning a boolean so the check cannot be written and
+ * then quietly ignored: the calling handler either awaits this and stops, or
+ * doesn't call it at all, which is visible in review.
+ */
+export async function requireFeature(
+  supabase: Client,
+  userId: string,
+  feature: Feature,
+): Promise<void> {
+  if (await hasFeature(supabase, userId, feature)) return;
+  throw new Error("That is part of Pro. Start the free trial to use it.");
 }
 
 /* --------------------------------------------------------- webhook writes */

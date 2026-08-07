@@ -36,6 +36,7 @@ import {
 import { parseQuickEntry } from "@/lib/quick-entry";
 import { normalizeSpokenMoney, useSpeech } from "@/lib/use-speech";
 import { getInsights } from "@/lib/shop.functions";
+import { useHasFeature } from "@/lib/use-subscription";
 import { getHousehold, setEntryShare } from "@/lib/household.functions";
 
 import { uploadReceipt } from "@/lib/receipts";
@@ -563,11 +564,22 @@ function TodayPosition({
   );
 }
 
-/** Warns about bills due in the next few days, before they bite. */
+/**
+ * Warns about bills due in the next few days, before they bite.
+ *
+ * Sits on Today, which is free — but the bills it reads are not, so it asks
+ * first. Without the check it would render on the free dashboard and fire a
+ * request the server now refuses, once per page load, forever.
+ */
 export function DueSoonBanner() {
   const { t } = useI18n();
   const fetchInsights = useServerFn(getInsights);
-  const { data } = useQuery({ queryKey: ["insights"], queryFn: () => fetchInsights() });
+  const { allowed } = useHasFeature("billsCalendar");
+  const { data } = useQuery({
+    queryKey: ["insights"],
+    queryFn: () => fetchInsights(),
+    enabled: allowed,
+  });
 
   const soon = (data?.calendar ?? []).filter((bill) => bill.daysAway <= 5);
   if (soon.length === 0) return null;
@@ -692,12 +704,24 @@ export function StreaksCard() {
   );
 }
 
-/** One number: what's safe to spend today without causing trouble later. */
+/**
+ * One number: what's safe to spend today without causing trouble later.
+ *
+ * Same story as DueSoonBanner — it lives on the free Today screen but the
+ * figure is worked out from the Pro forecast, so it checks before it asks and
+ * renders nothing at all on Free rather than an empty box.
+ */
 export function SafeToSpendCard() {
   const { t } = useI18n();
   const fetchInsights = useServerFn(getInsights);
-  const { data, isLoading } = useQuery({ queryKey: ["insights"], queryFn: () => fetchInsights() });
+  const { allowed } = useHasFeature("insights");
+  const { data, isLoading } = useQuery({
+    queryKey: ["insights"],
+    queryFn: () => fetchInsights(),
+    enabled: allowed,
+  });
 
+  if (!allowed) return null;
   if (!data && !isLoading) return null;
 
   const safe = data?.safeToSpend;

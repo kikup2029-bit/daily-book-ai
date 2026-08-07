@@ -4,7 +4,7 @@ import { ProGate } from "@/components/pro-gate";
 import { Dashboard } from "@/components/sections/today-sections";
 
 const Page = () => (
-  <ProGate feature="aiQuestions" title="Asking about your money">
+  <ProGate feature="aiQuestions" title="nav.ask">
     <Dashboard parts={["ask"]} />
   </ProGate>
 );

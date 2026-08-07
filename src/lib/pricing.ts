@@ -76,7 +76,17 @@ export type Feature =
   | "exports"
   | "householdSharing"
   | "offlineSync"
-  | "allLanguages";
+  | "allLanguages"
+  /** Searching and filtering past entries. */
+  | "entrySearch"
+  /** The analysis screens: streaks, the week, day by day, busy days, outlook, categories. */
+  | "insights"
+  /** Item margins, the cash drawer count and the tax set-aside. */
+  | "cashTools"
+  /** The bills calendar and the recurring bills detected from spending. */
+  | "billsCalendar"
+  /** The daily nudge to log the day's money. */
+  | "dailyReminder";
 
 export type Plan = {
   id: PlanId;
@@ -108,8 +118,15 @@ export const PLANS: Record<PlanId, Plan> = {
   /*
    * What is left after a trial ends.
    *
-   * Deliberately thin — but two things stay free on purpose, and they are not
-   * oversights to be tidied up later:
+   * Deliberately thin: a daily record and a way out. Everything that reads the
+   * record back to you — search, the analysis screens, the cash tools, the bills
+   * calendar, the daily nudge — is Pro, which is what the seven free days are
+   * for. What survives here is what the app must still do for someone who has
+   * stopped paying:
+   *
+   *   Logging and today's and this month's totals — the book itself. An app
+   *   that won't let you write the day down has stopped being a bookkeeping
+   *   app; there would be nothing left to come back to.
    *
    *   `exports` — someone who stops paying must still be able to get their own
    *   books out. Charging for that is holding a business's records hostage, and
@@ -118,6 +135,9 @@ export const PLANS: Record<PlanId, Plan> = {
    *   `allLanguages` — the app is built for people whose first language is not
    *   English. Putting Gujarati or Urdu behind the paywall doesn't make the free
    *   tier lean, it makes it unreadable for exactly the people it is for.
+   *
+   * Every bullet below has to be something Free actually still does. A bullet
+   * that names a paid screen is a false advert, not optimistic marketing.
    */
   free: {
     id: "free",
@@ -128,7 +148,7 @@ export const PLANS: Record<PlanId, Plan> = {
     features: ["exports", "allLanguages"],
     bullets: [
       "Log money in and money out by hand",
-      "Daily and monthly totals",
+      "Today's totals, and this month's",
       "CSV and PDF exports — always",
       "All six languages",
     ],
@@ -156,15 +176,26 @@ export const PLANS: Record<PlanId, Plan> = {
       "householdSharing",
       "offlineSync",
       "allLanguages",
+      "entrySearch",
+      "insights",
+      "cashTools",
+      "billsCalendar",
+      "dailyReminder",
     ],
+    // The first five are what the paywall panel shows, so the things a person
+    // most often hits a gate on come first.
     bullets: [
-      "Unlimited entries and invoices",
+      "Search and correct every entry you've logged",
+      "Streaks, your week, busy days and where money went",
+      "Item margins, cash drawer and tax set-aside",
+      "Bills calendar, plus subscriptions it spots for you",
       "Ask questions about your own numbers",
       "Snap a receipt and it fills itself in",
-      "Budgets, bills and savings goals",
-      "CSV and PDF exports for your accountant",
+      "Unlimited invoices, budgets and savings goals",
+      "A daily reminder to write the day down",
       "Share with a partner or housemate",
       "Keeps working with no signal, syncs later",
+      "CSV and PDF exports for your accountant",
       "All six languages",
     ],
     cta: `Start my ${TRIAL_DAYS} free days`,

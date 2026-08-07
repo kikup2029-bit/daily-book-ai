@@ -1,6 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+import { ProGate } from "@/components/pro-gate";
 import { EntriesSearch } from "@/components/sections/entries-search";
+
+const Page = () => (
+  <ProGate feature="entrySearch" title="nav.findEntry">
+    <EntriesSearch />
+  </ProGate>
+);
 
 export const Route = createFileRoute("/_authenticated/entries")({
   head: () => ({
@@ -13,5 +20,5 @@ export const Route = createFileRoute("/_authenticated/entries")({
       },
     ],
   }),
-  component: EntriesSearch,
+  component: Page,
 });

@@ -1,8 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+import { ProGate } from "@/components/pro-gate";
 import { MonthlyPage } from "@/components/sections/month-sections";
 
-const Page = () => <MonthlyPage parts={["categories"]} />;
+const Page = () => (
+  <ProGate feature="insights" title="nav.whereMoneyWent">
+    <MonthlyPage parts={["categories"]} />
+  </ProGate>
+);
 
 export const Route = createFileRoute("/_authenticated/categories")({
   head: () => ({

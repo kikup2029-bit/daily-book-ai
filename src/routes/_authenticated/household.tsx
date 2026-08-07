@@ -4,7 +4,7 @@ import { ProGate } from "@/components/pro-gate";
 import { HouseholdSection } from "@/components/sections/tools-sections";
 
 const Page = () => (
-  <ProGate feature="householdSharing" title="Sharing with your household">
+  <ProGate feature="householdSharing" title="nav.household">
     <HouseholdSection />
   </ProGate>
 );

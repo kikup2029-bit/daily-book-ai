@@ -1,6 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+import { ProGate } from "@/components/pro-gate";
 import { MarginsSection } from "@/components/sections/tools-sections";
+
+const Page = () => (
+  <ProGate feature="cashTools" title="nav.margins">
+    <MarginsSection />
+  </ProGate>
+);
 
 export const Route = createFileRoute("/_authenticated/margins")({
   head: () => ({
@@ -17,5 +24,5 @@ export const Route = createFileRoute("/_authenticated/margins")({
       },
     ],
   }),
-  component: MarginsSection,
+  component: Page,
 });

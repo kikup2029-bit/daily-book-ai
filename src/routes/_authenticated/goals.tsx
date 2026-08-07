@@ -4,7 +4,7 @@ import { ProGate } from "@/components/pro-gate";
 import { MonthlyPage } from "@/components/sections/month-sections";
 
 const Page = () => (
-  <ProGate feature="budgetsAndGoals" title="Savings goals">
+  <ProGate feature="budgetsAndGoals" title="nav.goals">
     <MonthlyPage parts={["goals"]} />
   </ProGate>
 );

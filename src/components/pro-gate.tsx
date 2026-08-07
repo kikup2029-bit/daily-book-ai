@@ -38,7 +38,17 @@ export function ProGate({
   children,
 }: {
   feature: Feature;
-  /** What this screen is for, in the person's own terms. */
+  /**
+   * What this screen is for, as a DICTIONARY KEY — "nav.findEntry", not "Find
+   * an entry".
+   *
+   * It has to be a key, because it is resolved here and dropped into a
+   * translated sentence. English passed straight through produced a paywall
+   * that read "Budgets is part of Pro" in the middle of an otherwise Gujarati
+   * page: the one screen in the app asking for a card, and the only one not
+   * speaking the reader's language. The `nav.*` keys already exist in all six
+   * languages and already name these screens, so reuse those.
+   */
   title: string;
   children: ReactNode;
 }) {
@@ -63,9 +73,11 @@ export function ProGate({
 
   if (allowed) return <>{children}</>;
 
-  return <UpgradePanel title={title} usedTrial={subscription?.stripeSubscriptionId != null} />;
+  // Resolved once, here, so no caller can hand the panel a bare English string.
+  return <UpgradePanel title={t(title)} usedTrial={subscription?.stripeSubscriptionId != null} />;
 }
 
+/** Takes an already-translated name, not a key — ProGate resolves it above. */
 function UpgradePanel({ title, usedTrial }: { title: string; usedTrial: boolean }) {
   const { t, tag } = useI18n();
   const checkout = useServerFn(startCheckout);

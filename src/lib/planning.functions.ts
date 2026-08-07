@@ -1,11 +1,34 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { Database } from "@/integrations/supabase/types";
+import type { Feature } from "./pricing";
+
+/** Server-side entitlement. See the note in shop.functions.ts. */
+async function requirePro(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+  feature: Feature,
+): Promise<void> {
+  const { requireFeature } = await import("./subscriptions.server");
+  await requireFeature(supabase, userId, feature);
+}
+
+/*
+ * Recurring bills are the data behind the bills calendar, so they move with it.
+ *
+ * Reading them also *writes*: `generateRecurringEntries` creates the expense
+ * entries a rule owes. That makes the check here worth more than a hidden menu
+ * item — without it, a lapsed account could keep a paid automation running by
+ * calling one GET.
+ */
 export const getRecurring = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    await requirePro(context.supabase, context.userId, "billsCalendar");
     const { fetchRecurring, generateRecurringEntries } = await import("./planning.server");
     await generateRecurringEntries(context.supabase, context.userId);
     return fetchRecurring(context.supabase, context.userId);
@@ -26,6 +49,7 @@ export const saveRecurring = createServerFn({ method: "POST" })
       .parse(data),
   )
   .handler(async ({ data, context }) => {
+    await requirePro(context.supabase, context.userId, "billsCalendar");
     const { upsertRecurring, generateRecurringEntries } = await import("./planning.server");
     const saved = await upsertRecurring(context.supabase, context.userId, data);
     await generateRecurringEntries(context.supabase, context.userId);
@@ -36,6 +60,7 @@ export const removeRecurring = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }) => {
+    await requirePro(context.supabase, context.userId, "billsCalendar");
     const { deleteRecurring } = await import("./planning.server");
     return deleteRecurring(context.supabase, context.userId, data.id);
   });

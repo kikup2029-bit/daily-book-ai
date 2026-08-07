@@ -52,6 +52,7 @@ import {
   saveRecurring,
 } from "@/lib/planning.functions";
 import { getInsights } from "@/lib/shop.functions";
+import { useHasFeature } from "@/lib/use-subscription";
 import { EmptyState, SampleRows } from "@/components/empty-state";
 import { useI18n } from "@/lib/i18n";
 
@@ -219,9 +220,16 @@ export function MonthlyPage({ parts = ALL_PARTS }: { parts?: MonthPart[] } = {})
 
   // Recurring rules are fetched first: fetching them also creates any expense
   // entries they owe, so the month totals below include them.
+  //
+  // Recurring bills are Pro, and this page also renders as the free "this
+  // month" screen. Asking only when the account is entitled keeps the free
+  // totals working off logged entries alone instead of stalling on a request
+  // the server will refuse.
+  const { allowed: billsAllowed } = useHasFeature("billsCalendar");
   const { data: recurring = [] } = useQuery({
     queryKey: ["recurring"],
     queryFn: () => fetchRecurring(),
+    enabled: billsAllowed,
   });
   const { data: entries = [], isLoading } = useQuery({
     queryKey: ["entries", recurring.length],

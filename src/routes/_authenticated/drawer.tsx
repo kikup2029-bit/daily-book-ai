@@ -1,6 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+import { ProGate } from "@/components/pro-gate";
 import { DrawerSection } from "@/components/sections/tools-sections";
+
+const Page = () => (
+  <ProGate feature="cashTools" title="nav.drawer">
+    <DrawerSection />
+  </ProGate>
+);
 
 export const Route = createFileRoute("/_authenticated/drawer")({
   head: () => ({
@@ -14,5 +21,5 @@ export const Route = createFileRoute("/_authenticated/drawer")({
       },
     ],
   }),
-  component: DrawerSection,
+  component: Page,
 });
