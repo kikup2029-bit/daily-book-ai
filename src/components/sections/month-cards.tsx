@@ -5,6 +5,11 @@
  *
  * Each card is a panel, so a route can drop one on a page and it sits at the
  * same elevation as everything else in the app.
+ *
+ * Every sentence here comes out of the `month` section of the dictionary whole.
+ * A figure and the words around it — "lowest point is X on Y", "typical day: X
+ * in, Y out" — are one key each, because where the number falls against the
+ * words is a property of the language, not of the layout.
  */
 
 import { useQuery } from "@tanstack/react-query";
@@ -12,6 +17,8 @@ import { useServerFn } from "@tanstack/react-start";
 
 import { getInsights } from "@/lib/shop.functions";
 import { Alert, Metric, Money, Panel, PanelBody, PanelHeader } from "@/components/ui/kit";
+import { bestAndQuietKey } from "@/components/sections/month-sections";
+import { useI18n } from "@/lib/i18n";
 
 function useInsights() {
   const fetchInsights = useServerFn(getInsights);
@@ -33,18 +40,19 @@ function Loading({ label }: { label: string }) {
 // --- Your week in plain English ------------------------------------------
 
 export function WeekDigestCard() {
+  const { t } = useI18n();
   const { data, isLoading } = useInsights();
-  if (isLoading) return <Loading label="Reading your week…" />;
+  if (isLoading) return <Loading label={t("month.loadingWeek")} />;
   if (!data) return null;
   const { digest } = data;
 
   return (
     <Panel className="mb-6">
       <PanelHeader
-        title="Your week in plain English"
+        title={t("month.weekTitle")}
         description={
           <span className="num">
-            {digest.weekFrom} to {digest.weekTo}
+            {t("month.weekRange", { from: digest.weekFrom, to: digest.weekTo })}
           </span>
         }
       />
@@ -68,53 +76,63 @@ export function WeekDigestCard() {
 // --- Can you cover what's coming? ----------------------------------------
 
 export function OutlookCard() {
+  const { t, money, signedMoney, formatNumber } = useI18n();
   const { data, isLoading } = useInsights();
-  if (isLoading) return <Loading label="Working out your outlook…" />;
+  if (isLoading) return <Loading label={t("month.loadingOutlook")} />;
   if (!data) return null;
   const { forecast } = data;
 
   return (
     <Panel className="mb-6">
       <PanelHeader
-        title="Can you cover what's coming?"
-        description={`Next ${forecast.horizonDays} days, based on your last ${forecast.basedOnDays} days and the bills you've set up.`}
+        title={t("month.outlookTitle")}
+        description={t("month.outlookBlurb", {
+          days: formatNumber(forecast.horizonDays),
+          count: forecast.basedOnDays,
+        })}
       />
       <PanelBody className="space-y-5">
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          <Metric label="Where you are" value={<Money value={forecast.currentNet} signed />} />
           <Metric
-            label={`In ${forecast.horizonDays} days`}
+            label={t("month.whereYouAre")}
+            value={<Money value={forecast.currentNet} signed />}
+          />
+          <Metric
+            label={t("month.inDays", { count: forecast.horizonDays })}
             value={<Money value={forecast.projectedNet} signed />}
           />
         </div>
 
         {forecast.shortfallDate ? (
-          <Alert
-            tone="negative"
-            title={`Heads up — you could run short around ${forecast.shortfallDate}.`}
-          >
-            <span>
-              Lowest point is <Money value={forecast.lowestPoint.balance} signed /> on{" "}
-              <span className="num">{forecast.lowestPoint.date}</span>.
+          <Alert tone="negative" title={t("month.shortfallTitle", { date: forecast.shortfallDate })}>
+            <span className="num">
+              {t("month.lowestPoint", {
+                amount: signedMoney(forecast.lowestPoint.balance),
+                date: forecast.lowestPoint.date,
+              })}
             </span>
           </Alert>
         ) : (
-          <Alert tone="positive" title="You stay in the black the whole time.">
-            <span>
-              Lowest point is <Money value={forecast.lowestPoint.balance} signed /> on{" "}
-              <span className="num">{forecast.lowestPoint.date}</span>.
+          <Alert tone="positive" title={t("month.staysPositive")}>
+            <span className="num">
+              {t("month.lowestPoint", {
+                amount: signedMoney(forecast.lowestPoint.balance),
+                date: forecast.lowestPoint.date,
+              })}
             </span>
           </Alert>
         )}
 
-        <p className="text-[13px] text-muted-foreground">
-          Typical day: <Money value={forecast.dailyIn} className="text-foreground" /> in,{" "}
-          <Money value={forecast.dailyOut} className="text-foreground" /> out.
+        <p className="num text-[13px] text-muted-foreground">
+          {t("month.typicalDay", {
+            moneyIn: money(forecast.dailyIn),
+            moneyOut: money(forecast.dailyOut),
+          })}
         </p>
 
         {forecast.upcomingBills.length > 0 ? (
           <div className="rounded-[var(--radius-12)] border bg-surface-2 px-4 py-3">
-            <p className="eyebrow">Bills coming up</p>
+            <p className="eyebrow">{t("month.billsComingUp")}</p>
             <ul className="divide-hairline mt-1">
               {forecast.upcomingBills.slice(0, 6).map((bill, index) => (
                 <li
@@ -134,9 +152,7 @@ export function OutlookCard() {
 
         {forecast.lowConfidence ? (
           <p className="text-xs text-muted-foreground">
-            This is a rough guess — you&apos;ve only got{" "}
-            <span className="num">{forecast.basedOnDays}</span> days logged. It gets more accurate
-            as you keep going.
+            {t("month.roughGuess", { count: forecast.basedOnDays })}
           </p>
         ) : null}
       </PanelBody>
@@ -147,8 +163,9 @@ export function OutlookCard() {
 // --- Tax set-aside --------------------------------------------------------
 
 export function TaxJarCard() {
+  const { t, money, formatNumber } = useI18n();
   const { data, isLoading } = useInsights();
-  if (isLoading) return <Loading label="Adding up your tax set-aside…" />;
+  if (isLoading) return <Loading label={t("month.loadingTax")} />;
   if (!data) return null;
   const { tax } = data;
 
@@ -156,29 +173,27 @@ export function TaxJarCard() {
     <Panel className="mb-6">
       <PanelHeader
         className={tax.ratePercent <= 0 ? "pb-5" : undefined}
-        title="Tax set-aside"
-        description={
-          tax.ratePercent <= 0
-            ? "Set a percentage below and I'll keep a running total of what to hold back for tax."
-            : undefined
-        }
+        title={t("nav.tax")}
+        description={tax.ratePercent <= 0 ? t("month.taxNoRateBelow") : undefined}
       />
       {tax.ratePercent > 0 ? (
         <PanelBody className="space-y-6">
           <p className="text-[13px] text-muted-foreground">
-            Holding back <span className="num text-foreground">{tax.ratePercent}%</span> of the{" "}
-            <Money value={tax.incomeInPeriod} className="text-foreground" /> you&apos;ve taken in{" "}
-            {tax.periodLabel}.
+            {t("month.taxHoldingBack", {
+              percent: formatNumber(tax.ratePercent),
+              amount: money(tax.incomeInPeriod),
+              period: tax.periodLabel,
+            })}
           </p>
 
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <Metric
-              label="Should set aside"
+              label={t("month.shouldSetAside")}
               emphasis="compact"
               value={<Money value={tax.shouldHaveSetAside} />}
             />
             <Metric
-              label="Already paid"
+              label={t("month.alreadyPaid")}
               emphasis="compact"
               tone="positive"
               value={<Money value={tax.alreadyPaid} />}
@@ -187,10 +202,10 @@ export function TaxJarCard() {
 
           <div className="border-t pt-6">
             <Metric
-              label="Still to put aside"
+              label={t("month.stillToSetAside")}
               emphasis="hero"
               value={<Money value={tax.stillToSetAside} />}
-              hint="Log tax payments with “tax” in the category and they’ll count here. Not tax advice — confirm your rate with an accountant."
+              hint={t("month.taxHint")}
             />
           </div>
         </PanelBody>
@@ -202,8 +217,9 @@ export function TaxJarCard() {
 // --- Busy and quiet days --------------------------------------------------
 
 export function BusyDaysCard() {
+  const { t, formatNumber } = useI18n();
   const { data, isLoading } = useInsights();
-  if (isLoading) return <Loading label="Looking at your week…" />;
+  if (isLoading) return <Loading label={t("month.loadingBusyDays")} />;
   if (!data) return null;
   const { dayPatterns } = data;
 
@@ -212,8 +228,8 @@ export function BusyDaysCard() {
       <Panel className="mb-6">
         <PanelHeader
           className="pb-5"
-          title="Your busy and quiet days"
-          description="Keep logging for a few more weeks and I'll show which days of the week are your best and quietest."
+          title={t("nav.busyDays")}
+          description={t("month.busyDaysNotEnough")}
         />
       </Panel>
     );
@@ -224,10 +240,7 @@ export function BusyDaysCard() {
 
   return (
     <Panel className="mb-6">
-      <PanelHeader
-        title="Your busy and quiet days"
-        description="Average money in per day of the week."
-      />
+      <PanelHeader title={t("nav.busyDays")} description={t("month.busyDaysBlurb")} />
       <PanelBody className="space-y-5">
         <div className="space-y-2.5">
           {[...dayPatterns.patterns]
@@ -261,23 +274,15 @@ export function BusyDaysCard() {
             })}
         </div>
 
+        {/* One sentence, picked whole — the bracketed percentages are part of
+            it, not something a component can bolt on afterwards. */}
         <p className="text-sm text-muted-foreground">
-          <span className="font-semibold text-foreground">{best.label}</span> is your best day
-          {best.vsAverage > 5 ? (
-            <>
-              {" "}
-              (<span className="num">{Math.round(best.vsAverage)}%</span> above your average)
-            </>
-          ) : null}
-          , and <span className="font-semibold text-foreground">{worst.label}</span> is your
-          quietest
-          {worst.vsAverage < -5 ? (
-            <>
-              {" "}
-              (<span className="num">{Math.round(Math.abs(worst.vsAverage))}%</span> below)
-            </>
-          ) : null}
-          .
+          {t(bestAndQuietKey(best.vsAverage, worst.vsAverage), {
+            best: best.label,
+            worst: worst.label,
+            bestPercent: formatNumber(Math.round(best.vsAverage)),
+            worstPercent: formatNumber(Math.round(Math.abs(worst.vsAverage))),
+          })}
         </p>
       </PanelBody>
     </Panel>

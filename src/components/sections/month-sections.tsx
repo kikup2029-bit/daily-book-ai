@@ -53,13 +53,15 @@ import {
 } from "@/lib/planning.functions";
 import { getInsights } from "@/lib/shop.functions";
 import { EmptyState, SampleRows } from "@/components/empty-state";
+import { useI18n } from "@/lib/i18n";
 
 const monthKey = (date: Date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 
-const monthLabel = (key: string) => {
+/* The heading follows the language the reader picked, not the browser's. */
+const monthLabel = (key: string, tag: string) => {
   const [year, month] = key.split("-").map(Number);
-  return new Date(year, month - 1, 1).toLocaleDateString(undefined, {
+  return new Date(year, month - 1, 1).toLocaleDateString(tag, {
     month: "long",
     year: "numeric",
   });
@@ -153,6 +155,23 @@ function IconAction({
   );
 }
 
+/**
+ * Which of the four whole sentences describes the best and quietest days.
+ *
+ * A percentage is only worth mentioning when it's big enough, which gives four
+ * versions of the same sentence. They're four keys rather than one sentence
+ * with fragments bolted on, because where a bracketed aside can sit — or
+ * whether it can sit there at all — differs by language.
+ */
+export function bestAndQuietKey(bestVsAverage: number, worstVsAverage: number): string {
+  const sayBest = bestVsAverage > 5;
+  const sayWorst = worstVsAverage < -5;
+  if (sayBest && sayWorst) return "month.bestAndQuietBoth";
+  if (sayBest) return "month.bestAndQuietBestOnly";
+  if (sayWorst) return "month.bestAndQuietWorstOnly";
+  return "month.bestAndQuiet";
+}
+
 export type MonthPart =
   "totals" | "categories" | "daybyday" | "budgets" | "goals" | "recurring" | "bills";
 
@@ -174,6 +193,7 @@ const MONTH_STORAGE_KEY = "simplebooks.month";
  */
 export function MonthlyPage({ parts = ALL_PARTS }: { parts?: MonthPart[] } = {}) {
   const show = (part: MonthPart) => parts.includes(part);
+  const { t, tag, formatNumber } = useI18n();
   const fetchEntries = useServerFn(getEntries);
   const fetchRecurring = useServerFn(getRecurring);
   const fetchBudgets = useServerFn(getBudgets);
@@ -222,13 +242,13 @@ export function MonthlyPage({ parts = ALL_PARTS }: { parts?: MonthPart[] } = {})
     const map = new Map<string, number>();
     for (const entry of monthEntries) {
       if (entry.amount_out <= 0) continue;
-      const key = (entry.spent_on ?? "").trim() || "Uncategorized";
+      const key = (entry.spent_on ?? "").trim() || t("dashboard.uncategorised");
       map.set(key, (map.get(key) ?? 0) + entry.amount_out);
     }
     return [...map.entries()]
       .map(([name, amount]) => ({ name, amount }))
       .sort((a, b) => b.amount - a.amount);
-  }, [monthEntries]);
+  }, [monthEntries, t]);
 
   const dailyNet = useMemo(() => {
     const total = daysInMonth(month);
@@ -256,7 +276,11 @@ export function MonthlyPage({ parts = ALL_PARTS }: { parts?: MonthPart[] } = {})
   const anyOver = alerts.some((row) => row.pct >= 100);
 
   const netLabel =
-    net > 0 ? "Profit this month" : net < 0 ? "Loss this month" : "Break even this month";
+    net > 0
+      ? t("month.profitThisMonth")
+      : net < 0
+        ? t("month.lossThisMonth")
+        : t("month.breakEvenThisMonth");
 
   return (
     <div className="rise mx-auto w-full max-w-3xl space-y-6">
@@ -265,18 +289,20 @@ export function MonthlyPage({ parts = ALL_PARTS }: { parts?: MonthPart[] } = {})
         <Button
           variant="outline"
           size="icon"
-          aria-label="Previous month"
+          aria-label={t("month.previous")}
           onClick={() => setMonth((current) => shiftMonth(current, -1))}
         >
           <ChevronLeft className="size-4" aria-hidden="true" />
         </Button>
         <div className="min-w-0 text-center" aria-live="polite">
-          <h1 className="truncate text-[20px] leading-tight sm:text-[24px]">{monthLabel(month)}</h1>
+          <h1 className="truncate text-[20px] leading-tight sm:text-[24px]">
+            {monthLabel(month, tag)}
+          </h1>
         </div>
         <Button
           variant="outline"
           size="icon"
-          aria-label="Next month"
+          aria-label={t("month.next")}
           onClick={() => setMonth((current) => shiftMonth(current, 1))}
         >
           <ChevronRight className="size-4" aria-hidden="true" />
@@ -289,12 +315,17 @@ export function MonthlyPage({ parts = ALL_PARTS }: { parts?: MonthPart[] } = {})
           title={
             <span className="flex items-start gap-2">
               <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+              {/* The category name belongs inside the warning, not in front of
+                  it — one whole sentence per alert. */}
               <span className="min-w-0">
                 {alerts
                   .map((row) =>
                     row.pct >= 100
-                      ? `${row.category} is over budget`
-                      : `${row.category} is at ${Math.round(row.pct)}% of budget`,
+                      ? t("month.budgetOver", { category: row.category })
+                      : t("month.budgetAtPercent", {
+                          category: row.category,
+                          percent: formatNumber(Math.round(row.pct)),
+                        }),
                   )
                   .join(" · ")}
               </span>
@@ -309,13 +340,13 @@ export function MonthlyPage({ parts = ALL_PARTS }: { parts?: MonthPart[] } = {})
           <PanelBody className="pt-5">
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <Metric
-                label="Money in"
+                label={t("common.moneyIn")}
                 tone="positive"
                 loading={isLoading}
                 value={<Money value={totalIn} />}
               />
               <Metric
-                label="Money out"
+                label={t("common.moneyOut")}
                 tone="negative"
                 loading={isLoading}
                 value={<Money value={totalOut} />}
@@ -340,15 +371,15 @@ export function MonthlyPage({ parts = ALL_PARTS }: { parts?: MonthPart[] } = {})
       {show("categories") ? (
         byCategory.length === 0 ? (
           <EmptyState
-            title="Nothing spent this month yet"
-            blurb="Once you log expenses, this shows exactly which categories your money went to, biggest first."
+            title={t("month.nothingSpent")}
+            blurb={t("month.nothingSpentBlurb")}
             sample={<SampleRows rows={4} />}
           />
         ) : (
           <Panel>
             <PanelHeader
-              title="Where the money went"
-              description="Every expense this month, biggest first."
+              title={t("nav.whereMoneyWent")}
+              description={t("month.whereMoneyWentBlurb")}
             />
             <PanelBody>
               {/* Fixed height, fluid width: ResponsiveContainer needs a sized
@@ -406,10 +437,7 @@ export function MonthlyPage({ parts = ALL_PARTS }: { parts?: MonthPart[] } = {})
       {/* ---------- Day by day ---------- */}
       {show("daybyday") ? (
         <Panel>
-          <PanelHeader
-            title="Day by day"
-            description="Each bar is that day's net. Bars above the line are days you came out ahead, below the line are days you didn't."
-          />
+          <PanelHeader title={t("nav.dayByDay")} description={t("month.dayByDayBlurb")} />
           <PanelBody>
             <div className="h-48 w-full sm:h-64">
               <ResponsiveContainer width="100%" height="100%">
@@ -438,7 +466,7 @@ export function MonthlyPage({ parts = ALL_PARTS }: { parts?: MonthPart[] } = {})
                   />
                   <Tooltip
                     formatter={(value: number) => formatMoney(value)}
-                    labelFormatter={(label) => `Day ${label}`}
+                    labelFormatter={(label) => t("month.dayNumber", { day: String(label) })}
                     cursor={{ fill: "var(--color-accent)" }}
                     contentStyle={TOOLTIP_STYLE}
                     labelStyle={TOOLTIP_LABEL_STYLE}
@@ -473,6 +501,7 @@ export function MonthlyPage({ parts = ALL_PARTS }: { parts?: MonthPart[] } = {})
  * computed server-side from the owner's own entries.
  */
 export function InsightsSection() {
+  const { t, money, signedMoney, formatNumber } = useI18n();
   const fetchInsights = useServerFn(getInsights);
   const { data, isLoading } = useQuery({ queryKey: ["insights"], queryFn: () => fetchInsights() });
 
@@ -494,10 +523,10 @@ export function InsightsSection() {
       {/* ---------- Weekly digest ---------- */}
       <Panel>
         <PanelHeader
-          title="Your week in plain English"
+          title={t("month.weekTitle")}
           description={
             <span className="num">
-              {digest.weekFrom} to {digest.weekTo}
+              {t("month.weekRange", { from: digest.weekFrom, to: digest.weekTo })}
             </span>
           }
         />
@@ -519,45 +548,56 @@ export function InsightsSection() {
       {/* ---------- Cash runway ---------- */}
       <Panel>
         <PanelHeader
-          title="Can you cover what's coming?"
-          description={`Next ${forecast.horizonDays} days, based on your last ${forecast.basedOnDays} days and the bills you've set up.`}
+          title={t("month.outlookTitle")}
+          description={t("month.outlookBlurb", {
+            days: formatNumber(forecast.horizonDays),
+            count: forecast.basedOnDays,
+          })}
         />
         <PanelBody className="space-y-5">
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-            <Metric label="Where you are" value={<Money value={forecast.currentNet} signed />} />
             <Metric
-              label={`In ${forecast.horizonDays} days`}
+              label={t("month.whereYouAre")}
+              value={<Money value={forecast.currentNet} signed />}
+            />
+            <Metric
+              label={t("month.inDays", { count: forecast.horizonDays })}
               value={<Money value={forecast.projectedNet} signed />}
             />
           </div>
 
+          {/* The amount and the date live inside the sentence: "lowest point"
+              doesn't come first in every language. */}
           {forecast.shortfallDate ? (
-            <Alert
-              tone="negative"
-              title={`Heads up — you could run short around ${forecast.shortfallDate}.`}
-            >
-              <span>
-                Lowest point is <Money value={forecast.lowestPoint.balance} signed /> on{" "}
-                <span className="num">{forecast.lowestPoint.date}</span>.
+            <Alert tone="negative" title={t("month.shortfallTitle", { date: forecast.shortfallDate })}>
+              <span className="num">
+                {t("month.lowestPoint", {
+                  amount: signedMoney(forecast.lowestPoint.balance),
+                  date: forecast.lowestPoint.date,
+                })}
               </span>
             </Alert>
           ) : (
-            <Alert tone="positive" title="You stay in the black the whole time.">
-              <span>
-                Lowest point is <Money value={forecast.lowestPoint.balance} signed /> on{" "}
-                <span className="num">{forecast.lowestPoint.date}</span>.
+            <Alert tone="positive" title={t("month.staysPositive")}>
+              <span className="num">
+                {t("month.lowestPoint", {
+                  amount: signedMoney(forecast.lowestPoint.balance),
+                  date: forecast.lowestPoint.date,
+                })}
               </span>
             </Alert>
           )}
 
-          <p className="text-[13px] text-muted-foreground">
-            Typical day: <Money value={forecast.dailyIn} className="text-foreground" /> in,{" "}
-            <Money value={forecast.dailyOut} className="text-foreground" /> out.
+          <p className="num text-[13px] text-muted-foreground">
+            {t("month.typicalDay", {
+              moneyIn: money(forecast.dailyIn),
+              moneyOut: money(forecast.dailyOut),
+            })}
           </p>
 
           {forecast.upcomingBills.length > 0 ? (
             <div className="rounded-[var(--radius-12)] border bg-surface-2 px-4 py-3">
-              <p className="eyebrow">Bills coming up</p>
+              <p className="eyebrow">{t("month.billsComingUp")}</p>
               <ul className="divide-hairline mt-1">
                 {forecast.upcomingBills.slice(0, 6).map((bill, index) => (
                   <li
@@ -577,9 +617,7 @@ export function InsightsSection() {
 
           {forecast.lowConfidence ? (
             <p className="text-xs text-muted-foreground">
-              This is a rough guess — you&apos;ve only got{" "}
-              <span className="num">{forecast.basedOnDays}</span> days logged. It gets more accurate
-              as you keep going.
+              {t("month.roughGuess", { count: forecast.basedOnDays })}
             </p>
           ) : null}
         </PanelBody>
@@ -589,29 +627,27 @@ export function InsightsSection() {
       <Panel>
         <PanelHeader
           className={tax.ratePercent <= 0 ? "pb-5" : undefined}
-          title="Tax set-aside"
-          description={
-            tax.ratePercent <= 0
-              ? "Set a percentage on the Tools tab and I'll keep a running total of what to hold back for tax."
-              : undefined
-          }
+          title={t("nav.tax")}
+          description={tax.ratePercent <= 0 ? t("month.taxNoRateTools") : undefined}
         />
         {tax.ratePercent > 0 ? (
           <PanelBody className="space-y-6">
             <p className="text-[13px] text-muted-foreground">
-              Holding back <span className="num text-foreground">{tax.ratePercent}%</span> of the{" "}
-              <Money value={tax.incomeInPeriod} className="text-foreground" /> you&apos;ve taken in{" "}
-              {tax.periodLabel}.
+              {t("month.taxHoldingBack", {
+                percent: formatNumber(tax.ratePercent),
+                amount: money(tax.incomeInPeriod),
+                period: tax.periodLabel,
+              })}
             </p>
 
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <Metric
-                label="Should set aside"
+                label={t("month.shouldSetAside")}
                 emphasis="compact"
                 value={<Money value={tax.shouldHaveSetAside} />}
               />
               <Metric
-                label="Already paid"
+                label={t("month.alreadyPaid")}
                 emphasis="compact"
                 tone="positive"
                 value={<Money value={tax.alreadyPaid} />}
@@ -620,10 +656,10 @@ export function InsightsSection() {
 
             <div className="border-t pt-6">
               <Metric
-                label="Still to put aside"
+                label={t("month.stillToSetAside")}
                 emphasis="hero"
                 value={<Money value={tax.stillToSetAside} />}
-                hint="Log tax payments with “tax” in the category and they’ll count here. Not tax advice — confirm your rate with an accountant."
+                hint={t("month.taxHint")}
               />
             </div>
           </PanelBody>
@@ -639,10 +675,7 @@ export function InsightsSection() {
       {/* ---------- Day patterns ---------- */}
       {dayPatterns.enoughData && dayPatterns.best && dayPatterns.worst ? (
         <Panel>
-          <PanelHeader
-            title="Your busy and quiet days"
-            description="Average money in per day of the week."
-          />
+          <PanelHeader title={t("nav.busyDays")} description={t("month.busyDaysBlurb")} />
           <PanelBody className="space-y-5">
             <div className="space-y-2.5">
               {[...dayPatterns.patterns]
@@ -676,18 +709,15 @@ export function InsightsSection() {
                 })}
             </div>
 
+            {/* One sentence, picked whole. Building it from "is your best day"
+                plus a bracketed percentage put the words in English order. */}
             <p className="text-sm text-muted-foreground">
-              <span className="font-semibold text-foreground">{dayPatterns.best.label}</span> is
-              your best day
-              {dayPatterns.best.vsAverage > 5
-                ? ` (${Math.round(dayPatterns.best.vsAverage)}% above your average)`
-                : ""}
-              , and <span className="font-semibold text-foreground">{dayPatterns.worst.label}</span>{" "}
-              is your quietest
-              {dayPatterns.worst.vsAverage < -5
-                ? ` (${Math.round(Math.abs(dayPatterns.worst.vsAverage))}% below)`
-                : ""}
-              .
+              {t(bestAndQuietKey(dayPatterns.best.vsAverage, dayPatterns.worst.vsAverage), {
+                best: dayPatterns.best.label,
+                worst: dayPatterns.worst.label,
+                bestPercent: formatNumber(Math.round(dayPatterns.best.vsAverage)),
+                worstPercent: formatNumber(Math.round(Math.abs(dayPatterns.worst.vsAverage))),
+              })}
             </p>
           </PanelBody>
         </Panel>
@@ -702,15 +732,17 @@ export function BillCalendarSection({
 }: {
   calendar: Array<{ category: string; amount: number; due: string; daysAway: number }>;
 }) {
+  const { t, money } = useI18n();
+
   if (calendar.length === 0) return null;
 
   const groups: Array<{ heading: string; bills: typeof calendar }> = [
-    { heading: "This week", bills: calendar.filter((b) => b.daysAway <= 7) },
+    { heading: t("month.thisWeek"), bills: calendar.filter((b) => b.daysAway <= 7) },
     {
-      heading: "Next 3 weeks",
+      heading: t("month.nextThreeWeeks"),
       bills: calendar.filter((b) => b.daysAway > 7 && b.daysAway <= 28),
     },
-    { heading: "Later", bills: calendar.filter((b) => b.daysAway > 28) },
+    { heading: t("month.later"), bills: calendar.filter((b) => b.daysAway > 28) },
   ].filter((group) => group.bills.length > 0);
 
   const total = calendar.reduce((sum, b) => sum + b.amount, 0);
@@ -718,12 +750,8 @@ export function BillCalendarSection({
   return (
     <Panel>
       <PanelHeader
-        title="What's due"
-        description={
-          <>
-            <Money value={total} className="text-foreground" /> of bills over the next 45 days.
-          </>
-        }
+        title={t("month.whatsDue")}
+        description={t("month.billsTotal", { amount: money(total) })}
       />
       <PanelBody className="space-y-5">
         {groups.map((group) => (
@@ -744,12 +772,12 @@ export function BillCalendarSection({
                   <span className="min-w-0">
                     <span className="block truncate font-medium">{bill.category}</span>
                     <span className="num mt-0.5 block text-[12px] text-muted-foreground">
-                      {bill.due}
+                      {bill.due} ·{" "}
                       {bill.daysAway === 0
-                        ? " · today"
+                        ? t("month.dueToday")
                         : bill.daysAway === 1
-                          ? " · tomorrow"
-                          : ` · in ${bill.daysAway} days`}
+                          ? t("month.dueTomorrow")
+                          : t("month.dueInDays", { count: bill.daysAway })}
                     </span>
                   </span>
                   <Money
@@ -784,6 +812,7 @@ export function DetectedRecurringSection({
     confidence: "high" | "medium";
   }>;
 }) {
+  const { t, money } = useI18n();
   const queryClient = useQueryClient();
   const upsert = useServerFn(saveRecurring);
   const [dismissed, setDismissed] = useState<string[]>([]);
@@ -812,10 +841,7 @@ export function DetectedRecurringSection({
 
   return (
     <Panel>
-      <PanelHeader
-        title="Looks like a regular bill"
-        description="I spotted these repeating in your entries. Track them and they'll show up in your outlook and bill reminders."
-      />
+      <PanelHeader title={t("month.detectedTitle")} description={t("month.detectedBlurb")} />
       <PanelBody>
         <ul className="space-y-3">
           {visible.map((item) => (
@@ -827,16 +853,24 @@ export function DetectedRecurringSection({
                 <div className="min-w-0">
                   <p className="flex flex-wrap items-center gap-2 text-sm font-semibold">
                     <span className="truncate">{item.label}</span>
-                    {item.confidence === "medium" ? <Badge tone="warning">maybe</Badge> : null}
+                    {item.confidence === "medium" ? (
+                      <Badge tone="warning">{t("month.maybe")}</Badge>
+                    ) : null}
                   </p>
-                  <p className="mt-1 text-[12px] text-muted-foreground">
-                    <Money value={item.amount} /> {item.frequency} · seen{" "}
-                    <span className="num">{item.occurrences}</span> times · next around{" "}
-                    <span className="num">{item.nextExpected}</span>
+                  {/* Amount, how often, how many times and when next — one
+                      string, because that order is English's, not everyone's. */}
+                  <p className="num mt-1 text-[12px] text-muted-foreground">
+                    {t("month.detectedDetail", {
+                      amount: money(item.amount),
+                      frequency:
+                        item.frequency === "weekly" ? t("month.weekly") : t("month.monthly"),
+                      count: item.occurrences,
+                      date: item.nextExpected,
+                    })}
                   </p>
                 </div>
                 <IconAction
-                  label={`Dismiss ${item.label}`}
+                  label={t("month.dismissDetected", { name: item.label })}
                   danger
                   onClick={() => setDismissed((prev) => [...prev, item.label])}
                 >
@@ -853,7 +887,7 @@ export function DetectedRecurringSection({
                   setDismissed((prev) => [...prev, item.label]);
                 }}
               >
-                Track this bill
+                {t("month.trackBill")}
               </Button>
             </li>
           ))}
@@ -864,6 +898,7 @@ export function DetectedRecurringSection({
 }
 
 export function GoalsSection() {
+  const { t, money } = useI18n();
   const queryClient = useQueryClient();
   const fetchGoals = useServerFn(getGoals);
   const upsert = useServerFn(saveGoal);
@@ -902,10 +937,7 @@ export function GoalsSection() {
 
   return (
     <Panel>
-      <PanelHeader
-        title="Savings goals"
-        description="Something you're putting money aside for — track how close you are."
-      />
+      <PanelHeader title={t("nav.goals")} description={t("month.goalsBlurb")} />
       <PanelBody className="space-y-5">
         {goals.length > 0 ? (
           <ul className="space-y-4">
@@ -918,12 +950,12 @@ export function GoalsSection() {
                   <div className="flex items-center justify-between gap-2">
                     <span className="min-w-0 truncate text-sm font-semibold">{goal.name}</span>
                     <span className="flex shrink-0 items-center gap-2">
-                      {share >= 100 ? <Badge tone="positive">Reached</Badge> : null}
+                      {share >= 100 ? <Badge tone="positive">{t("month.reached")}</Badge> : null}
                       <span className="num text-[13px] text-muted-foreground">
                         {formatMoney(goal.saved_amount)} / {formatMoney(goal.target_amount)}
                       </span>
                       <IconAction
-                        label={`Remove ${goal.name} goal`}
+                        label={t("month.removeGoal", { name: goal.name })}
                         danger
                         onClick={() => remove.mutate(goal.id)}
                       >
@@ -938,15 +970,17 @@ export function GoalsSection() {
                     }`}
                   />
                   <p className="mt-1.5 text-[12px] text-muted-foreground">
-                    {remaining > 0 ? `${formatMoney(remaining)} to go` : "Goal reached"}
-                    {goal.target_date ? ` · by ${goal.target_date}` : ""}
+                    {remaining > 0
+                      ? t("month.goalToGo", { amount: money(remaining) })
+                      : t("month.goalReached")}
+                    {goal.target_date ? ` · ${t("month.goalByDate", { date: goal.target_date })}` : ""}
                   </p>
                 </li>
               );
             })}
           </ul>
         ) : (
-          <p className="text-sm text-muted-foreground">No goals yet.</p>
+          <p className="text-sm text-muted-foreground">{t("month.noGoals")}</p>
         )}
 
         <form
@@ -964,14 +998,14 @@ export function GoalsSection() {
           }}
         >
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field id="goal-name" label="What for?">
+            <Field id="goal-name" label={t("entryForm.whatFor")}>
               <Input
-                placeholder="New oven"
+                placeholder={t("month.goalNamePlaceholder")}
                 value={name}
                 onChange={(event) => setName(event.target.value)}
               />
             </Field>
-            <Field id="goal-target" label="Target amount">
+            <Field id="goal-target" label={t("month.goalTarget")}>
               <Input
                 type="number"
                 inputMode="decimal"
@@ -982,7 +1016,7 @@ export function GoalsSection() {
                 onChange={(event) => setTarget(event.target.value)}
               />
             </Field>
-            <Field id="goal-saved" label="Saved so far">
+            <Field id="goal-saved" label={t("month.goalSaved")}>
               <Input
                 type="number"
                 inputMode="decimal"
@@ -993,7 +1027,7 @@ export function GoalsSection() {
                 onChange={(event) => setSaved(event.target.value)}
               />
             </Field>
-            <Field id="goal-date" label="Target date (optional)">
+            <Field id="goal-date" label={t("month.goalTargetDate")}>
               <Input
                 type="date"
                 value={targetDate}
@@ -1002,7 +1036,7 @@ export function GoalsSection() {
             </Field>
           </div>
           <Button type="submit" className="w-full" loading={save.isPending}>
-            {save.isPending ? "Saving…" : "Save goal"}
+            {save.isPending ? t("common.saving") : t("month.saveGoal")}
           </Button>
         </form>
       </PanelBody>
@@ -1017,6 +1051,7 @@ export function BudgetsSection({
   rows: { id: string; category: string; monthly_limit: number; used: number; pct: number }[];
   categories: string[];
 }) {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const upsert = useServerFn(saveBudget);
   const drop = useServerFn(removeBudget);
@@ -1041,10 +1076,7 @@ export function BudgetsSection({
 
   return (
     <Panel>
-      <PanelHeader
-        title="Budget limits"
-        description="Set a monthly cap per category and watch the bars."
-      />
+      <PanelHeader title={t("month.budgetsTitle")} description={t("month.budgetsBlurb")} />
       <PanelBody className="space-y-5">
         {rows.length > 0 ? (
           <ul className="space-y-4">
@@ -1054,15 +1086,15 @@ export function BudgetsSection({
                   <span className="min-w-0 truncate text-sm font-semibold">{row.category}</span>
                   <span className="flex shrink-0 items-center gap-2">
                     {row.pct >= 100 ? (
-                      <Badge tone="negative">Over</Badge>
+                      <Badge tone="negative">{t("month.over")}</Badge>
                     ) : row.pct >= 80 ? (
-                      <Badge tone="warning">Close</Badge>
+                      <Badge tone="warning">{t("month.nearLimit")}</Badge>
                     ) : null}
                     <span className="num text-[13px] text-muted-foreground">
                       {formatMoney(row.used)} / {formatMoney(row.monthly_limit)}
                     </span>
                     <IconAction
-                      label={`Remove ${row.category} budget`}
+                      label={t("month.removeBudget", { name: row.category })}
                       danger
                       onClick={() => remove.mutate(row.id)}
                     >
@@ -1084,7 +1116,7 @@ export function BudgetsSection({
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-muted-foreground">No budgets set yet.</p>
+          <p className="text-sm text-muted-foreground">{t("month.noBudgets")}</p>
         )}
 
         <form
@@ -1097,15 +1129,15 @@ export function BudgetsSection({
           }}
         >
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field id="budget-category" label="Category">
+            <Field id="budget-category" label={t("common.category")}>
               <Input
                 list="budget-categories"
-                placeholder="Supplies"
+                placeholder={t("entryForm.whatForPlaceholder")}
                 value={category}
                 onChange={(event) => setCategory(event.target.value)}
               />
             </Field>
-            <Field id="budget-limit" label="Monthly limit">
+            <Field id="budget-limit" label={t("month.monthlyLimit")}>
               <Input
                 type="number"
                 inputMode="decimal"
@@ -1123,7 +1155,7 @@ export function BudgetsSection({
             ))}
           </datalist>
           <Button type="submit" className="w-full" loading={save.isPending}>
-            {save.isPending ? "Saving…" : "Save budget"}
+            {save.isPending ? t("common.saving") : t("month.saveBudget")}
           </Button>
         </form>
       </PanelBody>
@@ -1141,6 +1173,7 @@ type Rule = {
 };
 
 export function RecurringSection({ rules }: { rules: Rule[] }) {
+  const { t, money } = useI18n();
   const queryClient = useQueryClient();
   const upsert = useServerFn(saveRecurring);
   const drop = useServerFn(removeRecurring);
@@ -1194,10 +1227,7 @@ export function RecurringSection({ rules }: { rules: Rule[] }) {
 
   return (
     <Panel>
-      <PanelHeader
-        title="Recurring expenses"
-        description="Bills that repeat get logged for you automatically."
-      />
+      <PanelHeader title={t("month.recurringTitle")} description={t("month.recurringBlurb")} />
       <PanelBody className="space-y-5">
         {rules.length > 0 ? (
           <ul className="divide-hairline">
@@ -1206,15 +1236,22 @@ export function RecurringSection({ rules }: { rules: Rule[] }) {
                 <span className="min-w-0">
                   <span className="flex items-center gap-2">
                     <span className="truncate text-sm font-semibold">{rule.category}</span>
-                    {rule.active ? null : <Badge>Cancelled</Badge>}
+                    {rule.active ? null : <Badge>{t("month.cancelled")}</Badge>}
                   </span>
-                  <span className="mt-0.5 block truncate text-[12px] text-muted-foreground">
-                    <Money value={rule.amount} /> · {rule.frequency} · from{" "}
-                    <span className="num">{rule.start_date}</span>
+                  <span className="num mt-0.5 block truncate text-[12px] text-muted-foreground">
+                    {t("month.recurringDetail", {
+                      amount: money(rule.amount),
+                      frequency:
+                        rule.frequency === "weekly" ? t("month.weekly") : t("month.monthly"),
+                      date: rule.start_date,
+                    })}
                   </span>
                 </span>
                 <span className="flex shrink-0 items-center gap-1">
-                  <IconAction label={`Edit ${rule.category}`} onClick={() => startEdit(rule)}>
+                  <IconAction
+                    label={t("month.editRule", { name: rule.category })}
+                    onClick={() => startEdit(rule)}
+                  >
                     <Pencil className="size-4" aria-hidden="true" />
                   </IconAction>
                   {rule.active ? (
@@ -1222,7 +1259,7 @@ export function RecurringSection({ rules }: { rules: Rule[] }) {
                       type="button"
                       variant="ghost"
                       size="sm"
-                      aria-label={`Cancel ${rule.category}`}
+                      aria-label={t("month.cancelRule", { name: rule.category })}
                       onClick={() =>
                         save.mutate({
                           id: rule.id,
@@ -1235,11 +1272,11 @@ export function RecurringSection({ rules }: { rules: Rule[] }) {
                       }
                       className="h-10 hover:text-danger"
                     >
-                      Cancel
+                      {t("common.cancel")}
                     </Button>
                   ) : null}
                   <IconAction
-                    label={`Delete ${rule.category}`}
+                    label={t("month.deleteRule", { name: rule.category })}
                     danger
                     onClick={() => remove.mutate(rule.id)}
                   >
@@ -1250,7 +1287,7 @@ export function RecurringSection({ rules }: { rules: Rule[] }) {
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-muted-foreground">Nothing recurring yet.</p>
+          <p className="text-sm text-muted-foreground">{t("month.noRecurring")}</p>
         )}
 
         <form
@@ -1270,14 +1307,14 @@ export function RecurringSection({ rules }: { rules: Rule[] }) {
           }}
         >
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field id="rec-category" label="What is it for?">
+            <Field id="rec-category" label={t("entryForm.whatFor")}>
               <Input
-                placeholder="Rent"
+                placeholder={t("month.recurringPlaceholder")}
                 value={category}
                 onChange={(event) => setCategory(event.target.value)}
               />
             </Field>
-            <Field id="rec-amount" label="Amount">
+            <Field id="rec-amount" label={t("common.amount")}>
               <Input
                 type="number"
                 inputMode="decimal"
@@ -1288,16 +1325,16 @@ export function RecurringSection({ rules }: { rules: Rule[] }) {
                 onChange={(event) => setAmount(event.target.value)}
               />
             </Field>
-            <Field id="rec-frequency" label="How often?">
+            <Field id="rec-frequency" label={t("month.howOften")}>
               <Select
                 value={frequency}
                 onChange={(event) => setFrequency(event.target.value as "weekly" | "monthly")}
               >
-                <option value="weekly">Every week</option>
-                <option value="monthly">Every month</option>
+                <option value="weekly">{t("month.everyWeek")}</option>
+                <option value="monthly">{t("month.everyMonth")}</option>
               </Select>
             </Field>
-            <Field id="rec-start" label="Starting">
+            <Field id="rec-start" label={t("month.starting")}>
               <Input
                 type="date"
                 value={startDate}
@@ -1311,14 +1348,14 @@ export function RecurringSection({ rules }: { rules: Rule[] }) {
           <div className="flex flex-wrap gap-2">
             <Button type="submit" className="min-w-40 flex-1" loading={save.isPending}>
               {save.isPending
-                ? "Saving…"
+                ? t("common.saving")
                 : editing
-                  ? "Update recurring expense"
-                  : "Add recurring expense"}
+                  ? t("month.updateRecurring")
+                  : t("month.addRecurring")}
             </Button>
             {editing ? (
               <Button type="button" variant="outline" onClick={reset}>
-                Cancel
+                {t("common.cancel")}
               </Button>
             ) : null}
           </div>
@@ -1333,6 +1370,7 @@ export function RecurringSection({ rules }: { rules: Rule[] }) {
  * subscription, and the recurring rules themselves.
  */
 export function BillsPage() {
+  const { t } = useI18n();
   const fetchInsights = useServerFn(getInsights);
   const fetchRecurring = useServerFn(getRecurring);
 
@@ -1348,8 +1386,8 @@ export function BillsPage() {
   return (
     <div className="rise mx-auto w-full max-w-3xl space-y-6">
       {isLoading ? (
-        <Panel aria-busy="true" aria-label="Loading your bills">
-          <PanelHeader title="What's due" />
+        <Panel aria-busy="true" aria-label={t("month.loadingBills")}>
+          <PanelHeader title={t("month.whatsDue")} />
           <PanelBody>
             <SkeletonRows rows={4} />
           </PanelBody>

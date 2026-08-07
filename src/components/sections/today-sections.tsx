@@ -62,18 +62,12 @@ import {
 import { Onboarding } from "@/components/onboarding";
 import { InstallPrompt } from "@/components/offline-bar";
 import { RecentEntries } from "@/components/sections/recent-entries";
+import { useI18n } from "@/lib/i18n";
 import { isNetworkError, useOfflineEntries } from "@/lib/use-offline";
 
 type ChatMessage = { role: "user" | "assistant"; text: string };
 
 const todayISO = () => new Date().toLocaleDateString("en-CA");
-
-const longDate = (iso: string) =>
-  new Date(`${iso}T00:00:00`).toLocaleDateString(undefined, {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  });
 
 export function fileToBase64(file: File): Promise<{ base64: string; mimeType: string }> {
   return new Promise((resolve, reject) => {
@@ -94,6 +88,7 @@ const ALL_TODAY: TodayPart[] = ["due", "safe", "quickadd", "form", "glance", "st
 
 export function Dashboard({ parts = ALL_TODAY }: { parts?: TodayPart[] } = {}) {
   const show = (part: TodayPart) => parts.includes(part);
+  const { t, formatDate } = useI18n();
   const queryClient = useQueryClient();
   const fetchEntries = useServerFn(getEntries);
   const addEntry = useServerFn(createEntry);
@@ -170,15 +165,11 @@ export function Dashboard({ parts = ALL_TODAY }: { parts?: TodayPart[] } = {}) {
         filledSomething = true;
       }
       setReceiptNotice(
-        filledSomething
-          ? "Filled in from your receipt — please double check before saving."
-          : "Couldn't read details off that receipt — no worries, just fill it in yourself.",
+        filledSomething ? t("entryForm.receiptFilled") : t("entryForm.receiptUnreadable"),
       );
     },
     onError: () => {
-      setReceiptNotice(
-        "Couldn't read that receipt automatically — just fill in the details yourself.",
-      );
+      setReceiptNotice(t("entryForm.receiptUnreadable"));
     },
   });
 
@@ -220,11 +211,7 @@ export function Dashboard({ parts = ALL_TODAY }: { parts?: TodayPart[] } = {}) {
       const hadReceipt = Boolean(receiptFile);
       setReceiptFile(null);
       setReceiptKey((value) => value + 1);
-      setReceiptNotice(
-        result.queued && hadReceipt
-          ? "Saved on this device. The photo couldn't be attached without a connection — add it from the entry once you're back online."
-          : null,
-      );
+      setReceiptNotice(result.queued && hadReceipt ? t("entryForm.receiptOffline") : null);
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     },
@@ -237,11 +224,11 @@ export function Dashboard({ parts = ALL_TODAY }: { parts?: TodayPart[] } = {}) {
     const inAmount = Number(amountIn || 0);
     const outAmount = Number(amountOut || 0);
     if (Number.isNaN(inAmount) || Number.isNaN(outAmount) || inAmount < 0 || outAmount < 0) {
-      setFormError("Please enter valid amounts.");
+      setFormError(t("entryForm.errAmounts"));
       return;
     }
     if (inAmount === 0 && outAmount === 0) {
-      setFormError("Add money made or money spent before saving.");
+      setFormError(t("entryForm.errEmpty"));
       return;
     }
     save.mutate({
@@ -269,15 +256,15 @@ export function Dashboard({ parts = ALL_TODAY }: { parts?: TodayPart[] } = {}) {
       {/* ---------------------------------------------- 1. where you stand */}
       {show("glance") ? (
         <PageHeader
-          eyebrow="Today"
-          title={longDate(today)}
-          description="Everything you've logged so far, and what's worth a look."
+          eyebrow={t("dashboard.eyebrow")}
+          title={formatDate(today, "long")}
+          description={t("dashboard.blurb")}
           className="pb-0"
         />
       ) : null}
 
       {show("glance") || show("safe") ? (
-        <section className="flex flex-wrap gap-3" aria-label="Where you stand today">
+        <section className="flex flex-wrap gap-3" aria-label={t("dashboard.position")}>
           {show("glance") ? (
             <TodayPosition
               loading={isLoading}
@@ -305,13 +292,13 @@ export function Dashboard({ parts = ALL_TODAY }: { parts?: TodayPart[] } = {}) {
         <form onSubmit={onSubmit}>
           <Panel>
             <PanelHeader
-              title="The full entry"
-              description="When you need the date, a receipt or who it's shared with."
+              title={t("entryForm.fullEntry")}
+              description={t("entryForm.fullEntryBlurb")}
             />
 
             <PanelBody className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field id="date" label="Date">
+                <Field id="date" label={t("common.date")}>
                   <Input
                     type="date"
                     className="num"
@@ -321,20 +308,20 @@ export function Dashboard({ parts = ALL_TODAY }: { parts?: TodayPart[] } = {}) {
                   />
                 </Field>
 
-                <Field id="payment" label="Cash or card?">
+                <Field id="payment" label={t("entryForm.paidWith")}>
                   <Select
                     value={paymentMethod}
                     onChange={(event) =>
                       setPaymentMethod(event.target.value as "cash" | "card" | "other")
                     }
                   >
-                    <option value="cash">Cash</option>
-                    <option value="card">Card</option>
-                    <option value="other">Other</option>
+                    <option value="cash">{t("entryForm.cash")}</option>
+                    <option value="card">{t("entryForm.card")}</option>
+                    <option value="other">{t("entryForm.other")}</option>
                   </Select>
                 </Field>
 
-                <Field id="in" label="Money made">
+                <Field id="in" label={t("entryForm.moneyMade")}>
                   <Input
                     type="number"
                     inputMode="decimal"
@@ -347,7 +334,7 @@ export function Dashboard({ parts = ALL_TODAY }: { parts?: TodayPart[] } = {}) {
                   />
                 </Field>
 
-                <Field id="out" label="Money spent">
+                <Field id="out" label={t("entryForm.moneySpent")}>
                   <Input
                     type="number"
                     inputMode="decimal"
@@ -360,17 +347,17 @@ export function Dashboard({ parts = ALL_TODAY }: { parts?: TodayPart[] } = {}) {
                   />
                 </Field>
 
-                <Field id="spent-on" label="What was it spent on?">
+                <Field id="spent-on" label={t("entryForm.whatFor")}>
                   <Input
-                    placeholder="Supplies, Rent, Inventory…"
+                    placeholder={t("entryForm.whatForExamples")}
                     value={spentOn}
                     onChange={(event) => setSpentOn(event.target.value)}
                   />
                 </Field>
 
-                <Field id="merchant" label="Where?" hint="Optional.">
+                <Field id="merchant" label={t("entryForm.where")} hint={t("common.optional")}>
                   <Input
-                    placeholder="Costco, Shell, Home Depot…"
+                    placeholder={t("entryForm.whereExamples")}
                     value={merchant}
                     onChange={(event) => setMerchant(event.target.value)}
                   />
@@ -379,8 +366,8 @@ export function Dashboard({ parts = ALL_TODAY }: { parts?: TodayPart[] } = {}) {
 
               <Field
                 id="receipt"
-                label="Receipt photo"
-                hint={receiptFile ? undefined : "Optional — only you can see it."}
+                label={t("entryForm.receiptPhoto")}
+                hint={receiptFile ? undefined : t("entryForm.receiptPrivateHint")}
               >
                 <Input
                   key={receiptKey}
@@ -399,14 +386,14 @@ export function Dashboard({ parts = ALL_TODAY }: { parts?: TodayPart[] } = {}) {
 
               {receiptFile ? (
                 <p className="-mt-2 truncate text-[12px] text-muted-foreground">
-                  Attaching “{receiptFile.name}” — only you can see it.
+                  {t("entryForm.receiptAttaching", { name: receiptFile.name })}
                 </p>
               ) : null}
 
               {analyze.isPending ? (
                 <p className="-mt-2 flex items-center gap-1.5 text-[12px] text-muted-foreground">
-                  <Loader2 className="size-3 animate-spin" aria-hidden="true" /> Reading your
-                  receipt…
+                  <Loader2 className="size-3 animate-spin" aria-hidden="true" />{" "}
+                  {t("entryForm.receiptReading")}
                 </p>
               ) : receiptNotice ? (
                 <p className="-mt-2 flex items-start gap-1.5 text-[12px] text-muted-foreground">
@@ -417,24 +404,28 @@ export function Dashboard({ parts = ALL_TODAY }: { parts?: TodayPart[] } = {}) {
 
               {household?.household ? (
                 <div className="space-y-1.5">
-                  <p className="text-[13px] font-medium text-foreground">Who can see this?</p>
+                  <p className="text-[13px] font-medium text-foreground">
+                    {t("entryForm.whoCanSee")}
+                  </p>
                   <Segmented
-                    name="Who can see this?"
+                    name={t("entryForm.whoCanSee")}
                     value={shareMode}
                     onChange={setShareMode}
                     options={[
-                      { value: "private", label: "Just me" },
-                      { value: "visible", label: "Share" },
-                      { value: "split", label: "Split it" },
+                      { value: "private", label: t("entryForm.justMe") },
+                      { value: "visible", label: t("entryForm.shareIt") },
+                      { value: "split", label: t("entryForm.splitIt") },
                     ]}
                     className="h-11 max-w-full md:h-10"
                   />
+                  {/* The household's name sits inside the sentence, not in front
+                      of it — where it falls differs by language. */}
                   <p className="text-[12px] text-muted-foreground">
                     {shareMode === "private"
-                      ? "Only you will see this."
+                      ? t("entryForm.shareNoneBlurb")
                       : shareMode === "visible"
-                        ? `${household.household.name} can see it, but nobody owes anybody.`
-                        : `${household.household.name} can see it and it gets divided evenly.`}
+                        ? t("entryForm.shareVisibleBlurb", { household: household.household.name })
+                        : t("entryForm.shareSplitBlurb", { household: household.household.name })}
                   </p>
                 </div>
               ) : null}
@@ -451,7 +442,7 @@ export function Dashboard({ parts = ALL_TODAY }: { parts?: TodayPart[] } = {}) {
                 }
                 role={saved ? "status" : undefined}
               >
-                {saved ? "Saved! Nice work." : "Nothing leaves your books."}
+                {saved ? t("entryForm.saved") : t("entryForm.staysPrivate")}
               </p>
               <Button
                 type="submit"
@@ -460,7 +451,7 @@ export function Dashboard({ parts = ALL_TODAY }: { parts?: TodayPart[] } = {}) {
                 loading={save.isPending}
                 disabled={save.isPending}
               >
-                {save.isPending ? "Saving…" : "Save entry"}
+                {save.isPending ? t("common.saving") : t("entryForm.saveEntry")}
               </Button>
             </PanelFooter>
           </Panel>
@@ -515,34 +506,36 @@ function TodayPosition({
   allOut: number;
   count: number;
 }) {
+  const { t, money, signedMoney } = useI18n();
+
   return (
     <div className="panel w-full p-5 sm:w-auto sm:flex-[1.7_1_18rem]">
       <Metric
-        label="Today's net"
+        label={t("dashboard.todaysNet")}
         emphasis="hero"
         loading={loading}
         value={<Money value={net} signed />}
         hint={
           count === 0
-            ? "Nothing logged today yet."
+            ? t("dashboard.nothingToday")
             : net > 0
-              ? "You're ahead on the day."
+              ? t("dashboard.aheadToday")
               : net < 0
-                ? "You're behind on the day."
-                : "Break even so far today."
+                ? t("dashboard.behindToday")
+                : t("dashboard.evenToday")
         }
       />
 
       <div className="mt-5 grid grid-cols-2 gap-4 border-t pt-4">
         <Metric
-          label="Money in"
+          label={t("common.moneyIn")}
           emphasis="compact"
           loading={loading}
           icon={<ArrowUpCircle className="size-3.5 text-success" aria-hidden="true" />}
           value={<Money value={moneyIn} tone="positive" />}
         />
         <Metric
-          label="Money out"
+          label={t("common.moneyOut")}
           emphasis="compact"
           loading={loading}
           icon={<ArrowDownCircle className="size-3.5 text-danger" aria-hidden="true" />}
@@ -551,16 +544,18 @@ function TodayPosition({
       </div>
 
       {loading ? null : (
+        /* Each figure keeps the word that says which direction it went in the
+           same string, so a language that puts the word first can. */
         <p className="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1 text-[13px] text-muted-foreground">
-          <span className="eyebrow">All time</span>
-          <span className="inline-flex items-baseline gap-1">
-            <Money value={allIn} tone="positive" className="font-medium" /> in
+          <span className="eyebrow">{t("dashboard.allTime")}</span>
+          <span className="num inline-flex items-baseline gap-1 font-medium text-success">
+            {t("dashboard.allTimeIn", { amount: money(allIn) })}
           </span>
-          <span className="inline-flex items-baseline gap-1">
-            <Money value={allOut} tone="negative" className="font-medium" /> out
+          <span className="num inline-flex items-baseline gap-1 font-medium text-danger">
+            {t("dashboard.allTimeOut", { amount: money(allOut) })}
           </span>
-          <span className="inline-flex items-baseline gap-1">
-            <Money value={allIn - allOut} signed className="font-semibold" /> net
+          <span className="num inline-flex items-baseline gap-1 font-semibold">
+            {t("dashboard.allTimeNet", { amount: signedMoney(allIn - allOut) })}
           </span>
         </p>
       )}
@@ -570,6 +565,7 @@ function TodayPosition({
 
 /** Warns about bills due in the next few days, before they bite. */
 export function DueSoonBanner() {
+  const { t } = useI18n();
   const fetchInsights = useServerFn(getInsights);
   const { data } = useQuery({ queryKey: ["insights"], queryFn: () => fetchInsights() });
 
@@ -584,16 +580,10 @@ export function DueSoonBanner() {
         title={
           <span className="flex items-center gap-2">
             <CalendarClock className="size-4 shrink-0 text-warning" aria-hidden="true" />
-            {soon.length === 1 ? (
-              "A bill is due soon"
-            ) : (
-              <>
-                <span className="num">{soon.length}</span> bills due soon
-              </>
-            )}
+            {t("dashboard.billsDueSoon", { count: soon.length })}
           </span>
         }
-        description="Worth covering before it catches you out."
+        description={t("dashboard.billsDueSoonBlurb")}
         action={
           <Badge tone="warning">
             <Money value={total} />
@@ -608,10 +598,10 @@ export function DueSoonBanner() {
               <span className="flex shrink-0 items-baseline gap-3">
                 <span className="num text-[12px] text-muted-foreground">
                   {bill.daysAway === 0
-                    ? "today"
+                    ? t("month.dueToday")
                     : bill.daysAway === 1
-                      ? "tomorrow"
-                      : `in ${bill.daysAway} days`}
+                      ? t("month.dueTomorrow")
+                      : t("month.dueInDays", { count: bill.daysAway })}
                 </span>
                 <Money value={bill.amount} className="text-sm font-medium" />
               </span>
@@ -625,31 +615,31 @@ export function DueSoonBanner() {
 
 /** Habit and progress streaks — a nudge to keep logging. */
 export function StreaksCard() {
+  const { t, formatNumber } = useI18n();
   const fetchInsights = useServerFn(getInsights);
   const { data } = useQuery({ queryKey: ["insights"], queryFn: () => fetchInsights() });
 
   const s = data?.streaks;
   if (!s || s.totalDaysLogged === 0) return null;
 
+  // "3 days" is one string, not a number with a word stuck on the end: the
+  // unit doesn't follow the number in every language.
   const tiles = [
     {
-      label: "Logging streak",
+      label: t("dashboard.streakLogging"),
       value: s.loggingStreak,
-      suffix: s.loggingStreak === 1 ? "day" : "days",
       best: s.longestLoggingStreak,
       show: true,
     },
     {
-      label: "Profitable run",
+      label: t("dashboard.streakProfitable"),
       value: s.profitableStreak,
-      suffix: s.profitableStreak === 1 ? "day" : "days",
       best: s.longestProfitableStreak,
       show: s.longestProfitableStreak > 0,
     },
     {
-      label: "No-spend run",
+      label: t("dashboard.streakNoSpend"),
       value: s.noSpendStreak,
-      suffix: s.noSpendStreak === 1 ? "day" : "days",
       best: s.longestNoSpendStreak,
       show: s.longestNoSpendStreak > 0,
     },
@@ -660,13 +650,13 @@ export function StreaksCard() {
       <PanelHeader
         title={
           <span className="flex items-center gap-2">
-            <Flame className="size-4 shrink-0 text-brand" aria-hidden="true" /> Your streaks
+            <Flame className="size-4 shrink-0 text-brand" aria-hidden="true" /> {t("nav.streaks")}
           </span>
         }
         description={
           s.loggingStreak >= 3
-            ? `Nice — ${s.loggingStreak} days in a row of keeping your books up to date.`
-            : "Log something every day and your streak starts building."
+            ? t("dashboard.streakNice", { count: s.loggingStreak })
+            : t("dashboard.streakStart")
         }
       />
       <PanelBody>
@@ -675,19 +665,12 @@ export function StreaksCard() {
             <Metric
               key={tile.label}
               label={tile.label}
-              value={
-                <span className="num">
-                  {tile.value}{" "}
-                  <span className="text-sm font-normal text-muted-foreground">{tile.suffix}</span>
-                </span>
-              }
+              value={<span className="num">{t("dashboard.streakDays", { count: tile.value })}</span>}
               hint={
                 tile.best > tile.value ? (
-                  <>
-                    Best: <span className="num">{tile.best}</span>
-                  </>
+                  <span className="num">{t("dashboard.streakBest", { count: tile.best })}</span>
                 ) : tile.value > 0 && tile.value === tile.best ? (
-                  <span className="text-success">Your best yet</span>
+                  <span className="text-success">{t("dashboard.streakYourBest")}</span>
                 ) : undefined
               }
             />
@@ -696,11 +679,10 @@ export function StreaksCard() {
 
         {s.activeDaysThisMonth > 0 ? (
           <p className="mt-5 border-t pt-4 text-[13px] text-muted-foreground">
-            This month you came out ahead on{" "}
-            <span className="num font-semibold text-foreground">
-              {s.profitableDaysThisMonth} of {s.activeDaysThisMonth}
-            </span>{" "}
-            days you logged.
+            {t("dashboard.aheadDaysThisMonth", {
+              profitable: formatNumber(s.profitableDaysThisMonth),
+              active: formatNumber(s.activeDaysThisMonth),
+            })}
           </p>
         ) : null}
       </PanelBody>
@@ -710,6 +692,7 @@ export function StreaksCard() {
 
 /** One number: what's safe to spend today without causing trouble later. */
 export function SafeToSpendCard() {
+  const { t } = useI18n();
   const fetchInsights = useServerFn(getInsights);
   const { data, isLoading } = useQuery({ queryKey: ["insights"], queryFn: () => fetchInsights() });
 
@@ -723,7 +706,7 @@ export function SafeToSpendCard() {
       className={`panel w-full p-5 sm:w-auto sm:flex-[1_1_13rem] ${none ? "border-danger/40" : ""}`}
     >
       <Metric
-        label="Safe to spend today"
+        label={t("dashboard.safeToSpend")}
         loading={!safe}
         tone={none ? "negative" : "neutral"}
         icon={<Wallet className="size-3.5" aria-hidden="true" />}
@@ -732,7 +715,7 @@ export function SafeToSpendCard() {
       />
       {none ? (
         <p className="mt-3">
-          <Badge tone="negative">Nothing left for today</Badge>
+          <Badge tone="negative">{t("dashboard.nothingLeft")}</Badge>
         </p>
       ) : null}
     </div>
@@ -755,6 +738,7 @@ type EntryRow = {
  * sits high enough to be usable on a phone without scrolling.
  */
 export function QuickAdd({ entries }: { entries: EntryRow[] }) {
+  const { t } = useI18n();
   const { user } = useRouteContext({ from: "/_authenticated" });
   const offline = useOfflineEntries(user?.id);
   const [text, setText] = useState("");
@@ -798,32 +782,39 @@ export function QuickAdd({ entries }: { entries: EntryRow[] }) {
         payment_method: "cash",
       }),
     onSuccess: (result) => {
-      setSaved(result.queued ? `Saved on this device — ${parsed.summary}` : parsed.summary);
+      setSaved(
+        result.queued
+          ? t("dashboard.savedOnDevice", { summary: parsed.summary })
+          : parsed.summary,
+      );
       setText("");
       setTimeout(() => setSaved(null), 3000);
     },
     onError: (err: Error) => setError(err.message),
   });
 
+  // Each chip is a phrase of its own, so the merchant and the date sit inside
+  // the words that introduce them rather than being glued on afterwards.
   const detail =
     [
-      parsed.category ?? "No category",
-      parsed.merchant ? `at ${parsed.merchant}` : null,
-      parsed.date !== todayISO() ? `on ${parsed.date}` : null,
+      parsed.category ?? t("dashboard.noCategory"),
+      parsed.merchant ? t("dashboard.atMerchant", { merchant: parsed.merchant }) : null,
+      parsed.date !== todayISO() ? t("dashboard.onDate", { date: parsed.date }) : null,
     ]
       .filter(Boolean)
-      .join(" · ") || "No category";
+      .join(" · ") || t("dashboard.noCategory");
 
   return (
     <Panel className="border-brand-border">
       <PanelHeader
         title={
           <span className="flex items-center gap-2">
-            <Zap className="size-4 shrink-0 text-brand" aria-hidden="true" /> Quick add
+            <Zap className="size-4 shrink-0 text-brand" aria-hidden="true" />{" "}
+            {t("dashboard.quickAdd")}
           </span>
         }
-        description={`Just type it — “spent 20 at costco on groceries” or “made 300”.${
-          speech.supported ? " Or tap the mic and say it." : ""
+        description={`${t("dashboard.quickAddBlurb")}${
+          speech.supported ? ` ${t("dashboard.quickAddVoice")}` : ""
         }`}
       />
 
@@ -843,8 +834,10 @@ export function QuickAdd({ entries }: { entries: EntryRow[] }) {
                 setText(event.target.value);
                 setError(null);
               }}
-              placeholder={speech.listening ? "Listening…" : "spent 20 on supplies"}
-              aria-label="Quick add entry"
+              placeholder={
+                speech.listening ? t("dashboard.listening") : t("dashboard.quickAddPlaceholder")
+              }
+              aria-label={t("dashboard.quickAddInputLabel")}
               className="h-12 min-w-0 flex-1 rounded-[var(--radius-12)] text-base md:h-12 md:text-base"
             />
             {speech.supported ? (
@@ -854,9 +847,13 @@ export function QuickAdd({ entries }: { entries: EntryRow[] }) {
                 size="icon"
                 className="size-12 shrink-0 rounded-[var(--radius-12)]"
                 onClick={speech.toggle}
-                aria-label={speech.listening ? "Stop listening" : "Add by voice"}
+                aria-label={
+                  speech.listening ? t("dashboard.stopListening") : t("dashboard.startListening")
+                }
                 aria-pressed={speech.listening}
-                title={speech.listening ? "Stop listening" : "Add by voice"}
+                title={
+                  speech.listening ? t("dashboard.stopListening") : t("dashboard.startListening")
+                }
               >
                 {speech.listening ? (
                   <MicOff className="size-4" aria-hidden="true" />
@@ -872,7 +869,7 @@ export function QuickAdd({ entries }: { entries: EntryRow[] }) {
               <div className="pop flex items-center gap-3 rounded-[var(--radius-12)] border border-brand-border bg-brand-soft px-3 py-2.5">
                 <Sparkles className="size-4 shrink-0 text-brand" aria-hidden="true" />
                 <span className="min-w-0 flex-1">
-                  <span className="eyebrow">Reading that as</span>
+                  <span className="eyebrow">{t("dashboard.readingThatAs")}</span>
                   <span className="mt-0.5 block truncate text-[13px] font-medium text-foreground">
                     {detail}
                   </span>
@@ -898,7 +895,7 @@ export function QuickAdd({ entries }: { entries: EntryRow[] }) {
             disabled={!parsed.ok || save.isPending}
             loading={save.isPending}
           >
-            {save.isPending ? "Saving…" : "Add it"}
+            {save.isPending ? t("common.saving") : t("dashboard.addIt")}
           </Button>
         </form>
 
@@ -907,12 +904,12 @@ export function QuickAdd({ entries }: { entries: EntryRow[] }) {
             {speech.listening ? (
               <p className="flex items-center gap-2 text-[13px] text-muted-foreground">
                 <span aria-hidden="true" className="size-2 animate-pulse rounded-full bg-danger" />
-                Listening — say something like “spent twenty dollars on lunch”.
+                {t("dashboard.listeningHint")}
               </p>
             ) : null}
             {speech.error ? <Alert tone="negative">{speech.error}</Alert> : null}
             {saved ? (
-              <Alert tone="positive" title="Saved">
+              <Alert tone="positive" title={t("entryForm.saved")}>
                 {saved}
               </Alert>
             ) : null}
@@ -924,15 +921,17 @@ export function QuickAdd({ entries }: { entries: EntryRow[] }) {
   );
 }
 
-const SUGGESTIONS = [
-  "What did I spend the most on?",
-  "How am I doing this week?",
-  "Am I making money?",
-  "Can I afford $200?",
-  "How much have I spent?",
+/** Openers, as keys — the questions are shown, so they're the reader's language. */
+const SUGGESTION_KEYS = [
+  "dashboard.askMostSpent",
+  "dashboard.askThisWeek",
+  "dashboard.askMakingMoney",
+  "dashboard.askCanIAfford",
+  "dashboard.askHowMuchSpent",
 ];
 
 export function AskSection() {
+  const { t } = useI18n();
   const ask = useServerFn(askBookkeeper);
   const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -948,7 +947,11 @@ export function AskSection() {
         ...prev,
         {
           role: "assistant",
-          text: `Sorry, something went wrong: ${error?.message ?? "unknown error"}`,
+          // The apology is one sentence either way, never an apology with a
+          // reason bolted onto the end of it.
+          text: error?.message
+            ? t("dashboard.askFailed", { message: error.message })
+            : t("dashboard.askFailedUnknown"),
         },
       ]);
     },
@@ -968,19 +971,16 @@ export function AskSection() {
 
   return (
     <Panel>
-      <PanelHeader
-        title="Ask about your money"
-        description="Ask about your numbers in plain English — no accounting talk."
-      />
+      <PanelHeader title={t("nav.ask")} description={t("dashboard.askBlurb")} />
 
       <PanelBody className="space-y-3">
         {messages.length === 0 ? (
           <div className="flex flex-wrap gap-2">
-            {SUGGESTIONS.map((suggestion) => (
+            {SUGGESTION_KEYS.map((key) => (
               <button
-                key={suggestion}
+                key={key}
                 type="button"
-                onClick={() => send(suggestion)}
+                onClick={() => send(t(key))}
                 className={[
                   "inline-flex min-h-10 items-center rounded-full border border-border bg-surface-2 px-3.5 text-[13px]",
                   "cursor-pointer text-foreground",
@@ -988,7 +988,7 @@ export function AskSection() {
                   "hover:border-border-strong hover:bg-accent",
                 ].join(" ")}
               >
-                {suggestion}
+                {t(key)}
               </button>
             ))}
           </div>
@@ -1011,7 +1011,9 @@ export function AskSection() {
           ))
         )}
         {chat.isPending ? (
-          <p className="animate-pulse text-[13px] text-muted-foreground">Looking at your books…</p>
+          <p className="animate-pulse text-[13px] text-muted-foreground">
+            {t("dashboard.askThinking")}
+          </p>
         ) : null}
       </PanelBody>
 
@@ -1027,14 +1029,14 @@ export function AskSection() {
             ref={inputRef}
             value={question}
             onChange={(event) => setQuestion(event.target.value)}
-            placeholder="Ask a question…"
-            aria-label="Ask a question about your money"
+            placeholder={t("dashboard.askPlaceholder")}
+            aria-label={t("nav.ask")}
             className="min-w-0 flex-1"
             autoFocus
           />
           <Button type="submit" size="icon" className="shrink-0" disabled={chat.isPending}>
             <Send className="size-4" aria-hidden="true" />
-            <span className="sr-only">Send</span>
+            <span className="sr-only">{t("common.send")}</span>
           </Button>
         </form>
       </PanelFooter>
