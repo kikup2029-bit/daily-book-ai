@@ -126,6 +126,30 @@ export const en = {
     errEmailInvalid: "That doesn't look like an email address.",
     errPasswordMissing: "Enter your password.",
     errPasswordShort: "Use at least 6 characters.",
+    // --- forgotten password -------------------------------------------
+    forgotPassword: "Forgot your password?",
+    resetTitle: "Reset your password",
+    resetBlurb:
+      "Type the email you signed up with and we'll send you a link to set a new password.",
+    resetSend: "Send the reset link",
+    resetSending: "Sending…",
+    // Deliberately says "if" — see the note in auth.tsx. It must not reveal
+    // whether an address has an account.
+    resetSent:
+      "If that email has an account, a reset link is on its way. Check your inbox, and your spam folder.",
+    backToSignIn: "Back to sign in",
+    newPasswordTitle: "Set a new password",
+    newPasswordBlurb:
+      "Almost done. Pick a new password and you'll be straight back into your books.",
+    newPassword: "New password",
+    confirmPassword: "Type it again",
+    savePassword: "Save my new password",
+    savingPassword: "Saving…",
+    passwordChanged: "Password changed. Taking you to your books…",
+    linkExpiredTitle: "That link has expired",
+    linkExpiredBody:
+      "Reset links only work once, and only for a short time. Ask for a fresh one and it'll be with you in a moment.",
+    errPasswordMismatch: "Those two passwords don't match.",
     errGeneric: "Something went wrong. Please try again.",
     confirmEmail: "Almost there — check your email to confirm your account, then sign in.",
   },

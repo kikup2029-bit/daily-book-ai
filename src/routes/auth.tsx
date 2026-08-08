@@ -30,6 +30,9 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
+/** The three things this one screen does. */
+type Mode = "signin" | "signup" | "reset";
+
 /**
  * Caught before the request goes out, so the reply is instant.
  *
@@ -37,11 +40,15 @@ export const Route = createFileRoute("/auth")({
  * up at render time, so switching language while an error is on screen
  * re-reads it in the new language instead of leaving English behind.
  */
-function checkForm(email: string, password: string, mode: "signin" | "signup") {
+function checkForm(email: string, password: string, mode: Mode) {
   const problems: { email?: string; password?: string } = {};
   if (!email.trim()) problems.email = "auth.errEmailMissing";
   else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()))
     problems.email = "auth.errEmailInvalid";
+
+  // Resetting only needs an address — there is no password to check, which is
+  // the entire reason someone is on this screen.
+  if (mode === "reset") return problems;
 
   if (!password) problems.password = "auth.errPasswordMissing";
   else if (mode === "signup" && password.length < 6) problems.password = "auth.errPasswordShort";
@@ -52,7 +59,7 @@ function checkForm(email: string, password: string, mode: "signin" | "signup") {
 function AuthPage() {
   const navigate = useNavigate();
   const { t } = useI18n();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -102,6 +109,32 @@ function AuthPage() {
 
     setBusy(true);
     try {
+      if (mode === "reset") {
+        cameFromSignUp.current = false;
+        await supabase.auth.resetPasswordForEmail(email.trim(), {
+          // Where the emailed link lands. Must also be listed in Supabase's
+          // allowed redirect URLs, or the link opens and silently does nothing.
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+
+        /*
+         * The same message either way, and deliberately vague about whether
+         * that address has an account.
+         *
+         * "No account with that email" turns this box into a way to find out
+         * who has an account here — which, for a bookkeeping app, tells you
+         * who runs a business. Supabase doesn't error on unknown addresses for
+         * exactly this reason, and we don't undo that by being helpful.
+         *
+         * The cost is that someone who mistypes their address waits for an
+         * email that never comes. That's a worse afternoon for one person than
+         * a leak is for everyone.
+         */
+        setNotice(t("auth.resetSent"));
+        setBusy(false);
+        return;
+      }
+
       if (mode === "signup") {
         // Set before the request goes out: signUp can hand back a session, and
         // the auth-state listener may fire on it before this line is reached
@@ -156,13 +189,18 @@ function AuthPage() {
     }
   };
 
-  const switchMode = () => {
+  const goToMode = (next: Mode) => {
     cameFromSignUp.current = false;
-    setMode(mode === "signin" ? "signup" : "signin");
+    setMode(next);
     setError(null);
     setNotice(null);
     setFieldErrors({});
+    // Leaving a typed password sitting in state across a mode change is how a
+    // stale value gets submitted to the wrong endpoint.
+    if (next === "reset") setPassword("");
   };
+
+  const switchMode = () => goToMode(mode === "signup" ? "signin" : "signup");
 
   return (
     <div className="grid min-h-screen lg:grid-cols-[1fr_minmax(0,520px)]">
@@ -245,10 +283,18 @@ function AuthPage() {
           </div>
 
           <h1 className="text-[26px] leading-tight">
-            {mode === "signin" ? t("auth.welcomeBack") : t("auth.createAccount")}
+            {mode === "signin"
+              ? t("auth.welcomeBack")
+              : mode === "signup"
+                ? t("auth.createAccount")
+                : t("auth.resetTitle")}
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            {mode === "signin" ? t("auth.signInBlurb") : t("auth.signUpBlurb")}
+            {mode === "signin"
+              ? t("auth.signInBlurb")
+              : mode === "signup"
+                ? t("auth.signUpBlurb")
+                : t("auth.resetBlurb")}
           </p>
 
           <form onSubmit={onSubmit} className="mt-7 space-y-4" noValidate>
@@ -272,41 +318,62 @@ function AuthPage() {
               />
             </Field>
 
-            <Field
-              id="password"
-              label={t("auth.password")}
-              error={fieldErrors.password ? t(fieldErrors.password) : undefined}
-              hint={mode === "signup" ? t("auth.passwordHint") : undefined}
-            >
-              <div className="relative">
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  autoComplete={mode === "signin" ? "current-password" : "new-password"}
-                  placeholder={
-                    mode === "signup"
-                      ? t("auth.passwordPlaceholderNew")
-                      : t("auth.passwordPlaceholderExisting")
-                  }
-                  className="pr-11"
-                  value={password}
-                  invalid={Boolean(fieldErrors.password)}
-                  onChange={(event) => {
-                    setPassword(event.target.value);
-                    if (fieldErrors.password)
-                      setFieldErrors((f) => ({ ...f, password: undefined }));
-                  }}
-                />
+            {/* No password field when resetting — there's nothing to type,
+                and showing a disabled one would just look broken. */}
+            {mode === "reset" ? null : (
+              <Field
+                id="password"
+                label={t("auth.password")}
+                error={fieldErrors.password ? t(fieldErrors.password) : undefined}
+                hint={mode === "signup" ? t("auth.passwordHint") : undefined}
+              >
+                <div className="relative">
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    autoComplete={mode === "signin" ? "current-password" : "new-password"}
+                    placeholder={
+                      mode === "signup"
+                        ? t("auth.passwordPlaceholderNew")
+                        : t("auth.passwordPlaceholderExisting")
+                    }
+                    className="pr-11"
+                    value={password}
+                    invalid={Boolean(fieldErrors.password)}
+                    onChange={(event) => {
+                      setPassword(event.target.value);
+                      if (fieldErrors.password)
+                        setFieldErrors((f) => ({ ...f, password: undefined }));
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((current) => !current)}
+                    aria-label={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
+                    aria-pressed={showPassword}
+                    className="absolute right-1 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-[var(--radius-8)] text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                  </button>
+                </div>
+              </Field>
+            )}
+
+            {/*
+              Sits under the password box, where someone looks the moment their
+              password doesn't work. A link buried at the bottom of the page is
+              a link nobody finds while they're annoyed.
+            */}
+            {mode === "signin" ? (
+              <div className="-mt-1 flex justify-end">
                 <button
                   type="button"
-                  onClick={() => setShowPassword((current) => !current)}
-                  aria-label={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
-                  aria-pressed={showPassword}
-                  className="absolute right-1 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-[var(--radius-8)] text-muted-foreground transition-colors hover:text-foreground"
+                  onClick={() => goToMode("reset")}
+                  className="text-[13px] text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
                 >
-                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                  {t("auth.forgotPassword")}
                 </button>
               </div>
-            </Field>
+            ) : null}
 
             {error ? <Alert tone="negative">{error}</Alert> : null}
             {notice ? <Alert tone="positive">{notice}</Alert> : null}
@@ -315,23 +382,39 @@ function AuthPage() {
               {busy
                 ? mode === "signin"
                   ? t("auth.signingIn")
-                  : t("auth.creating")
+                  : mode === "signup"
+                    ? t("auth.creating")
+                    : t("auth.resetSending")
                 : mode === "signin"
                   ? t("auth.signIn")
-                  : t("auth.createOne")}
+                  : mode === "signup"
+                    ? t("auth.createOne")
+                    : t("auth.resetSend")}
             </Button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-muted-foreground">
-            {mode === "signin" ? t("auth.newHere") : t("auth.haveAccount")}{" "}
-            <button
-              type="button"
-              onClick={switchMode}
-              className="font-semibold text-brand underline-offset-4 hover:underline"
-            >
-              {mode === "signin" ? t("auth.createOne") : t("auth.signIn")}
-            </button>
-          </p>
+          {mode === "reset" ? (
+            <p className="mt-6 text-center text-sm text-muted-foreground">
+              <button
+                type="button"
+                onClick={() => goToMode("signin")}
+                className="font-semibold text-brand underline-offset-4 hover:underline"
+              >
+                {t("auth.backToSignIn")}
+              </button>
+            </p>
+          ) : (
+            <p className="mt-6 text-center text-sm text-muted-foreground">
+              {mode === "signin" ? t("auth.newHere") : t("auth.haveAccount")}{" "}
+              <button
+                type="button"
+                onClick={switchMode}
+                className="font-semibold text-brand underline-offset-4 hover:underline"
+              >
+                {mode === "signin" ? t("auth.createOne") : t("auth.signIn")}
+              </button>
+            </p>
+          )}
 
           <p className="mt-8 flex items-center justify-center gap-1.5 text-[12px] text-muted-foreground">
             <Lock className="size-3" aria-hidden="true" />
