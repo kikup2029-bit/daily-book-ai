@@ -10,7 +10,7 @@ import { LanguageSwitcher } from "@/components/language-switcher";
 import { ReminderRunner } from "@/components/daily-reminder";
 import { OfflineBar } from "@/components/offline-bar";
 import { TrialBanner } from "@/components/trial-banner";
-import { HELP_NAV } from "@/lib/help-content";
+import { helpNav } from "@/lib/help-content";
 import { useI18n } from "@/lib/i18n";
 import { clearOfflineData } from "@/lib/register-sw";
 import { browserQueueStorage, counts } from "@/lib/offline-queue";
@@ -98,9 +98,9 @@ function buildNav(t: (path: string) => string): Item[] {
     {
       label: t("nav.help"),
       to: "/help",
-      // Help sections come from the help content itself, which is still
-      // English-only — see the note in the handoff.
-      children: [{ to: "/help", label: t("nav.allTopics") }, ...HELP_NAV],
+      // Help sections come from the help content itself, so the menu and the
+      // page can't drift apart — and both follow the chosen language.
+      children: [{ to: "/help", label: t("nav.allTopics") }, ...helpNav(t)],
     },
   ];
 }

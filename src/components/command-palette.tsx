@@ -7,112 +7,201 @@ import { CornerDownLeft, Plus, Search } from "lucide-react";
 import { getEntries } from "@/lib/books.functions";
 import { parseQuickEntry } from "@/lib/quick-entry";
 import { useOfflineEntries } from "@/lib/use-offline";
+import { useI18n } from "@/lib/i18n";
 
-/** Every page you can jump to, with words people might search for instead. */
-const PAGES: Array<{ to: string; label: string; group: string; keywords?: string }> = [
-  { to: "/dashboard", label: "Today", group: "Today", keywords: "overview home safe to spend" },
-  { to: "/add", label: "Add an entry", group: "Today", keywords: "new log record income expense" },
+/**
+ * Every page you can jump to.
+ *
+ * `labelKey` and `groupKey` are dictionary keys rather than words, so the list
+ * reads in the same language as the rest of the app. `keywords` stays English
+ * on purpose: it's never shown, and it exists so that typing "pie" or "runway"
+ * still finds the page. The translated label is matched too, so searching in
+ * your own language works without needing translated aliases.
+ */
+const PAGES: Array<{ to: string; labelKey: string; groupKey: string; keywords?: string }> = [
+  {
+    to: "/dashboard",
+    labelKey: "nav.today",
+    groupKey: "nav.today",
+    keywords: "overview home safe to spend",
+  },
+  {
+    to: "/add",
+    labelKey: "nav.addEntry",
+    groupKey: "nav.today",
+    keywords: "new log record income expense",
+  },
   {
     to: "/entries",
-    label: "Find an entry",
-    group: "Today",
+    labelKey: "nav.findEntry",
+    groupKey: "nav.today",
     keywords: "search filter edit fix correct change history all entries find",
   },
-  { to: "/streaks", label: "Your streaks", group: "Today", keywords: "habit run profitable" },
-  { to: "/ask", label: "Ask about your money", group: "Today", keywords: "chat question ai help" },
+  {
+    to: "/streaks",
+    labelKey: "nav.streaks",
+    groupKey: "nav.today",
+    keywords: "habit run profitable",
+  },
+  {
+    to: "/ask",
+    labelKey: "nav.ask",
+    groupKey: "nav.today",
+    keywords: "chat question ai help",
+  },
 
-  { to: "/monthly", label: "This month", group: "This month", keywords: "overview totals profit" },
+  {
+    to: "/monthly",
+    labelKey: "nav.thisMonth",
+    groupKey: "nav.thisMonth",
+    keywords: "overview totals profit",
+  },
   {
     to: "/categories",
-    label: "Where money went",
-    group: "This month",
+    labelKey: "nav.whereMoneyWent",
+    groupKey: "nav.thisMonth",
     keywords: "categories pie spending breakdown",
   },
-  { to: "/daybyday", label: "Day by day", group: "This month", keywords: "chart daily" },
-  { to: "/week", label: "Your week", group: "This month", keywords: "digest recap summary" },
+  {
+    to: "/daybyday",
+    labelKey: "nav.dayByDay",
+    groupKey: "nav.thisMonth",
+    keywords: "chart daily",
+  },
+  {
+    to: "/week",
+    labelKey: "nav.yourWeek",
+    groupKey: "nav.thisMonth",
+    keywords: "digest recap summary",
+  },
   {
     to: "/outlook",
-    label: "Can you cover it",
-    group: "This month",
+    labelKey: "nav.canYouCover",
+    groupKey: "nav.thisMonth",
     keywords: "forecast runway rent future",
   },
   {
     to: "/busydays",
-    label: "Busy and quiet days",
-    group: "This month",
+    labelKey: "nav.busyDays",
+    groupKey: "nav.thisMonth",
     keywords: "slow best weekday pattern",
   },
-  { to: "/budgets", label: "Budgets", group: "This month", keywords: "limits caps" },
-  { to: "/goals", label: "Savings goals", group: "This month", keywords: "saving target" },
-  { to: "/bills", label: "Bills", group: "This month", keywords: "due recurring subscriptions" },
+  {
+    to: "/budgets",
+    labelKey: "nav.budgets",
+    groupKey: "nav.thisMonth",
+    keywords: "limits caps",
+  },
+  {
+    to: "/goals",
+    labelKey: "nav.goals",
+    groupKey: "nav.thisMonth",
+    keywords: "saving target",
+  },
+  {
+    to: "/bills",
+    labelKey: "nav.bills",
+    groupKey: "nav.thisMonth",
+    keywords: "due recurring subscriptions",
+  },
 
   {
     to: "/invoices",
-    label: "Invoices",
-    group: "Invoices",
+    labelKey: "nav.invoices",
+    groupKey: "nav.invoices",
     keywords: "invoice bill customer owed outstanding overdue unpaid client",
   },
   {
     to: "/invoice-new",
-    label: "New invoice",
-    group: "Invoices",
+    labelKey: "nav.newInvoice",
+    groupKey: "nav.invoices",
     keywords: "create invoice bill customer new charge",
   },
 
-  { to: "/household", label: "Household", group: "Tools", keywords: "share partner split invite" },
+  {
+    to: "/household",
+    labelKey: "nav.household",
+    groupKey: "nav.tools",
+    keywords: "share partner split invite",
+  },
   {
     to: "/reminders",
-    label: "Daily reminder",
-    group: "Tools",
+    labelKey: "nav.reminder",
+    groupKey: "nav.tools",
     keywords: "reminder notification nudge alert daily habit time",
   },
   {
     to: "/margins",
-    label: "Item margins",
-    group: "Tools",
+    labelKey: "nav.margins",
+    groupKey: "nav.tools",
     keywords: "profit per item price product",
   },
-  { to: "/drawer", label: "Cash drawer", group: "Tools", keywords: "till count reconcile" },
-  { to: "/tax", label: "Tax set-aside", group: "Tools", keywords: "tax rate hold back" },
-  { to: "/lock", label: "Lock this app", group: "Tools", keywords: "pin privacy security" },
+  {
+    to: "/drawer",
+    labelKey: "nav.drawer",
+    groupKey: "nav.tools",
+    keywords: "till count reconcile",
+  },
+  {
+    to: "/tax",
+    labelKey: "nav.tax",
+    groupKey: "nav.tools",
+    keywords: "tax rate hold back",
+  },
+  {
+    to: "/lock",
+    labelKey: "nav.lock",
+    groupKey: "nav.tools",
+    keywords: "pin privacy security",
+  },
 
-  { to: "/export", label: "Export records", group: "Export", keywords: "download accountant" },
+  {
+    to: "/export",
+    labelKey: "palette.pageExportRecords",
+    groupKey: "nav.export",
+    keywords: "download accountant",
+  },
   {
     to: "/export?download=csv",
-    label: "Download CSV",
-    group: "Export",
+    labelKey: "nav.downloadCsv",
+    groupKey: "nav.export",
     keywords: "spreadsheet excel",
   },
-  { to: "/export?download=pdf", label: "Download PDF", group: "Export", keywords: "print pdf" },
+  {
+    to: "/export?download=pdf",
+    labelKey: "nav.downloadPdf",
+    groupKey: "nav.export",
+    keywords: "print pdf",
+  },
 
   {
     to: "/help",
-    label: "Help — how everything works",
-    group: "Help",
+    labelKey: "palette.pageHelp",
+    groupKey: "nav.help",
     keywords: "help guide tutorial how to stuck support explain",
   },
   {
     to: "/help?group=logging",
-    label: "Help: logging money",
-    group: "Help",
+    labelKey: "palette.pageHelpLogging",
+    groupKey: "nav.help",
     keywords: "help entry receipt voice quick add",
   },
   {
     to: "/help?group=month",
-    label: "Help: this month",
-    group: "Help",
+    labelKey: "palette.pageHelpMonth",
+    groupKey: "nav.help",
     keywords: "help budgets goals bills forecast charts",
   },
   {
     to: "/help?group=tools",
-    label: "Help: tools",
-    group: "Help",
+    labelKey: "palette.pageHelpTools",
+    groupKey: "nav.help",
     keywords: "help household split margins drawer tax lock",
   },
   {
     to: "/help?group=export",
-    label: "Help: export",
-    group: "Help",
+    labelKey: "palette.pageHelpExport",
+    groupKey: "nav.help",
     keywords: "help csv pdf accountant",
   },
 ];
@@ -132,6 +221,7 @@ function matches(query: string, text: string) {
 }
 
 export function CommandPalette() {
+  const { t } = useI18n();
   const navigate = useNavigate();
   const { user } = useRouteContext({ from: "/_authenticated" });
   const offline = useOfflineEntries(user?.id);
@@ -166,12 +256,19 @@ export function CommandPalette() {
     [query, history, knownCategories],
   );
 
+  // Labels are resolved before matching, so typing in your own language finds
+  // the page you're reading on screen rather than the English name behind it.
+  const pages = useMemo(
+    () => PAGES.map((page) => ({ ...page, label: t(page.labelKey), group: t(page.groupKey) })),
+    [t],
+  );
+
   const pageResults = useMemo(
     () =>
-      PAGES.filter(
-        (page) => matches(query, page.label) || matches(query, page.keywords ?? ""),
-      ).slice(0, 8),
-    [query],
+      pages
+        .filter((page) => matches(query, page.label) || matches(query, page.keywords ?? ""))
+        .slice(0, 8),
+    [pages, query],
   );
 
   type Action = { kind: "log" } | { kind: "page"; to: string; label: string; group: string };
@@ -210,8 +307,8 @@ export function CommandPalette() {
     onSuccess: (result) => {
       setNote(
         result.queued
-          ? `Saved on this device, will send later: ${parsed.summary}`
-          : `Logged: ${parsed.summary}`,
+          ? t("palette.queued", { summary: parsed.summary })
+          : t("palette.logged", { summary: parsed.summary }),
       );
       setQuery("");
       window.setTimeout(() => setNote(null), 2500);
@@ -262,13 +359,13 @@ export function CommandPalette() {
         type="button"
         className="absolute inset-0 bg-black/55 backdrop-blur-sm"
         onClick={close}
-        aria-label="Close command palette"
+        aria-label={t("palette.close")}
       />
 
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Command palette"
+        aria-label={t("palette.dialogLabel")}
         className="floating pop relative w-full max-w-xl overflow-hidden"
       >
         <div className="flex items-center gap-3 border-b border-border px-4">
@@ -289,9 +386,9 @@ export function CommandPalette() {
                 run(actions[cursor]);
               }
             }}
-            placeholder="Go anywhere, or type an entry like “spent 20 on supplies”"
+            placeholder={t("palette.placeholder")}
             className="h-14 w-full min-w-0 bg-transparent text-base outline-none placeholder:text-muted-foreground sm:text-[15px]"
-            aria-label="Search or log an entry"
+            aria-label={t("palette.inputLabel")}
           />
           <kbd className="num hidden shrink-0 rounded-[var(--radius-8)] border border-border-strong bg-surface-2 px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground sm:block">
             ESC
@@ -310,7 +407,7 @@ export function CommandPalette() {
 
           {actions.length === 0 ? (
             <p className="px-3 py-8 text-center text-sm text-muted-foreground">
-              Nothing matches that.
+              {t("common.noMatch")}
             </p>
           ) : null}
 
@@ -336,7 +433,7 @@ export function CommandPalette() {
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-medium">
-                      {save.isPending ? "Logging…" : "Log this entry"}
+                      {save.isPending ? t("palette.logging") : t("palette.logThis")}
                     </span>
                     <span className="block truncate text-[12px] text-muted-foreground">
                       {parsed.summary}
@@ -376,9 +473,9 @@ export function CommandPalette() {
         </div>
 
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border bg-surface-2/50 px-4 py-2.5 text-[11px] text-muted-foreground">
-          <span>↑↓ to move</span>
-          <span>↵ to pick</span>
-          <span className="ml-auto hidden sm:inline">Type an amount to log it straight away</span>
+          <span>{t("palette.moveHint")}</span>
+          <span>{t("palette.pickHint")}</span>
+          <span className="ml-auto hidden sm:inline">{t("palette.typeHint")}</span>
         </div>
       </div>
     </div>

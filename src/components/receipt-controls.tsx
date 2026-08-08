@@ -5,9 +5,11 @@ import { Camera, Trash2 } from "lucide-react";
 
 import { attachReceipt } from "@/lib/books.functions";
 import { deleteReceipt, getReceiptUrl, uploadReceipt } from "@/lib/receipts";
+import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 
-export function ReceiptThumb({ path, alt = "Receipt photo" }: { path: string; alt?: string }) {
+export function ReceiptThumb({ path, alt }: { path: string; alt?: string }) {
+  const { t } = useI18n();
   const [url, setUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -44,9 +46,14 @@ export function ReceiptThumb({ path, alt = "Receipt photo" }: { path: string; al
         "transition-[border-color,box-shadow] duration-[var(--dur-fast)] ease-[var(--ease)]",
         "hover:border-border-strong hover:shadow-[var(--shadow-sm)]",
       ].join(" ")}
-      title="View receipt"
+      title={t("dashboard.viewReceipt")}
     >
-      <img src={url} alt={alt} loading="lazy" className="size-full object-cover" />
+      <img
+        src={url}
+        alt={alt ?? t("receipt.photoAlt")}
+        loading="lazy"
+        className="size-full object-cover"
+      />
     </a>
   );
 }
@@ -58,6 +65,7 @@ export function ReceiptAttachButton({
   entryId: string;
   currentPath: string | null;
 }) {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const save = useServerFn(attachReceipt);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -108,8 +116,8 @@ export function ReceiptAttachButton({
         loading={busy}
         disabled={busy}
         onClick={() => inputRef.current?.click()}
-        aria-label={currentPath ? "Replace receipt photo" : "Add receipt photo"}
-        title={currentPath ? "Replace receipt photo" : "Add receipt photo"}
+        aria-label={currentPath ? t("receipt.replace") : t("receipt.add")}
+        title={currentPath ? t("receipt.replace") : t("receipt.add")}
       >
         {busy ? null : <Camera className="size-4" aria-hidden="true" />}
       </Button>
@@ -121,8 +129,8 @@ export function ReceiptAttachButton({
           className="hover:text-danger"
           disabled={busy}
           onClick={() => remove.mutate()}
-          aria-label="Remove receipt photo"
-          title="Remove receipt photo"
+          aria-label={t("receipt.remove")}
+          title={t("receipt.remove")}
         >
           <Trash2 className="size-4" aria-hidden="true" />
         </Button>

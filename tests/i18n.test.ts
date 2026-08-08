@@ -4,7 +4,7 @@ import { hi } from "../src/lib/i18n/hi.ts";
 import { gu } from "../src/lib/i18n/gu.ts";
 import { ur } from "../src/lib/i18n/ur.ts";
 import { zh } from "../src/lib/i18n/zh.ts";
-import { LOCALES, detectLocale, isLocale } from "../src/lib/i18n/locales.ts";
+import { LOCALES, LOCALE_LIST, detectLocale, isLocale } from "../src/lib/i18n/locales.ts";
 import { collectPaths, interpolate, makeTranslator, missingKeys } from "../src/lib/i18n/translate.ts";
 
 let pass = 0, fail = 0;
@@ -15,23 +15,47 @@ const eq = (a: unknown, b: unknown, l: string) => {
   same ? pass++ : fail++;
 };
 
-const LANGS = [["es", es], ["hi", hi], ["gu", gu], ["ur", ur], ["zh", zh]] as const;
+const ALL_LANGS = [["es", es], ["hi", hi], ["gu", gu], ["ur", ur], ["zh", zh]] as const;
 
 /*
- * Keys added since the last translation pass.
+ * Only SHIPPED languages have to be complete.
  *
- * These fall back to English per key at runtime, which is correct and visible
- * rather than broken. Listing them here keeps the suite honest: the count is
- * the size of the translation debt, and it should trend to zero.
+ * Urdu and Chinese have dictionaries but are marked `shipped: false` in
+ * locales.ts, so the picker doesn't offer them and nobody can end up looking at
+ * one. Holding them to the completeness bar would mean a permanently red suite
+ * for a language no reader can reach — and a suite that's always red is a suite
+ * everyone learns to ignore.
+ *
+ * They are NOT unchecked, though. See the debt report at the bottom: an
+ * unshipped language still has to be internally valid, and the moment its debt
+ * hits zero the report says so, which is the cue to flip `shipped: true`.
  */
-// Empty, and it should stay that way. A key parked here renders in English for
-// everyone — which, in a nav bar, looks like a bug rather than a gap.
-const PENDING_TRANSLATION = new Set<string>([]);
+const LANGS = ALL_LANGS.filter(([name]) => LOCALES[name].shipped);
+const UNSHIPPED = ALL_LANGS.filter(([name]) => !LOCALES[name].shipped);
 
-// --- completeness: no locale may be missing a key
+// --- completeness: no SHIPPED locale may be missing a key
 for (const [name, dict] of LANGS) {
-  const missing = missingKeys(dict, en).filter((k) => !PENDING_TRANSLATION.has(k));
-  eq(missing, [], `${name} has every key (bar ${PENDING_TRANSLATION.size} awaiting translation)`);
+  eq(missingKeys(dict, en), [], `${name} is shipped, so it has every key`);
+}
+
+// --- an unshipped language must be genuinely incomplete, not silently forgotten
+for (const [name, dict] of UNSHIPPED) {
+  const missing = missingKeys(dict, en).length;
+  ok(
+    missing > 0,
+    `${name} is marked shipped: false but has every key — finish the job and ` +
+      `set shipped: true in locales.ts, or readers never see the work`,
+  );
+}
+
+// --- the picker must never offer a language it can't fully render
+for (const locale of LOCALE_LIST) {
+  if (locale === "en") continue;
+  const entry = ALL_LANGS.find(([name]) => name === locale);
+  ok(entry !== undefined, `${locale} is offered in the picker and has a dictionary`);
+  if (entry) {
+    eq(missingKeys(entry[1], en), [], `${locale} is offered, so nothing falls back to English`);
+  }
 }
 
 /*

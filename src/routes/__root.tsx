@@ -16,6 +16,24 @@ import { setSupabaseRuntimeConfig } from "../integrations/supabase/client";
 import { registerServiceWorker } from "../lib/register-sw";
 import { I18nProvider } from "../lib/i18n";
 
+/*
+ * These two screens are deliberately still in English. It isn't an oversight.
+ *
+ * `notFoundComponent` and `errorComponent` are options on the *root route*, and
+ * the router renders them in place of the root route's `component` — which is
+ * `RootComponent` below, the thing that mounts `<I18nProvider>`. So when either
+ * of them is on screen, the provider isn't. `useI18n()` throws when there's no
+ * provider (see src/lib/i18n/index.tsx), which in the error boundary would
+ * mean the error screen itself throws: a blank page instead of a page in the
+ * wrong language.
+ *
+ * (A 404 from an unmatched URL does render at the `<Outlet />`, inside the
+ * provider. But a `notFound()` thrown from the root loader replaces the
+ * component instead, so the same component has to survive both positions.)
+ *
+ * Translating these needs a context read that returns null instead of throwing,
+ * which is a change to the i18n module rather than to this file.
+ */
 function NotFoundComponent() {
   return (
     <div className="screen-y flex min-h-screen items-center justify-center bg-background px-4">

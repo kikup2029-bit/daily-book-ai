@@ -10,8 +10,10 @@ import { Link } from "@tanstack/react-router";
 import { WordMark } from "@/components/brand-mark";
 // Shared with the Privacy and Terms pages, so the three can't drift apart.
 import { CONTACT_EMAIL } from "@/lib/contact";
+import { useI18n } from "@/lib/i18n";
 
 export function LandingFooter() {
+  const { t } = useI18n();
   const linkClass =
     "rounded-[var(--radius-8)] text-[13px] text-muted-foreground transition-colors duration-[var(--dur-fast)] hover:text-foreground";
 
@@ -24,31 +26,31 @@ export function LandingFooter() {
         <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
           <WordMark />
 
-          <nav aria-label="Footer">
+          <nav aria-label={t("landing.footerNavLabel")}>
             <ul className="flex flex-wrap items-center gap-x-5 gap-y-2">
               <li>
                 <Link to="/privacy" className={linkClass}>
-                  Privacy
+                  {t("landing.footerPrivacy")}
                 </Link>
               </li>
               <li>
                 <Link to="/terms" className={linkClass}>
-                  Terms
+                  {t("landing.footerTerms")}
                 </Link>
               </li>
               <li>
                 <a href={`mailto:${CONTACT_EMAIL}`} className={linkClass}>
-                  Contact
+                  {t("landing.footerContact")}
                 </a>
               </li>
               <li>
                 <Link to="/auth" className={linkClass}>
-                  Sign in
+                  {t("landing.signIn")}
                 </Link>
               </li>
               <li>
                 <Link to="/" hash="pricing" className={linkClass}>
-                  Pricing
+                  {t("landing.footerPricing")}
                 </Link>
               </li>
             </ul>
@@ -56,8 +58,7 @@ export function LandingFooter() {
         </div>
 
         <p className="mt-8 text-[12px] leading-relaxed text-muted-foreground">
-          SimpleBooks is a record-keeping tool, not an accountant. It won&rsquo;t file your tax
-          return or tell you what you owe.
+          {t("landing.footerDisclaimer")}
         </p>
       </div>
     </footer>

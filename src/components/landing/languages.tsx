@@ -1,24 +1,32 @@
 /**
- * The six languages, each written the way its own speakers write it.
+ * The languages, each written the way its own speakers write it.
  *
- * The list comes from LOCALES rather than being retyped here, so the page can
- * never advertise a language the app has since dropped — or miss one it gained.
+ * The list comes from LOCALE_LIST rather than being retyped here, so the page
+ * can never advertise a language the app has since dropped — or miss one it
+ * gained. The COUNT is derived from the same list for the same reason: the copy
+ * used to say "all six" as literal text, and the moment Urdu and Chinese were
+ * held back it became a false claim on the one section whose entire subject is
+ * how many languages there are.
+ *
  * Each name carries its own lang and dir, which is what lets a screen reader
- * pick the right voice and puts اردو the right way round on an English page.
+ * pick the right voice and puts a right-to-left name the correct way round on
+ * an otherwise left-to-right page.
  */
 
-import { LOCALES, LOCALE_LIST } from "@/lib/i18n";
+import { LOCALES, LOCALE_LIST, useI18n } from "@/lib/i18n";
 
 import { Section, SectionHeading } from "@/components/landing/section";
 
 export function Languages() {
+  const { t } = useI18n();
+
   return (
     <Section id="languages" labelledBy="languages-heading" className="bg-surface-2">
       <SectionHeading
         id="languages-heading"
-        eyebrow="Languages"
-        title="In your language, not translated at you"
-        description="The whole app — buttons, help, dates and amounts — speaks all six. Change it any time from the language button at the top."
+        eyebrow={t("landing.languagesEyebrow")}
+        title={t("landing.languagesTitle")}
+        description={t("landing.languagesDescription", { count: LOCALE_LIST.length })}
       />
 
       <ul className="mt-10 flex flex-wrap items-center justify-center gap-3">
@@ -38,10 +46,16 @@ export function Languages() {
         })}
       </ul>
 
-      <p className="mt-6 text-center text-[13px] text-muted-foreground">
-        Urdu reads right to left, and the layout mirrors with it rather than leaving the text
-        stranded in a left-to-right shell.
-      </p>
+      {/*
+        Only shown when a right-to-left language is actually on offer. The note
+        names Urdu specifically, and Urdu is currently held back — leaving it up
+        would boast about mirroring a layout for a language you can't pick.
+      */}
+      {LOCALE_LIST.some((code) => LOCALES[code].dir === "rtl") ? (
+        <p className="mt-6 text-center text-[13px] text-muted-foreground">
+          {t("landing.languagesRtlNote")}
+        </p>
+      ) : null}
     </Section>
   );
 }

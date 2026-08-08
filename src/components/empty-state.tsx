@@ -5,6 +5,7 @@
 import { Link } from "@tanstack/react-router";
 import { Sparkles } from "lucide-react";
 
+import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 
 export function EmptyState({
@@ -17,6 +18,8 @@ export function EmptyState({
   /** A greyed-out mock of the populated page. */
   sample?: React.ReactNode;
 }) {
+  const { t } = useI18n();
+
   return (
     <section className="py-8">
       <div className="flex flex-col items-center text-center">
@@ -33,14 +36,14 @@ export function EmptyState({
         </p>
 
         <Button asChild variant="brand" size="lg" className="mt-6">
-          <Link to="/add">Log your first entry</Link>
+          <Link to="/add">{t("empty.logFirstEntry")}</Link>
         </Button>
       </div>
 
       {sample ? (
         <div className="mt-10">
           <div className="flex items-center gap-3">
-            <p className="eyebrow shrink-0">Here&apos;s what this will look like</p>
+            <p className="eyebrow shrink-0">{t("empty.samplePreview")}</p>
             <span aria-hidden="true" className="h-px flex-1 bg-border" />
           </div>
           <div

@@ -9,49 +9,63 @@
  * and the attribution line left visibly blank.
  */
 
+import { useMemo } from "react";
+
 import { Badge } from "@/components/ui/kit";
+import { useI18n } from "@/lib/i18n";
+import type { Translator } from "@/lib/i18n/translate";
 
 import { Section, SectionHeading } from "@/components/landing/section";
 
-const PLACEHOLDERS = [
-  {
-    quote:
-      "This is a placeholder. A real quote from a market trader about their daily takings will go here.",
-    trade: "Market trader",
-  },
-  {
-    quote:
-      "This is a placeholder. A real quote from a café owner about receipts and suppliers will go here.",
-    trade: "Café owner",
-  },
-  {
-    quote:
-      "This is a placeholder. A real quote from a self-employed cleaner about invoices will go here.",
-    trade: "Self-employed cleaner",
-  },
-];
+/**
+ * The placeholder cards. Built from `t` per render rather than held in a module
+ * constant, so switching language re-reads them — a constant would keep the
+ * language that happened to be active when this module was first imported.
+ */
+function placeholders(t: Translator) {
+  return [
+    {
+      id: "trader",
+      quote: t("landing.testimonialTraderQuote"),
+      trade: t("landing.testimonialTraderTrade"),
+    },
+    {
+      id: "cafe",
+      quote: t("landing.testimonialCafeQuote"),
+      trade: t("landing.testimonialCafeTrade"),
+    },
+    {
+      id: "cleaner",
+      quote: t("landing.testimonialCleanerQuote"),
+      trade: t("landing.testimonialCleanerTrade"),
+    },
+  ];
+}
 
 export function Testimonials() {
+  const { t } = useI18n();
+  const items = useMemo(() => placeholders(t), [t]);
+
   return (
     <Section id="testimonials" labelledBy="testimonials-heading">
       <SectionHeading
         id="testimonials-heading"
-        eyebrow="Customer stories"
-        title="We haven't got any of these yet"
-        description="Nobody below is a real person and none of these are real quotes. They are placeholders showing where customer stories will sit once real SimpleBooks users have used it and agreed to be quoted by name."
+        eyebrow={t("landing.testimonialsEyebrow")}
+        title={t("landing.testimonialsTitle")}
+        description={t("landing.testimonialsDescription")}
       />
 
       <ul className="mt-10 grid gap-5 sm:grid-cols-3">
-        {PLACEHOLDERS.map((item) => (
-          <li key={item.trade} className="panel flex flex-col gap-4 border-dashed p-5">
+        {items.map((item) => (
+          <li key={item.id} className="panel flex flex-col gap-4 border-dashed p-5">
             <Badge tone="warning" className="self-start">
-              Example
+              {t("landing.testimonialExampleBadge")}
             </Badge>
 
             <p className="flex-1 text-[14px] leading-relaxed text-muted-foreground">{item.quote}</p>
 
             <div className="border-t pt-3">
-              <p className="text-[13px] font-semibold">Name to be added</p>
+              <p className="text-[13px] font-semibold">{t("landing.testimonialNamePending")}</p>
               <p className="text-[12px] text-muted-foreground">{item.trade}</p>
             </div>
           </li>

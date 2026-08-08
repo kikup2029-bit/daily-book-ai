@@ -1,3 +1,20 @@
+/**
+ * The downloaded file, and why its text is deliberately not translated.
+ *
+ * The Export *page* is fully localised. The file it produces is not, on purpose.
+ * The column headings here are closer to a data schema than to prose: the CSV is
+ * opened in a spreadsheet and often re-imported by an accountant's software, and
+ * a header row that says "Date" one month and something else the next silently
+ * breaks every formula and import mapping pointing at it. The PDF shares this
+ * exact header array, so translating one and not the other would have the two
+ * downloads disagree about what the same column is called.
+ *
+ * So the rule is: everything on screen follows the reader's language, and the
+ * artefact handed to a third party stays in one fixed language. If this is ever
+ * revisited, the honest fix is a locale-tagged filename plus a translated PDF
+ * *and* a stable machine-readable CSV — not translating these strings in place.
+ */
+
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 

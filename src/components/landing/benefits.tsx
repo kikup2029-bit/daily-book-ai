@@ -5,6 +5,7 @@
  * you think about after you've decided you like it.
  */
 
+import { useMemo } from "react";
 import {
   Camera,
   FileText,
@@ -16,59 +17,81 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { useI18n } from "@/lib/i18n";
+import type { Translator } from "@/lib/i18n/translate";
+
 import { Section, SectionHeading } from "@/components/landing/section";
 
-const BENEFITS: Array<{ icon: LucideIcon; title: string; body: string }> = [
-  {
-    icon: Zap,
-    title: "Logging takes seconds",
-    body: "Type or say what came in or went out and it's saved before the next customer.",
-  },
-  {
-    icon: Sparkles,
-    title: "Ask about your own figures",
-    body: "Ask something like “how was last week?” and get an answer in the same plain words.",
-  },
-  {
-    icon: Camera,
-    title: "Photograph a receipt",
-    body: "Take a picture and the shop, date and amount fill themselves in for you to check.",
-  },
-  {
-    icon: FileText,
-    title: "Send an invoice",
-    body: "Make one in a minute, send it, and see at a glance which ones are still unpaid.",
-  },
-  {
-    icon: PiggyBank,
-    title: "Budgets, bills and goals",
-    body: "Set what you mean to spend, when bills land, and what you're putting money aside for.",
-  },
-  {
-    icon: WifiOff,
-    title: "Works with no signal",
-    body: "Keep logging in a market hall or a basement; it catches up when you're back online.",
-  },
-  {
-    icon: Lock,
-    title: "Your figures stay yours",
-    body: "Your books are private to your account and only shared with someone you invite.",
-  },
-];
+/**
+ * A function of `t`, not a module constant: a constant is built once at import
+ * and would keep whichever language loaded first for the life of the tab. The
+ * `id` is what stays put — the words are looked up fresh on every render.
+ */
+function benefits(
+  t: Translator,
+): Array<{ id: string; icon: LucideIcon; title: string; body: string }> {
+  return [
+    {
+      id: "logging",
+      icon: Zap,
+      title: t("landing.benefitLoggingTitle"),
+      body: t("landing.benefitLoggingBody"),
+    },
+    {
+      id: "ask",
+      icon: Sparkles,
+      title: t("landing.benefitAskTitle"),
+      body: t("landing.benefitAskBody"),
+    },
+    {
+      id: "receipt",
+      icon: Camera,
+      title: t("landing.benefitReceiptTitle"),
+      body: t("landing.benefitReceiptBody"),
+    },
+    {
+      id: "invoice",
+      icon: FileText,
+      title: t("landing.benefitInvoiceTitle"),
+      body: t("landing.benefitInvoiceBody"),
+    },
+    {
+      id: "budgets",
+      icon: PiggyBank,
+      title: t("landing.benefitBudgetsTitle"),
+      body: t("landing.benefitBudgetsBody"),
+    },
+    {
+      id: "offline",
+      icon: WifiOff,
+      title: t("landing.benefitOfflineTitle"),
+      body: t("landing.benefitOfflineBody"),
+    },
+    {
+      id: "privacy",
+      icon: Lock,
+      title: t("landing.benefitPrivacyTitle"),
+      body: t("landing.benefitPrivacyBody"),
+    },
+  ];
+}
 
 export function Benefits() {
+  const { t } = useI18n();
+  const items = useMemo(() => benefits(t), [t]);
+
   return (
     <Section id="features" labelledBy="features-heading" className="bg-surface-2">
       <SectionHeading
         id="features-heading"
-        eyebrow="What it does"
-        title="Everything a one-person business needs, and nothing it doesn't"
-        description="No chart of accounts, no double entry, no jargon. Just the things you do every day."
+        eyebrow={t("landing.benefitsEyebrow")}
+        title={t("landing.benefitsTitle")}
+        description={t("landing.benefitsDescription")}
       />
 
       <ul className="mt-10 grid gap-x-8 gap-y-7 sm:grid-cols-2 lg:grid-cols-3">
-        {BENEFITS.map(({ icon: Icon, title, body }) => (
-          <li key={title} className="flex gap-3.5">
+        {items.map(({ id, icon: Icon, title, body }) => (
+          <li key={id} className="flex gap-3.5">
             <span
               className="flex size-9 shrink-0 items-center justify-center rounded-[var(--radius-10)] bg-brand-soft text-brand"
               aria-hidden="true"

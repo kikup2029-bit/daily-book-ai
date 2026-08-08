@@ -20,6 +20,8 @@ import {
 } from "@/components/ui/kit";
 import { getEntries } from "@/lib/books.functions";
 import { exportCsv, exportPdf } from "@/lib/export";
+import { useI18n } from "@/lib/i18n";
+import type { Translator } from "@/lib/i18n/translate";
 
 export const Route = createFileRoute("/_authenticated/export")({
   head: () => ({
@@ -46,24 +48,33 @@ export const Route = createFileRoute("/_authenticated/export")({
   component: ExportPage,
 });
 
-const money = (value: number) =>
-  value.toLocaleString(undefined, { style: "currency", currency: "USD" });
-
 const monthStart = () => {
   const now = new Date();
   return new Date(now.getFullYear(), now.getMonth(), 1).toLocaleDateString("en-CA");
 };
 
 // Obviously-fake rows shown to brand-new users so they can see what the
-// export feature produces before they've logged any real entries.
-const SAMPLE_ROWS: ExportEntry[] = [
+// export feature produces before they've logged any real entries. The
+// categories are read on screen, so they follow the reader's language.
+const sampleRows = (t: Translator): ExportEntry[] => [
   { entry_date: "2026-07-01", amount_in: 150, amount_out: 0, spent_on: null },
-  { entry_date: "2026-07-03", amount_in: 0, amount_out: 42.5, spent_on: "Supplies" },
+  {
+    entry_date: "2026-07-03",
+    amount_in: 0,
+    amount_out: 42.5,
+    spent_on: t("export.sampleCategorySupplies"),
+  },
   { entry_date: "2026-07-10", amount_in: 200, amount_out: 0, spent_on: null },
-  { entry_date: "2026-07-15", amount_in: 0, amount_out: 500, spent_on: "Rent" },
+  {
+    entry_date: "2026-07-15",
+    amount_in: 0,
+    amount_out: 500,
+    spent_on: t("export.sampleCategoryRent"),
+  },
 ];
 
-function PreviewTable({ rows, money }: { rows: ExportEntry[]; money: (value: number) => string }) {
+function PreviewTable({ rows }: { rows: ExportEntry[] }) {
+  const { t, money } = useI18n();
   const totalIn = rows.reduce((sum, entry) => sum + entry.amount_in, 0);
   const totalOut = rows.reduce((sum, entry) => sum + entry.amount_out, 0);
 
@@ -79,16 +90,16 @@ function PreviewTable({ rows, money }: { rows: ExportEntry[]; money: (value: num
           <thead>
             <tr>
               <th scope="col" className={headCell}>
-                Date
+                {t("export.columnDate")}
               </th>
               <th scope="col" className={headCell}>
-                Category
+                {t("export.columnCategory")}
               </th>
               <th scope="col" className={`${headCell} text-right`}>
-                In
+                {t("export.columnIn")}
               </th>
               <th scope="col" className={`${headCell} text-right`}>
-                Out
+                {t("export.columnOut")}
               </th>
             </tr>
           </thead>
@@ -125,9 +136,9 @@ function PreviewTable({ rows, money }: { rows: ExportEntry[]; money: (value: num
           <tfoot>
             <tr>
               <td className={footCell} colSpan={2}>
-                Totals{" "}
+                {t("export.totalsRow")}{" "}
                 <span className="num font-normal text-muted-foreground">
-                  ({money(totalIn - totalOut)} net)
+                  {t("export.totalsNet", { amount: money(totalIn - totalOut) })}
                 </span>
               </td>
               <td className={`${footCell} num whitespace-nowrap text-right`}>{money(totalIn)}</td>
@@ -141,6 +152,7 @@ function PreviewTable({ rows, money }: { rows: ExportEntry[]; money: (value: num
 }
 
 function ExportPage() {
+  const { t } = useI18n();
   const navigate = useNavigate();
   const { download } = useSearch({ from: "/_authenticated/export" });
   const fetchEntries = useServerFn(getEntries);
@@ -163,8 +175,14 @@ function ExportPage() {
 
   const totalIn = filtered.reduce((sum, entry) => sum + entry.amount_in, 0);
   const totalOut = filtered.reduce((sum, entry) => sum + entry.amount_out, 0);
+  // Deliberately English: this is the header line printed inside the exported
+  // PDF, which shares its column schema with the CSV. See the note on
+  // src/lib/export.ts — the downloaded file stays in one fixed language so the
+  // accountant receiving it reads the same thing every time.
   const rangeLabel = `${from || "the beginning"} to ${to || "today"}`;
   const filename = `simplebooks-${from || "all"}-to-${to || "today"}`;
+
+  const samples = useMemo(() => sampleRows(t), [t]);
 
   // Run a shortcut download once, after the entries are in.
   const firedFor = useRef<string | null>(null);
@@ -185,16 +203,16 @@ function ExportPage() {
     <div className="rise mx-auto w-full max-w-3xl">
       <section className="pb-8">
         <PageHeader
-          eyebrow="Export"
-          title="Export your records"
-          description="Pick the dates you need, then download a spreadsheet or a tidy PDF for your accountant."
+          eyebrow={t("export.eyebrow")}
+          title={t("export.title")}
+          description={t("export.blurb")}
         />
 
         <Panel>
-          <PanelHeader title="Date range" description="Leave both blank to export everything." />
+          <PanelHeader title={t("export.dateRange")} description={t("export.dateRangeHint")} />
           <PanelBody className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field id="from" label="From">
+              <Field id="from" label={t("export.from")}>
                 <Input
                   type="date"
                   className="num"
@@ -202,7 +220,7 @@ function ExportPage() {
                   onChange={(event) => setFrom(event.target.value)}
                 />
               </Field>
-              <Field id="to" label="To">
+              <Field id="to" label={t("export.to")}>
                 <Input
                   type="date"
                   className="num"
@@ -226,7 +244,7 @@ function ExportPage() {
                   );
                 }}
               >
-                This month
+                {t("export.thisMonth")}
               </Button>
               <Button
                 variant="outline"
@@ -239,7 +257,7 @@ function ExportPage() {
                   setTo(new Date(now.getFullYear(), now.getMonth(), 0).toLocaleDateString("en-CA"));
                 }}
               >
-                Last month
+                {t("export.lastMonth")}
               </Button>
               <Button
                 variant="outline"
@@ -249,7 +267,7 @@ function ExportPage() {
                   setTo("");
                 }}
               >
-                Everything
+                {t("export.everything")}
               </Button>
             </div>
           </PanelBody>
@@ -261,20 +279,19 @@ function ExportPage() {
           ) : (
             <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-sm">
               <span className="font-semibold">
-                <span className="num">{filtered.length}</span>{" "}
-                {filtered.length === 1 ? "entry" : "entries"}
+                {t("export.entryCount", { count: filtered.length })}
               </span>
               <span className="inline-flex items-baseline gap-1.5">
                 <Money value={totalIn} tone="positive" className="font-medium" />
-                <span className="text-muted-foreground">in</span>
+                <span className="text-muted-foreground">{t("export.labelIn")}</span>
               </span>
               <span className="inline-flex items-baseline gap-1.5">
                 <Money value={totalOut} tone="negative" className="font-medium" />
-                <span className="text-muted-foreground">out</span>
+                <span className="text-muted-foreground">{t("export.labelOut")}</span>
               </span>
               <span className="inline-flex items-baseline gap-1.5">
                 <Money value={totalIn - totalOut} className="font-semibold" />
-                <span className="text-muted-foreground">net</span>
+                <span className="text-muted-foreground">{t("export.labelNet")}</span>
               </span>
             </div>
           )}
@@ -282,13 +299,12 @@ function ExportPage() {
 
         {!isLoading && filtered.length > 0 ? (
           <div className="mt-6">
-            <p className="eyebrow">Preview — this is what you&apos;ll get</p>
+            <p className="eyebrow">{t("export.previewTitle")}</p>
             <div className="mt-3">
-              <PreviewTable rows={filtered} money={money} />
+              <PreviewTable rows={filtered} />
             </div>
             <p className="mt-2.5 text-[12px] leading-relaxed text-muted-foreground">
-              This is exactly what goes into the CSV and PDF below — the PDF also adds your business
-              name and the date range as a header.
+              {t("export.previewNote")}
             </p>
           </div>
         ) : null}
@@ -296,29 +312,25 @@ function ExportPage() {
         {!isLoading && filtered.length === 0 ? (
           <div className="mt-6 rounded-[var(--radius-14)] border border-dashed border-border-strong p-4 sm:p-5">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge tone="brand">Sample</Badge>
-              <p className="eyebrow">What your export will look like</p>
+              <Badge tone="brand">{t("export.sampleBadge")}</Badge>
+              <p className="eyebrow">{t("export.sampleTitle")}</p>
             </div>
             <p className="mt-3 max-w-prose text-[13px] leading-relaxed text-muted-foreground">
-              You don&apos;t have entries in this date range yet, so here&apos;s a made-up example
-              with fake numbers — just to show you what the CSV and PDF export will include once you
-              start logging your daily money in and out.
+              {t("export.sampleBlurb")}
             </p>
             <div className="mt-4">
-              <PreviewTable rows={SAMPLE_ROWS} money={money} />
+              <PreviewTable rows={samples} />
             </div>
             <p className="mt-2.5 max-w-prose text-[12px] leading-relaxed text-muted-foreground">
-              Every entry becomes a row with its date, category, and amounts, plus a totals row at
-              the bottom. The real download buttons below only turn on once you have actual entries
-              in range.
+              {t("export.sampleNote")}
             </p>
           </div>
         ) : null}
 
         {download && !isLoading && filtered.length === 0 ? (
           <div className="mt-6">
-            <Alert tone="negative" title="Nothing to download for these dates yet">
-              Pick a wider range above, then try again.
+            <Alert tone="negative" title={t("export.nothingToDownload")}>
+              {t("export.nothingToDownloadBody")}
             </Alert>
           </div>
         ) : null}
@@ -330,7 +342,7 @@ function ExportPage() {
             disabled={filtered.length === 0}
             onClick={() => exportCsv(filtered, filename)}
           >
-            <FileSpreadsheet aria-hidden="true" /> Download CSV
+            <FileSpreadsheet aria-hidden="true" /> {t("export.downloadCsv")}
           </Button>
           <Button
             size="lg"
@@ -338,7 +350,7 @@ function ExportPage() {
             disabled={filtered.length === 0}
             onClick={() => exportPdf(filtered, filename, rangeLabel)}
           >
-            <FileText aria-hidden="true" /> Download PDF
+            <FileText aria-hidden="true" /> {t("export.downloadPdf")}
           </Button>
         </div>
       </section>

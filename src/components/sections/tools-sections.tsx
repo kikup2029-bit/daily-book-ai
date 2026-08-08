@@ -25,6 +25,7 @@ import {
   Select,
   SkeletonRows,
 } from "@/components/ui/kit";
+import { useI18n } from "@/lib/i18n";
 import { getEntries } from "@/lib/books.functions";
 import {
   getCashCounts,
@@ -38,7 +39,7 @@ import {
   saveProduct,
   setAppLock,
 } from "@/lib/shop.functions";
-import { validatePin } from "@/lib/pin";
+import { pinProblemKey, readPinProblem, validatePin } from "@/lib/pin";
 import { averageMonthlyOverhead, productMargin, reconcileDrawer } from "@/lib/insights";
 import {
   enterHousehold,
@@ -76,6 +77,7 @@ function RemoveButton({ label, onClick }: { label: string; onClick: () => void }
 // =========================================================================
 
 export function HouseholdSection() {
+  const { t, money } = useI18n();
   const queryClient = useQueryClient();
   const fetchHousehold = useServerFn(getHousehold);
   const fetchSettlement = useServerFn(getSettlement);
@@ -150,14 +152,14 @@ export function HouseholdSection() {
     return (
       <div className={page}>
         <PageHeader
-          eyebrow="Tools"
-          title="Share with someone"
-          description="Share the entries you choose with a partner or housemate, and split costs fairly. Anything you don't share stays private to you."
+          eyebrow={t("tools.eyebrow")}
+          title={t("tools.householdTitle")}
+          description={t("tools.householdBlurb")}
         />
 
         {error ? (
           <div className="mb-4">
-            <Alert tone="negative" title="That didn't work">
+            <Alert tone="negative" title={t("tools.didntWork")}>
               {error}
             </Alert>
           </div>
@@ -168,19 +170,19 @@ export function HouseholdSection() {
             title={
               <span className="flex items-center gap-2">
                 <Users className="size-4 text-brand" aria-hidden="true" />
-                Start here
+                {t("tools.householdStartHere")}
               </span>
             }
-            description="Tell the other person who they're sharing with."
+            description={t("tools.householdStartHereBlurb")}
           />
           <PanelBody>
             <Field
               id="your-name"
-              label="Your name"
-              hint="Shown next to anything you share, so everyone knows who's who."
+              label={t("tools.householdYourName")}
+              hint={t("tools.householdYourNameHint")}
             >
               <Input
-                placeholder="Alex"
+                placeholder={t("tools.householdYourNamePlaceholder")}
                 value={yourName}
                 onChange={(event) => setYourName(event.target.value)}
               />
@@ -190,7 +192,10 @@ export function HouseholdSection() {
 
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Panel>
-            <PanelHeader title="Start a new one" description="You'll get a code to pass on." />
+            <PanelHeader
+              title={t("tools.householdCreateTitle")}
+              description={t("tools.householdCreateBlurb")}
+            />
             <form
               onSubmit={(event) => {
                 event.preventDefault();
@@ -198,9 +203,9 @@ export function HouseholdSection() {
               }}
             >
               <PanelBody>
-                <Field id="household-name" label="Name it">
+                <Field id="household-name" label={t("tools.householdNameIt")}>
                   <Input
-                    placeholder="Our place"
+                    placeholder={t("tools.householdNamePlaceholder")}
                     value={name}
                     onChange={(event) => setName(event.target.value)}
                   />
@@ -214,7 +219,9 @@ export function HouseholdSection() {
                   loading={createMutation.isPending}
                   disabled={createMutation.isPending}
                 >
-                  {createMutation.isPending ? "Creating…" : "Create household"}
+                  {createMutation.isPending
+                    ? t("tools.householdCreating")
+                    : t("tools.householdCreate")}
                 </Button>
               </PanelFooter>
             </form>
@@ -222,8 +229,8 @@ export function HouseholdSection() {
 
           <Panel>
             <PanelHeader
-              title="Or join with a code"
-              description="Ask them for the code under Tools."
+              title={t("tools.householdJoinTitle")}
+              description={t("tools.householdJoinBlurb")}
             />
             <form
               onSubmit={(event) => {
@@ -232,9 +239,9 @@ export function HouseholdSection() {
               }}
             >
               <PanelBody>
-                <Field id="join-code" label="Invite code">
+                <Field id="join-code" label={t("tools.householdInviteCode")}>
                   <Input
-                    placeholder="ABC123"
+                    placeholder={t("tools.householdCodePlaceholder")}
                     value={code}
                     onChange={(event) => setCode(event.target.value.toUpperCase())}
                     className="num uppercase tracking-[0.18em]"
@@ -249,7 +256,7 @@ export function HouseholdSection() {
                   loading={joinMutation.isPending}
                   disabled={joinMutation.isPending}
                 >
-                  {joinMutation.isPending ? "Joining…" : "Join household"}
+                  {joinMutation.isPending ? t("tools.householdJoining") : t("tools.householdJoin")}
                 </Button>
               </PanelFooter>
             </form>
@@ -267,22 +274,18 @@ export function HouseholdSection() {
   return (
     <div className={page}>
       <PageHeader
-        eyebrow="Household"
+        eyebrow={t("tools.householdEyebrow")}
         title={state.household.name}
         description={
-          state.members.length === 1 ? (
-            "Just you so far — share the code below to add someone."
-          ) : (
-            <>
-              <span className="num">{state.members.length}</span> people sharing.
-            </>
-          )
+          state.members.length === 1
+            ? t("tools.householdJustYou")
+            : t("tools.householdPeopleSharing", { count: state.members.length })
         }
       />
 
       {error ? (
         <div className="mb-4">
-          <Alert tone="negative" title="That didn't work">
+          <Alert tone="negative" title={t("tools.didntWork")}>
             {error}
           </Alert>
         </div>
@@ -292,8 +295,8 @@ export function HouseholdSection() {
         {/* join code */}
         <Panel>
           <PanelHeader
-            title="Invite code"
-            description="They sign up, then enter this under Tools."
+            title={t("tools.householdInviteCode")}
+            description={t("tools.householdInviteCodeBlurb")}
           />
           <PanelBody>
             <div className="flex flex-wrap items-center gap-3">
@@ -315,7 +318,7 @@ export function HouseholdSection() {
                 ) : (
                   <Copy className="size-4" aria-hidden="true" />
                 )}
-                {copied ? "Copied" : "Copy"}
+                {copied ? t("tools.copied") : t("tools.copy")}
               </Button>
             </div>
           </PanelBody>
@@ -327,7 +330,7 @@ export function HouseholdSection() {
             title={
               <span className="flex items-center gap-2">
                 <Users className="size-4 text-brand" aria-hidden="true" />
-                Who&apos;s in
+                {t("tools.householdWhosIn")}
               </span>
             }
           />
@@ -339,9 +342,12 @@ export function HouseholdSection() {
                   className="flex items-center justify-between gap-2 py-2.5 text-sm"
                 >
                   <span className="min-w-0 truncate">
-                    {member.display_name?.trim() || `Member ${member.user_id.slice(0, 4)}`}
+                    {member.display_name?.trim() ||
+                      t("tools.householdMemberFallback", { id: member.user_id.slice(0, 4) })}
                   </span>
-                  {member.role === "owner" ? <Badge tone="brand">owner</Badge> : null}
+                  {member.role === "owner" ? (
+                    <Badge tone="brand">{t("tools.householdOwner")}</Badge>
+                  ) : null}
                 </li>
               ))}
             </ul>
@@ -351,11 +357,11 @@ export function HouseholdSection() {
 
       {/* your display name */}
       <Panel className="mt-4">
-        <PanelHeader title="Your name in this household" />
+        <PanelHeader title={t("tools.householdYourNameTitle")} />
         <PanelBody>
-          <Field id="rename" label="Shown next to what you share">
+          <Field id="rename" label={t("tools.householdShownNextTo")}>
             <Input
-              placeholder={me?.display_name ?? "Your name"}
+              placeholder={me?.display_name ?? t("tools.householdYourName")}
               value={yourName}
               onChange={(event) => setYourName(event.target.value)}
             />
@@ -370,7 +376,7 @@ export function HouseholdSection() {
             onClick={() => renameMutation.mutate(yourName.trim())}
             className="w-full sm:w-auto"
           >
-            Save name
+            {t("tools.householdSaveName")}
           </Button>
         </PanelFooter>
       </Panel>
@@ -379,20 +385,14 @@ export function HouseholdSection() {
       {combined && combined.sharedCount > 0 ? (
         <Panel className="mt-4">
           <PanelHeader
-            title="What everyone has shared"
+            title={t("tools.householdEveryoneShared")}
             description={
-              <>
-                <span className="num">{combined.sharedCount}</span> shared{" "}
-                {combined.sharedCount === 1 ? "entry" : "entries"}
-                {combined.splitCount > 0 ? (
-                  <>
-                    , <span className="num">{combined.splitCount}</span> marked to split
-                  </>
-                ) : (
-                  ", none marked to split"
-                )}
-                .
-              </>
+              combined.splitCount > 0
+                ? t("tools.householdSharedWithSplit", {
+                    count: combined.sharedCount,
+                    split: combined.splitCount,
+                  })
+                : t("tools.householdSharedNoSplit", { count: combined.sharedCount })
             }
           />
           <PanelBody>
@@ -406,12 +406,15 @@ export function HouseholdSection() {
                   <span className="shrink-0 text-right">
                     {member.moneyIn > 0 ? (
                       <>
-                        <Money value={member.moneyIn} tone="positive" />
-                        <span className="text-muted-foreground"> in · </span>
+                        <span className="num text-success">
+                          {t("tools.amountIn", { amount: money(member.moneyIn) })}
+                        </span>
+                        <span className="text-muted-foreground"> · </span>
                       </>
                     ) : null}
-                    <Money value={member.moneyOut} tone="negative" />
-                    <span className="text-muted-foreground"> out</span>
+                    <span className="num text-danger">
+                      {t("tools.amountOut", { amount: money(member.moneyOut) })}
+                    </span>
                   </span>
                 </li>
               ))}
@@ -423,16 +426,19 @@ export function HouseholdSection() {
       {/* settlement — only entries marked "split it" */}
       {settlement && settlement.totalShared > 0 ? (
         <Panel className="mt-4">
-          <PanelHeader title="Bills you're splitting" description="Only entries marked to split." />
+          <PanelHeader
+            title={t("tools.householdSplittingTitle")}
+            description={t("tools.householdSplittingBlurb")}
+          />
           <PanelBody>
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <Metric
-                label="Each person's share"
+                label={t("tools.householdEachShare")}
                 value={<Money value={settlement.perPerson} />}
                 emphasis="hero"
               />
               <Metric
-                label="Total to split"
+                label={t("tools.householdTotalToSplit")}
                 value={<Money value={settlement.totalShared} />}
                 emphasis="compact"
               />
@@ -447,17 +453,17 @@ export function HouseholdSection() {
                   <span className="min-w-0 truncate">{balance.name}</span>
                   <span className="flex shrink-0 items-center gap-2">
                     <span className="text-muted-foreground">
-                      paid <Money value={balance.paid} />
+                      {t("tools.householdPaid", { amount: money(balance.paid) })}
                     </span>
                     {Math.abs(balance.balance) < 0.005 ? (
-                      <Badge tone="positive">square</Badge>
+                      <Badge tone="positive">{t("tools.square")}</Badge>
                     ) : balance.balance > 0 ? (
                       <Badge tone="positive">
-                        owed <Money value={Math.abs(balance.balance)} tone="positive" />
+                        {t("tools.householdOwed", { amount: money(Math.abs(balance.balance)) })}
                       </Badge>
                     ) : (
                       <Badge tone="negative">
-                        owes <Money value={Math.abs(balance.balance)} tone="negative" />
+                        {t("tools.householdOwes", { amount: money(Math.abs(balance.balance)) })}
                       </Badge>
                     )}
                   </span>
@@ -468,34 +474,35 @@ export function HouseholdSection() {
 
           {settlement.transfers.length > 0 ? (
             <PanelFooter className="flex-col items-stretch gap-1.5 py-4">
-              <p className="eyebrow">To square up</p>
+              <p className="eyebrow">{t("tools.householdToSquareUp")}</p>
               <ul className="space-y-1 text-sm font-medium">
                 {settlement.transfers.map((transfer, index) => (
                   <li key={index}>
-                    {transfer.fromName} pays {transfer.toName}{" "}
-                    <Money value={transfer.amount} className="font-semibold" />
+                    {t("tools.householdTransfer", {
+                      from: transfer.fromName,
+                      to: transfer.toName,
+                      amount: money(transfer.amount),
+                    })}
                   </li>
                 ))}
               </ul>
             </PanelFooter>
           ) : (
             <PanelFooter>
-              <p className="text-sm text-success">Everyone&apos;s square — nothing owed.</p>
+              <p className="text-sm text-success">{t("tools.householdAllSquare")}</p>
             </PanelFooter>
           )}
         </Panel>
       ) : combined && combined.sharedCount > 0 ? (
         <div className="mt-4">
-          <Alert tone="neutral" title="Nothing to settle up">
-            Nothing is marked to split, so nobody owes anybody. Choose &ldquo;Split it&rdquo; when
-            logging if you want an expense divided evenly.
+          <Alert tone="neutral" title={t("tools.householdNothingToSettle")}>
+            {t("tools.householdNothingToSettleBody")}
           </Alert>
         </div>
       ) : (
         <div className="mt-4">
-          <Alert tone="neutral" title="Nothing shared yet">
-            When you log something, choose &ldquo;Share&rdquo; so the household can see it, or
-            &ldquo;Split it&rdquo; to divide it evenly.
+          <Alert tone="neutral" title={t("tools.householdNothingShared")}>
+            {t("tools.householdNothingSharedBody")}
           </Alert>
         </div>
       )}
@@ -507,16 +514,12 @@ export function HouseholdSection() {
         loading={leaveMutation.isPending}
         disabled={leaveMutation.isPending}
         onClick={() => {
-          if (
-            window.confirm(
-              "Leave this household? Anything you shared becomes private to you again.",
-            )
-          ) {
+          if (window.confirm(t("tools.householdLeaveConfirm"))) {
             leaveMutation.mutate();
           }
         }}
       >
-        {leaveMutation.isPending ? "Leaving…" : "Leave household"}
+        {leaveMutation.isPending ? t("tools.householdLeaving") : t("tools.householdLeave")}
       </Button>
     </div>
   );
@@ -527,6 +530,7 @@ export function HouseholdSection() {
 // =========================================================================
 
 export function MarginsSection() {
+  const { t, money } = useI18n();
   const queryClient = useQueryClient();
   const fetchProducts = useServerFn(getProducts);
   const fetchEntries = useServerFn(getEntries);
@@ -566,30 +570,23 @@ export function MarginsSection() {
   return (
     <div className={page}>
       <PageHeader
-        eyebrow="Tools"
-        title="What you actually keep"
-        description="Put in what an item costs you and what you sell it for, and see the real profit on every sale."
+        eyebrow={t("tools.eyebrow")}
+        title={t("tools.marginsTitle")}
+        description={t("tools.marginsBlurb")}
       />
 
       <Panel>
         <PanelHeader
-          title="Your items"
+          title={t("tools.marginsYourItems")}
           description={
-            overhead > 0 ? (
-              <>
-                Your usual monthly costs run about{" "}
-                <Money value={overhead} className="font-medium text-foreground" />.
-              </>
-            ) : undefined
+            overhead > 0 ? t("tools.marginsOverhead", { amount: money(overhead) }) : undefined
           }
         />
         <PanelBody>
           {isLoading ? (
             <SkeletonRows rows={2} />
           ) : products.length === 0 ? (
-            <p className="py-2 text-sm text-muted-foreground">
-              No items yet — add your first one below.
-            </p>
+            <p className="py-2 text-sm text-muted-foreground">{t("tools.marginsNoItems")}</p>
           ) : (
             <ul className="space-y-3">
               {products.map((product) => {
@@ -604,12 +601,14 @@ export function MarginsSection() {
                       <div className="min-w-0">
                         <p className="truncate font-semibold">{product.name}</p>
                         <p className="text-[12px] text-muted-foreground">
-                          Costs <Money value={product.unit_cost} /> · sells for{" "}
-                          <Money value={product.sale_price} />
+                          {t("tools.marginsCostSell", {
+                            cost: money(product.unit_cost),
+                            price: money(product.sale_price),
+                          })}
                         </p>
                       </div>
                       <RemoveButton
-                        label={`Remove ${product.name}`}
+                        label={t("tools.marginsRemoveItem", { name: product.name })}
                         onClick={() => remove.mutate(product.id)}
                       />
                     </div>
@@ -621,7 +620,7 @@ export function MarginsSection() {
                         }`}
                       >
                         <Metric
-                          label="You keep, each"
+                          label={t("tools.marginsYouKeep")}
                           emphasis="compact"
                           tone={losing ? "negative" : "positive"}
                           value={
@@ -635,24 +634,29 @@ export function MarginsSection() {
                       </div>
                       <div className="rounded-[var(--radius-10)] bg-surface-3 p-2.5">
                         <Metric
-                          label="Margin"
+                          label={t("tools.marginsMargin")}
                           emphasis="compact"
-                          value={<span className="num">{Math.round(m.grossMarginPercent)}%</span>}
+                          value={
+                            <span className="num">
+                              {t("tools.marginsPercent", {
+                                percent: Math.round(m.grossMarginPercent),
+                              })}
+                            </span>
+                          }
                         />
                       </div>
                     </div>
 
                     {losing ? (
                       <p className="mt-2 text-[12px] font-medium text-danger">
-                        You&apos;re selling this for less than it costs you.
+                        {t("tools.marginsLosing")}
                       </p>
                     ) : m.unitsToCoverOverhead != null ? (
                       <p className="mt-2 text-[12px] text-muted-foreground">
-                        Sell about{" "}
-                        <span className="num font-semibold text-foreground">
-                          {m.unitsToCoverOverhead}
-                        </span>{" "}
-                        a month to cover your usual <Money value={overhead} /> of costs.
+                        {t("tools.marginsUnitsToCover", {
+                          count: m.unitsToCoverOverhead,
+                          amount: money(overhead),
+                        })}
                       </p>
                     ) : null}
                   </li>
@@ -664,7 +668,7 @@ export function MarginsSection() {
       </Panel>
 
       <Panel className="mt-4">
-        <PanelHeader title="Add an item" />
+        <PanelHeader title={t("tools.marginsAddItem")} />
         <form
           onSubmit={(event) => {
             event.preventDefault();
@@ -675,15 +679,15 @@ export function MarginsSection() {
           }}
         >
           <PanelBody className="space-y-4">
-            <Field id="product-name" label="Item">
+            <Field id="product-name" label={t("tools.marginsItem")}>
               <Input
-                placeholder="Candle"
+                placeholder={t("tools.marginsItemPlaceholder")}
                 value={name}
                 onChange={(event) => setName(event.target.value)}
               />
             </Field>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field id="product-cost" label="Costs you">
+              <Field id="product-cost" label={t("tools.marginsCostsYou")}>
                 <Input
                   type="number"
                   inputMode="decimal"
@@ -695,7 +699,7 @@ export function MarginsSection() {
                   className="num"
                 />
               </Field>
-              <Field id="product-price" label="You sell it for">
+              <Field id="product-price" label={t("tools.marginsSellFor")}>
                 <Input
                   type="number"
                   inputMode="decimal"
@@ -717,7 +721,7 @@ export function MarginsSection() {
               loading={save.isPending}
               disabled={save.isPending}
             >
-              {save.isPending ? "Saving…" : "Save item"}
+              {save.isPending ? t("common.saving") : t("tools.marginsSaveItem")}
             </Button>
           </PanelFooter>
         </form>
@@ -731,6 +735,7 @@ export function MarginsSection() {
 // =========================================================================
 
 export function DrawerSection() {
+  const { t, money } = useI18n();
   const queryClient = useQueryClient();
   const fetchCounts = useServerFn(getCashCounts);
   const fetchEntries = useServerFn(getEntries);
@@ -782,13 +787,13 @@ export function DrawerSection() {
   return (
     <div className={page}>
       <PageHeader
-        eyebrow="Tools"
-        title="Cash drawer check"
-        description="Count the till at the end of the day and see whether it matches what you logged."
+        eyebrow={t("tools.eyebrow")}
+        title={t("tools.drawerTitle")}
+        description={t("tools.drawerBlurb")}
       />
 
       <Panel>
-        <PanelHeader title="Tonight's count" />
+        <PanelHeader title={t("tools.drawerTonightsCount")} />
         <form
           onSubmit={(event) => {
             event.preventDefault();
@@ -803,7 +808,7 @@ export function DrawerSection() {
         >
           <PanelBody className="space-y-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field id="count-date" label="Day">
+              <Field id="count-date" label={t("tools.drawerDay")}>
                 <Input
                   type="date"
                   value={date}
@@ -811,7 +816,7 @@ export function DrawerSection() {
                   className="num"
                 />
               </Field>
-              <Field id="count-float" label="Starting float">
+              <Field id="count-float" label={t("tools.drawerStartingFloat")}>
                 <Input
                   type="number"
                   inputMode="decimal"
@@ -825,7 +830,7 @@ export function DrawerSection() {
               </Field>
             </div>
 
-            <Field id="count-amount" label="Counted in the drawer">
+            <Field id="count-amount" label={t("tools.drawerCounted")}>
               <Input
                 type="number"
                 inputMode="decimal"
@@ -840,33 +845,29 @@ export function DrawerSection() {
 
             <div className="rounded-[var(--radius-12)] border border-border bg-surface-2 p-4">
               <Metric
-                label="Should be in the drawer"
+                label={t("tools.drawerShouldBe")}
                 emphasis="hero"
                 value={<Money value={preview.expected} />}
-                hint={
-                  <>
-                    <Money value={preview.openingFloat} /> float +{" "}
-                    <Money value={preview.cashIn} tone="positive" /> in −{" "}
-                    <Money value={preview.cashOut} tone="negative" /> out
-                  </>
-                }
+                hint={t("tools.drawerBreakdown", {
+                  float: money(preview.openingFloat),
+                  moneyIn: money(preview.cashIn),
+                  moneyOut: money(preview.cashOut),
+                })}
               />
             </div>
 
             {counted.trim() ? (
               preview.status === "balanced" ? (
-                <Alert tone="positive" title="Balanced — nice.">
-                  What you counted matches what you logged.
+                <Alert tone="positive" title={t("tools.drawerBalanced")}>
+                  {t("tools.drawerBalancedBody")}
                 </Alert>
               ) : preview.status === "over" ? (
-                <Alert tone="neutral" title="More than expected">
-                  There&apos;s <Money value={Math.abs(preview.difference)} /> more in the drawer
-                  than your entries account for.
+                <Alert tone="neutral" title={t("tools.drawerOver")}>
+                  {t("tools.drawerOverBody", { amount: money(Math.abs(preview.difference)) })}
                 </Alert>
               ) : (
-                <Alert tone="negative" title="Short">
-                  The drawer is <Money value={Math.abs(preview.difference)} tone="negative" /> short
-                  of what you logged.
+                <Alert tone="negative" title={t("tools.drawerShort")}>
+                  {t("tools.drawerShortBody", { amount: money(Math.abs(preview.difference)) })}
                 </Alert>
               )
             ) : null}
@@ -880,7 +881,7 @@ export function DrawerSection() {
               loading={save.isPending}
               disabled={save.isPending || !counted.trim()}
             >
-              {save.isPending ? "Saving…" : "Save count"}
+              {save.isPending ? t("common.saving") : t("tools.drawerSaveCount")}
             </Button>
           </PanelFooter>
         </form>
@@ -888,7 +889,10 @@ export function DrawerSection() {
 
       {isLoading || counts.length > 0 ? (
         <Panel className="mt-4">
-          <PanelHeader title="Recent counts" description="Your last seven days of counting up." />
+          <PanelHeader
+            title={t("tools.drawerRecentCounts")}
+            description={t("tools.drawerRecentBlurb")}
+          />
           <PanelBody>
             {isLoading ? (
               <SkeletonRows rows={3} />
@@ -902,18 +906,20 @@ export function DrawerSection() {
                     <span className="num font-medium">{count.count_date}</span>
                     <span className="flex shrink-0 items-center gap-2">
                       <span className="text-[12px] text-muted-foreground">
-                        <Money value={count.counted_amount} /> counted ·{" "}
-                        <Money value={count.expected_amount} /> expected
+                        {t("tools.drawerCountedExpected", {
+                          counted: money(count.counted_amount),
+                          expected: money(count.expected_amount),
+                        })}
                       </span>
                       {Math.abs(count.difference) < 0.005 ? (
-                        <Badge tone="positive">square</Badge>
+                        <Badge tone="positive">{t("tools.square")}</Badge>
                       ) : (
                         <Badge tone={count.difference > 0 ? "neutral" : "negative"}>
                           <Money value={count.difference} signed />
                         </Badge>
                       )}
                       <RemoveButton
-                        label={`Remove count for ${count.count_date}`}
+                        label={t("tools.drawerRemoveCount", { date: count.count_date })}
                         onClick={() => remove.mutate(count.id)}
                       />
                     </span>
@@ -933,6 +939,7 @@ export function DrawerSection() {
 // =========================================================================
 
 export function SettingsSection() {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const fetchSettings = useServerFn(getSettings);
   const save = useServerFn(putSettings);
@@ -960,10 +967,7 @@ export function SettingsSection() {
     // Sits under the tax card on its page, so it stays a panel rather than a
     // second page heading.
     <Panel className="mt-6">
-      <PanelHeader
-        title="Settings"
-        description="Set what share of income to hold back for tax, and how much cash you normally start the day with."
-      />
+      <PanelHeader title={t("tools.settingsTitle")} description={t("tools.settingsBlurb")} />
       <form
         onSubmit={(event) => {
           event.preventDefault();
@@ -975,7 +979,7 @@ export function SettingsSection() {
       >
         <PanelBody className="space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field id="tax-rate" label="Hold back for tax (%)">
+            <Field id="tax-rate" label={t("tools.settingsTaxRate")}>
               <Input
                 type="number"
                 inputMode="decimal"
@@ -988,7 +992,7 @@ export function SettingsSection() {
                 className="num"
               />
             </Field>
-            <Field id="default-float" label="Usual starting float">
+            <Field id="default-float" label={t("tools.settingsUsualFloat")}>
               <Input
                 type="number"
                 inputMode="decimal"
@@ -1002,8 +1006,7 @@ export function SettingsSection() {
             </Field>
           </div>
           <p className="text-[12px] leading-relaxed text-muted-foreground">
-            Not tax advice — it just holds back a share of what you log so the bill isn&apos;t a
-            surprise. Check the rate with your accountant.
+            {t("tools.settingsTaxNote")}
           </p>
         </PanelBody>
         <PanelFooter>
@@ -1014,7 +1017,7 @@ export function SettingsSection() {
             loading={mutate.isPending}
             disabled={mutate.isPending}
           >
-            {mutate.isPending ? "Saving…" : "Save settings"}
+            {mutate.isPending ? t("common.saving") : t("tools.settingsSave")}
           </Button>
         </PanelFooter>
       </form>
@@ -1027,6 +1030,7 @@ export function SettingsSection() {
 // =========================================================================
 
 export function LockSection() {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const fetchSettings = useServerFn(getSettings);
   const setLock = useServerFn(setAppLock);
@@ -1048,18 +1052,23 @@ export function LockSection() {
       setPin("");
       setConfirm("");
       setError(null);
-      setDone("Lock is on. You'll be asked for this PIN when you come back.");
+      setDone(t("tools.lockOnMessage"));
       setTimeout(() => setDone(null), 4000);
       refresh();
     },
-    onError: (err: Error) => setError(err.message),
+    onError: (err: Error) => {
+      // The server rejects a bad PIN with a code rather than a sentence, so
+      // that it lands here in the reader's language and not in English.
+      const reason = readPinProblem(err.message);
+      setError(reason ? t(pinProblemKey(reason)) : err.message);
+    },
   });
 
   const turnOff = useMutation({
     mutationFn: () => clearLock({}),
     onSuccess: () => {
       setError(null);
-      setDone("Lock turned off.");
+      setDone(t("tools.lockOffMessage"));
       setTimeout(() => setDone(null), 3000);
       refresh();
     },
@@ -1068,17 +1077,26 @@ export function LockSection() {
 
   const enabled = Boolean(settings?.lock_enabled);
 
+  /** How long the app may sit idle before it asks again. Text lives in the dictionary. */
+  const timeoutOptions = [
+    { value: "0", label: t("tools.lockTimeoutAlways") },
+    { value: "1", label: t("tools.lockTimeoutMinutes", { count: 1 }) },
+    { value: "5", label: t("tools.lockTimeoutMinutes", { count: 5 }) },
+    { value: "15", label: t("tools.lockTimeoutMinutes", { count: 15 }) },
+    { value: "60", label: t("tools.lockTimeoutHours", { count: 1 }) },
+  ];
+
   return (
     <div className={page}>
       <PageHeader
-        eyebrow="Tools"
-        title="Lock this app"
-        description="Hide your books behind a PIN, so someone holding your unlocked phone can't read them."
+        eyebrow={t("tools.eyebrow")}
+        title={t("tools.lockTitle")}
+        description={t("tools.lockBlurb")}
       />
 
       {error ? (
         <div className="mb-4">
-          <Alert tone="negative" title="That didn't work">
+          <Alert tone="negative" title={t("tools.didntWork")}>
             {error}
           </Alert>
         </div>
@@ -1095,24 +1113,16 @@ export function LockSection() {
             title={
               <span className="flex items-center gap-2">
                 <Lock className="size-4 text-brand" aria-hidden="true" />
-                Lock this app
+                {t("tools.lockTitle")}
               </span>
             }
-            action={<Badge tone="positive">On</Badge>}
+            action={<Badge tone="positive">{t("tools.lockOn")}</Badge>}
           />
           <PanelBody>
             <p className="text-sm text-muted-foreground">
-              {settings?.lock_timeout_minutes === 0 ? (
-                "Asks for your PIN every time you open the app."
-              ) : (
-                <>
-                  Asks again after{" "}
-                  <span className="num font-medium text-foreground">
-                    {settings?.lock_timeout_minutes}
-                  </span>{" "}
-                  minutes away.
-                </>
-              )}
+              {settings?.lock_timeout_minutes === 0
+                ? t("tools.lockEveryTime")
+                : t("tools.lockAsksAfter", { count: settings?.lock_timeout_minutes ?? 0 })}
             </p>
           </PanelBody>
           <PanelFooter>
@@ -1124,7 +1134,7 @@ export function LockSection() {
               disabled={turnOff.isPending}
               onClick={() => turnOff.mutate()}
             >
-              {turnOff.isPending ? "Turning off…" : "Turn off lock"}
+              {turnOff.isPending ? t("tools.lockTurningOff") : t("tools.lockTurnOff")}
             </Button>
           </PanelFooter>
         </Panel>
@@ -1134,22 +1144,22 @@ export function LockSection() {
             title={
               <span className="flex items-center gap-2">
                 <Lock className="size-4 text-brand" aria-hidden="true" />
-                Choose a PIN
+                {t("tools.lockChoosePin")}
               </span>
             }
-            description="Four to eight numbers. You'll type it when you come back to the app."
-            action={<Badge tone="neutral">Off</Badge>}
+            description={t("tools.lockChoosePinBlurb")}
+            action={<Badge tone="neutral">{t("tools.lockOff")}</Badge>}
           />
           <form
             onSubmit={(event) => {
               event.preventDefault();
-              const problem = validatePin(pin);
-              if (problem) {
-                setError(problem);
+              const check = validatePin(pin);
+              if (!check.ok) {
+                setError(t(pinProblemKey(check.reason)));
                 return;
               }
               if (pin !== confirm) {
-                setError("Those two PINs don't match.");
+                setError(t("tools.lockPinMismatch"));
                 return;
               }
               save.mutate();
@@ -1157,7 +1167,7 @@ export function LockSection() {
           >
             <PanelBody className="space-y-4">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Field id="lock-pin" label="New PIN" hint="4 to 8 numbers.">
+                <Field id="lock-pin" label={t("tools.lockNewPin")} hint={t("tools.lockPinHint")}>
                   <Input
                     type="password"
                     inputMode="numeric"
@@ -1173,7 +1183,7 @@ export function LockSection() {
                     className="num h-12 text-lg tracking-[0.3em] md:h-12 md:text-lg"
                   />
                 </Field>
-                <Field id="lock-confirm" label="Type it again">
+                <Field id="lock-confirm" label={t("tools.lockConfirmPin")}>
                   <Input
                     type="password"
                     inputMode="numeric"
@@ -1191,13 +1201,13 @@ export function LockSection() {
                 </Field>
               </div>
 
-              <Field id="lock-timeout" label="Ask again after">
+              <Field id="lock-timeout" label={t("tools.lockAskAgainAfter")}>
                 <Select value={timeout} onChange={(event) => setTimeoutMinutes(event.target.value)}>
-                  <option value="0">Every time I open it</option>
-                  <option value="1">1 minute away</option>
-                  <option value="5">5 minutes away</option>
-                  <option value="15">15 minutes away</option>
-                  <option value="60">1 hour away</option>
+                  {timeoutOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
                 </Select>
               </Field>
             </PanelBody>
@@ -1209,7 +1219,7 @@ export function LockSection() {
                 loading={save.isPending}
                 disabled={save.isPending}
               >
-                {save.isPending ? "Saving…" : "Turn on lock"}
+                {save.isPending ? t("common.saving") : t("tools.lockTurnOn")}
               </Button>
             </PanelFooter>
           </form>
@@ -1217,9 +1227,7 @@ export function LockSection() {
       )}
 
       <p className="mt-4 px-1 text-[12px] leading-relaxed text-muted-foreground">
-        This hides the app on your device. Your account is already protected by your password, and
-        only you can read your data — the PIN is a convenience lock on top of that, not a
-        replacement for it. Forgotten it? Sign out and back in, then set a new one.
+        {t("tools.lockFootnote")}
       </p>
     </div>
   );

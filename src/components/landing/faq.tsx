@@ -6,56 +6,91 @@
  * component would be more JavaScript for less behaviour.
  */
 
-import type { ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
 
-import { LOCALES, LOCALE_LIST } from "@/lib/i18n";
+import { LOCALES, LOCALE_LIST, useI18n } from "@/lib/i18n";
+import type { Translator } from "@/lib/i18n/translate";
 
 import { Section, SectionHeading } from "@/components/landing/section";
 import { TRIAL_DAYS } from "@/lib/pricing";
 
+/** Not translated: each language writes its own name, in its own script. */
 const NATIVE_NAMES = LOCALE_LIST.map((code) => LOCALES[code].native).join(" · ");
 
-const FAQS: Array<{ question: string; answer: ReactNode }> = [
-  {
-    question: "Do I need to know anything about accounting?",
-    answer:
-      "No. If you can write down “sold $40 of veg” you can use SimpleBooks. There are no debits, credits, journals or double entry anywhere in it — you record money in and money out, and it does the adding up. It's a record of your trading, not a substitute for an accountant at tax time.",
-  },
-  {
-    question: "Can I cancel?",
-    answer:
-      "Yes, any time, in one click from the Billing page — no phone call, no notice period, no one trying to talk you out of it. Cancel during the free week and you are never charged. Cancel later and you keep Pro until the month you have paid for runs out, then drop to the free plan. Your entries stay exactly where they are, and exports keep working whatever plan you are on.",
-  },
-  {
-    question: "Who can see my figures?",
-    answer:
-      "You, and anyone you deliberately invite to share a book with you. Your entries aren't sold, and they aren't shown to other SimpleBooks users. You can export everything to CSV or PDF whenever you like, and deleting your account deletes your books.",
-  },
-  {
-    question: "Which languages does it speak?",
-    answer: (
-      <>
-        Six, and all of them cover the whole app rather than just the front page:{" "}
-        <span className="font-medium text-foreground">{NATIVE_NAMES}</span>. You can switch at any
-        time from the language button in the top bar.
-      </>
-    ),
-  },
-  {
-    question: "How does billing work?",
-    answer: `Pro is free for the first ${TRIAL_DAYS} days. We ask for your card at the start so the trial can turn into a subscription without you doing anything — and we tell you, in the app and by the countdown at the top of every page, exactly when the first charge lands and what it will be. Cancel before then and nothing is taken. Payments are handled by Stripe, which holds the card details; they never pass through SimpleBooks.`,
-  },
-];
+/**
+ * Where the emphasised list of language names sits inside the answer.
+ *
+ * The sentence stays one key, because word order moves between languages and a
+ * sentence assembled from fragments in JSX can only ever read as English. The
+ * translated string is split on this marker and the names rendered between the
+ * two halves, wherever the translator chose to put them.
+ */
+const LANGUAGES_SLOT = "{languages}";
+
+/**
+ * Built from `t` on each render. A module constant would call `t` once at import
+ * time and serve the first language loaded to everyone who switched afterwards.
+ */
+function faqs(t: Translator): Array<{ id: string; question: string; answer: ReactNode }> {
+  // {count} comes from LOCALE_LIST, not typed into the string — the answer used
+  // to open with the literal word "Six", which went stale the moment two
+  // languages were held back.
+  const [beforeNames, afterNames] = t("landing.faqLanguagesAnswer", {
+    count: LOCALE_LIST.length,
+  }).split(LANGUAGES_SLOT);
+
+  return [
+    {
+      id: "accounting",
+      question: t("landing.faqAccountingQuestion"),
+      answer: t("landing.faqAccountingAnswer"),
+    },
+    {
+      id: "cancel",
+      question: t("landing.faqCancelQuestion"),
+      answer: t("landing.faqCancelAnswer"),
+    },
+    {
+      id: "privacy",
+      question: t("landing.faqPrivacyQuestion"),
+      answer: t("landing.faqPrivacyAnswer"),
+    },
+    {
+      id: "languages",
+      question: t("landing.faqLanguagesQuestion"),
+      answer: (
+        <>
+          {beforeNames}
+          <span className="font-medium text-foreground">{NATIVE_NAMES}</span>
+          {afterNames}
+        </>
+      ),
+    },
+    {
+      id: "billing",
+      question: t("landing.faqBillingQuestion"),
+      // The trial length is read from pricing.ts, not retyped into the copy.
+      answer: t("landing.faqBillingAnswer", { count: TRIAL_DAYS }),
+    },
+  ];
+}
 
 export function Faq() {
+  const { t } = useI18n();
+  const items = useMemo(() => faqs(t), [t]);
+
   return (
     <Section id="faq" labelledBy="faq-heading">
-      <SectionHeading id="faq-heading" eyebrow="Questions" title="Before you sign up" />
+      <SectionHeading
+        id="faq-heading"
+        eyebrow={t("landing.faqEyebrow")}
+        title={t("landing.faqTitle")}
+      />
 
       <div className="mx-auto mt-10 max-w-2xl space-y-3">
-        {FAQS.map((item) => (
-          <details key={item.question} className="panel group px-5">
+        {items.map((item) => (
+          <details key={item.id} className="panel group px-5">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-4 text-[15px] font-medium [&::-webkit-details-marker]:hidden">
               {item.question}
               <ChevronDown

@@ -11,8 +11,11 @@ import { Link } from "@tanstack/react-router";
 import { WordMark } from "@/components/brand-mark";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/lib/i18n";
 
 export function LandingHeader() {
+  const { t } = useI18n();
+
   return (
     // pt-safe for the same reason the app header has it: pinned at top-0 on a
     // notched iPhone, the 64px bar sits almost entirely under the clock and
@@ -21,7 +24,7 @@ export function LandingHeader() {
       <div className="mx-auto flex h-16 w-full max-w-5xl items-center gap-1.5 px-4 sm:gap-3 sm:px-6">
         <Link
           to="/"
-          aria-label="SimpleBooks — home"
+          aria-label={t("landing.homeLabel")}
           // Allowed to shrink but never to wrap: two lines of wordmark would
           // burst the fixed bar height on a 360px phone.
           className="min-w-0 shrink overflow-hidden whitespace-nowrap"
@@ -31,15 +34,18 @@ export function LandingHeader() {
 
         {/* ms-auto rather than ml-auto, so the nav sits on the trailing edge in
             Urdu too instead of colliding with the wordmark. */}
-        <nav aria-label="Site" className="ms-auto flex shrink-0 items-center gap-0.5 sm:gap-1.5">
+        <nav
+          aria-label={t("landing.navLabel")}
+          className="ms-auto flex shrink-0 items-center gap-0.5 sm:gap-1.5"
+        >
           <LanguageSwitcher compact />
           {/* Tighter padding on the narrowest phones: the four items together
               are within a couple of pixels of 360px at the default size. */}
           <Button asChild variant="ghost" size="sm" className="px-2 sm:px-3">
-            <Link to="/auth">Sign in</Link>
+            <Link to="/auth">{t("landing.signIn")}</Link>
           </Button>
           <Button asChild variant="brand" size="sm">
-            <Link to="/auth">Start free</Link>
+            <Link to="/auth">{t("landing.startFree")}</Link>
           </Button>
         </nav>
       </div>

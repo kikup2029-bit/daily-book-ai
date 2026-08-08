@@ -5,17 +5,22 @@ import { Check } from "lucide-react";
 
 import { createEntry, getEntries } from "@/lib/books.functions";
 import { getSettings, putSettings } from "@/lib/shop.functions";
+import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, Panel, PanelBody, PanelHeader } from "@/components/ui/kit";
 
 const DISMISSED_KEY = "simplebooks.onboarded";
 
+/** How many steps the checklist has, so the progress line isn't a stray literal. */
+const TOTAL_STEPS = 2;
+
 /**
  * Shown on Today until the account has its footing: a tax rate set, or a first
  * entry logged. Disappears on its own — no settings page needed to hide it.
  */
 export function Onboarding() {
+  const { t, formatNumber } = useI18n();
   const queryClient = useQueryClient();
   const fetchEntries = useServerFn(getEntries);
   const fetchSettings = useServerFn(getSettings);
@@ -96,11 +101,11 @@ export function Onboarding() {
     <section className="mb-8">
       <Panel className="overflow-hidden">
         <PanelHeader
-          title="Let's set up your books"
-          description="Two quick things and the rest of the app starts working properly."
+          title={t("onboarding.title")}
+          description={t("onboarding.blurb")}
           action={
-            <span className="eyebrow whitespace-nowrap">
-              <span className="num">{done}</span> of <span className="num">2</span> done
+            <span className="eyebrow num whitespace-nowrap">
+              {t("onboarding.stepsDone", { count: done, total: TOTAL_STEPS })}
             </span>
           }
         />
@@ -111,9 +116,9 @@ export function Onboarding() {
             className="flex gap-1.5"
             role="progressbar"
             aria-valuemin={0}
-            aria-valuemax={2}
+            aria-valuemax={TOTAL_STEPS}
             aria-valuenow={done}
-            aria-label="Setup progress"
+            aria-label={t("onboarding.progressLabel")}
           >
             {[hasEntries, hasRate].map((complete, index) => (
               <span
@@ -138,16 +143,20 @@ export function Onboarding() {
                     : "border border-brand-border bg-brand-soft text-foreground"
                 }`}
               >
-                {hasEntries ? <Check className="size-3.5" /> : <span className="num">1</span>}
+                {hasEntries ? (
+                  <Check className="size-3.5" />
+                ) : (
+                  <span className="num">{formatNumber(1)}</span>
+                )}
               </span>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold leading-6">
-                  {hasEntries ? "First entry logged" : "Log what you made today"}
+                  {hasEntries ? t("onboarding.entryStepDone") : t("onboarding.entryStepTitle")}
                 </p>
 
                 {hasEntries ? (
                   <p className="mt-1 text-[13px] text-muted-foreground">
-                    Nice — your totals and charts are live now.
+                    {t("onboarding.entryStepDoneBlurb")}
                   </p>
                 ) : (
                   <form
@@ -159,7 +168,7 @@ export function Onboarding() {
                   >
                     <Field
                       id="first-amount"
-                      label="Money made today"
+                      label={t("onboarding.amountLabel")}
                       className="min-w-[8rem] flex-1"
                     >
                       <Input
@@ -179,7 +188,7 @@ export function Onboarding() {
                       className="h-11 md:h-10"
                       disabled={logFirst.isPending || !(Number(amount) > 0)}
                     >
-                      {logFirst.isPending ? "Saving…" : "Save"}
+                      {logFirst.isPending ? t("common.saving") : t("common.save")}
                     </Button>
                   </form>
                 )}
@@ -198,18 +207,24 @@ export function Onboarding() {
                     : "border border-brand-border bg-brand-soft text-foreground"
                 }`}
               >
-                {hasRate ? <Check className="size-3.5" /> : <span className="num">2</span>}
+                {hasRate ? (
+                  <Check className="size-3.5" />
+                ) : (
+                  <span className="num">{formatNumber(2)}</span>
+                )}
               </span>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold leading-6">
                   {hasRate
-                    ? `Holding back ${settings?.tax_rate_percent}% for tax`
-                    : "Decide what to hold back for tax"}
+                    ? t("onboarding.taxStepDone", {
+                        rate: formatNumber(settings?.tax_rate_percent ?? 0),
+                      })
+                    : t("onboarding.taxStepTitle")}
                 </p>
 
                 {hasRate ? (
                   <p className="mt-1 text-[13px] text-muted-foreground">
-                    You can change this any time under Tools.
+                    {t("onboarding.taxStepDoneBlurb", { section: t("nav.tools") })}
                   </p>
                 ) : (
                   <>
@@ -222,7 +237,7 @@ export function Onboarding() {
                     >
                       <Field
                         id="first-rate"
-                        label="Percentage of income"
+                        label={t("onboarding.rateLabel")}
                         className="min-w-[8rem] flex-1"
                       >
                         <Input
@@ -242,12 +257,11 @@ export function Onboarding() {
                         className="h-11 md:h-10"
                         disabled={setTax.isPending}
                       >
-                        {setTax.isPending ? "Saving…" : "Set"}
+                        {setTax.isPending ? t("common.saving") : t("onboarding.setRate")}
                       </Button>
                     </form>
                     <p className="mt-2.5 max-w-prose text-[12px] leading-relaxed text-muted-foreground">
-                      A rough guess is fine — 25% is a common starting point. Check the real figure
-                      with an accountant; this just stops the bill being a surprise.
+                      {t("onboarding.taxHint")}
                     </p>
                   </>
                 )}
@@ -262,7 +276,7 @@ export function Onboarding() {
             onClick={hide}
             className="-ml-2 inline-flex h-10 items-center rounded-[var(--radius-10)] px-2 text-[12px] text-muted-foreground transition-colors duration-[var(--dur-fast)] ease-[var(--ease)] hover:bg-accent hover:text-foreground"
           >
-            Skip this
+            {t("onboarding.skip")}
           </button>
         </div>
       </Panel>

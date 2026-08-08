@@ -17,6 +17,10 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { LandingShell } from "@/components/landing/landing-shell";
 import { Button } from "@/components/ui/button";
 import { CONTACT_EMAIL } from "@/lib/contact";
+// The count is read, not written: these Terms are a promise about what the Free
+// plan includes, so "six languages" becoming untrue is a broken promise, not a
+// typo.
+import { LOCALE_LIST } from "@/lib/i18n";
 import { LEGAL_UPDATED, LegalPage, LegalSection } from "@/components/landing/legal";
 import { PLANS, TRIAL_DAYS, formatPrice } from "@/lib/pricing";
 
@@ -130,9 +134,10 @@ function TermsPage() {
             When a Pro subscription ends — because you cancelled, or a payment could not be taken —
             the account drops to the Free plan. Free costs nothing and has no time limit. You can
             still log money in and out, see your daily and monthly totals, use the app in any of the
-            six languages, and export everything you have ever entered. Free does not include
-            invoicing{freeInvoiceCap === 0 ? "" : ` beyond ${freeInvoiceCap} a month`}, receipt
-            scanning, budgets and goals, household sharing, or asking questions about your figures.
+            {` ${LOCALE_LIST.length} `}languages offered, and export everything you have ever
+            entered. Free does not include invoicing
+            {freeInvoiceCap === 0 ? "" : ` beyond ${freeInvoiceCap} a month`}, receipt scanning,
+            budgets and goals, household sharing, or asking questions about your figures.
           </p>
           <p>
             <strong className="text-foreground">Cancelling is one click, at any time</strong>, from

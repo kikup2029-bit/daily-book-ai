@@ -3,8 +3,19 @@ import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
 import { ChevronDown, ExternalLink, Search, SearchX, X } from "lucide-react";
 
 import { searchHelp } from "@/lib/help-content";
+import { useI18n } from "@/lib/i18n";
 import { Input } from "@/components/ui/input";
 import { Alert, PageHeader } from "@/components/ui/kit";
+
+/**
+ * Where the link sits inside the closing sentence.
+ *
+ * The sentence stays one key, because word order moves between languages and a
+ * sentence assembled from fragments in JSX can only ever read as English. The
+ * translated string is split on this marker and the link rendered between the
+ * two halves, wherever the translator chose to put it.
+ */
+const LINK_SLOT = "{link}";
 
 export const Route = createFileRoute("/_authenticated/help")({
   head: () => ({
@@ -25,17 +36,18 @@ export const Route = createFileRoute("/_authenticated/help")({
 });
 
 function HelpPage() {
+  const { t } = useI18n();
   const { group, topic } = useSearch({ from: "/_authenticated/help" });
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState<string[]>(topic ? [topic] : []);
   const topicRef = useRef<HTMLDivElement | null>(null);
 
   const groups = useMemo(() => {
-    const found = searchHelp(query);
+    const found = searchHelp(query, t);
     // A ?group=… link narrows to that section, unless you're searching.
     if (!query && group) return found.filter((g) => g.id === group);
     return found;
-  }, [query, group]);
+  }, [query, group, t]);
 
   // Open and scroll to a topic that was linked directly.
   useEffect(() => {
@@ -58,14 +70,13 @@ function HelpPage() {
 
   const total = groups.reduce((sum, g) => sum + g.topics.length, 0);
 
+  // Two halves of the closing sentence, either side of the link.
+  const [beforeLink, afterLink] = t("help.stillStuckBody").split(LINK_SLOT);
+
   return (
     <div className="rise mx-auto w-full max-w-3xl">
       <section className="pb-6">
-        <PageHeader
-          eyebrow="Help"
-          title="How everything works"
-          description="Every feature, what it's for, and how to use it. Search, or pick a section from the Help menu."
-        />
+        <PageHeader eyebrow={t("nav.help")} title={t("help.title")} description={t("help.blurb")} />
 
         <div className="relative">
           <Search
@@ -75,16 +86,16 @@ function HelpPage() {
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search help — try “receipt”, “split”, “tax”…"
+            placeholder={t("help.searchPlaceholder")}
             className="h-12 rounded-[var(--radius-12)] pl-10 pr-11 md:h-12 md:text-base"
-            aria-label="Search help"
+            aria-label={t("help.searchLabel")}
           />
           {query ? (
             <button
               type="button"
               onClick={() => setQuery("")}
               className="absolute right-1 top-1/2 flex size-10 -translate-y-1/2 items-center justify-center rounded-[var(--radius-10)] text-muted-foreground transition-colors duration-[var(--dur-fast)] ease-[var(--ease)] hover:bg-accent hover:text-foreground"
-              aria-label="Clear help search"
+              aria-label={t("help.clearSearch")}
             >
               <X className="size-4" aria-hidden="true" />
             </button>
@@ -92,26 +103,25 @@ function HelpPage() {
         </div>
 
         {searching && total > 0 ? (
-          <p className="mt-3 text-[13px] text-muted-foreground">
-            <span className="num font-medium text-foreground">{total}</span>{" "}
-            {total === 1 ? "topic matches" : "topics match"} “{query}”.
+          <p className="num mt-3 text-[13px] text-muted-foreground">
+            {t("help.matchCount", { count: total, query })}
           </p>
         ) : null}
 
         {group && !searching ? (
           <div className="mt-4">
             <Alert
-              title="Showing one section"
+              title={t("help.oneSectionTitle")}
               action={
                 <Link
                   to="/help"
                   className="inline-flex h-10 items-center rounded-[var(--radius-10)] px-3 text-[13px] font-semibold text-brand transition-colors duration-[var(--dur-fast)] ease-[var(--ease)] hover:bg-accent"
                 >
-                  Show everything
+                  {t("common.showEverything")}
                 </Link>
               }
             >
-              You followed a link to one part of the guide.
+              {t("help.oneSectionBody")}
             </Alert>
           </div>
         ) : null}
@@ -125,9 +135,9 @@ function HelpPage() {
           >
             <SearchX className="size-5" />
           </span>
-          <p className="mt-4 text-[15px] font-semibold">Nothing matches “{query}”</p>
+          <p className="mt-4 text-[15px] font-semibold">{t("help.noMatch", { query })}</p>
           <p className="mt-1.5 max-w-xs text-balance text-[13px] leading-relaxed text-muted-foreground">
-            Try a simpler word — “tax”, “receipt”, “export”.
+            {t("help.noMatchHint")}
           </p>
         </div>
       ) : null}
@@ -173,12 +183,12 @@ function HelpPage() {
 
                     {expanded ? (
                       <div className="border-t border-border px-4 py-5 sm:px-5">
-                        <p className="eyebrow">Where to find it</p>
+                        <p className="eyebrow">{t("help.whereToFind")}</p>
                         <p className="mt-1.5 text-sm leading-relaxed">{helpTopic.where}</p>
 
-                        {helpTopic.steps ? (
+                        {helpTopic.steps.length > 0 ? (
                           <>
-                            <p className="eyebrow mt-6">How to use it</p>
+                            <p className="eyebrow mt-6">{t("help.howToUse")}</p>
                             <ol className="mt-2.5 space-y-2.5 text-sm leading-relaxed">
                               {helpTopic.steps.map((step, index) => (
                                 <li key={index} className="flex gap-3">
@@ -195,9 +205,9 @@ function HelpPage() {
                           </>
                         ) : null}
 
-                        {helpTopic.notes ? (
+                        {helpTopic.notes.length > 0 ? (
                           <>
-                            <p className="eyebrow mt-6">Worth knowing</p>
+                            <p className="eyebrow mt-6">{t("help.worthKnowing")}</p>
                             <ul className="mt-2.5 space-y-2.5 text-sm leading-relaxed">
                               {helpTopic.notes.map((note, index) => (
                                 <li key={index} className="flex gap-3">
@@ -217,7 +227,8 @@ function HelpPage() {
                             to={helpTopic.to}
                             className="mt-5 inline-flex h-10 items-center gap-1.5 rounded-[var(--radius-10)] border border-border-strong px-3.5 text-[13px] font-semibold transition-colors duration-[var(--dur-fast)] ease-[var(--ease)] hover:bg-accent"
                           >
-                            Open it <ExternalLink className="size-3.5" aria-hidden="true" />
+                            {t("help.openIt")}{" "}
+                            <ExternalLink className="size-3.5" aria-hidden="true" />
                           </Link>
                         ) : null}
                       </div>
@@ -231,17 +242,16 @@ function HelpPage() {
       </div>
 
       <section className="mt-10 border-t pt-8">
-        <p className="eyebrow">Still stuck?</p>
+        <p className="eyebrow">{t("help.stillStuck")}</p>
         <p className="mt-2 max-w-prose text-sm leading-relaxed text-muted-foreground">
-          Try asking in your own words on{" "}
+          {beforeLink}
           <Link
             to="/ask"
             className="font-medium text-brand underline underline-offset-4 transition-colors duration-[var(--dur-fast)] ease-[var(--ease)] hover:text-brand-hover"
           >
-            Ask about your money
-          </Link>{" "}
-          — it answers questions about your own figures. For anything about tax or legal matters,
-          check with an accountant rather than relying on the app.
+            {t("nav.ask")}
+          </Link>
+          {afterLink}
         </p>
       </section>
     </div>

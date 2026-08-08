@@ -95,8 +95,7 @@ export function EntriesSearch() {
         {/* Direction + filter toggle */}
         <div className="flex flex-wrap items-center gap-2">
           <Segmented
-            // No key in en.ts for this group's accessible name — see the handover note.
-            name="Direction"
+            name={t("entries.directionLabel")}
             value={filters.direction}
             onChange={(value) => set("direction", value)}
             options={[
@@ -263,8 +262,7 @@ export function EntriesSearch() {
                 {entries.length === 0 ? (
                   <EmptyState
                     title={t("dashboard.nothingLogged")}
-                    // No key in en.ts for this blurb — see the handover note.
-                    blurb="Once you start logging, everything you've entered shows up here to search and correct."
+                    blurb={t("entries.nothingLoggedBlurb")}
                     sample={<SampleRows rows={4} />}
                   />
                 ) : (
@@ -276,9 +274,8 @@ export function EntriesSearch() {
                       <SearchX className="size-5" />
                     </span>
                     <p className="mt-4 text-[15px] font-semibold">{t("common.noMatch")}</p>
-                    {/* No key in en.ts for this hint — see the handover note. */}
                     <p className="mt-1.5 max-w-xs text-balance text-[13px] leading-relaxed text-muted-foreground">
-                      Try fewer words, a wider date range, or start again with everything.
+                      {t("entries.noMatchHint")}
                     </p>
                     <Button
                       type="button"

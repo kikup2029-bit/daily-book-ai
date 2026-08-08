@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Lock, NotebookPen } from "lucide-react";
 
 import { getSettings, unlockApp } from "@/lib/shop.functions";
+import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, Field, Panel, PanelBody, PanelHeader } from "@/components/ui/kit";
@@ -21,6 +22,7 @@ const UNLOCKED_KEY = "simplebooks.unlockedAt";
  * on top of that.
  */
 export function LockGate({ children }: { children: React.ReactNode }) {
+  const { t } = useI18n();
   const fetchSettings = useServerFn(getSettings);
   const runUnlock = useServerFn(unlockApp);
 
@@ -105,10 +107,10 @@ export function LockGate({ children }: { children: React.ReactNode }) {
       } else {
         setAttempts((n) => n + 1);
         setPin("");
-        setError("That PIN didn't match.");
+        setError(t("lock.pinWrong"));
       }
     },
-    onError: () => setError("Couldn't check that just now. Try again."),
+    onError: () => setError(t("lock.checkFailed")),
   });
 
   if (isLoading || locked === null) {
@@ -118,7 +120,7 @@ export function LockGate({ children }: { children: React.ReactNode }) {
         aria-busy="true"
       >
         <span className="skeleton size-11 rounded-[var(--radius-14)]" aria-hidden="true" />
-        <p className="text-sm text-muted-foreground">Getting your books ready…</p>
+        <p className="text-sm text-muted-foreground">{t("lock.preparing")}</p>
       </div>
     );
   }
@@ -142,7 +144,7 @@ export function LockGate({ children }: { children: React.ReactNode }) {
           </span>
           <div className="min-w-0">
             <p className="eyebrow">SimpleBooks AI</p>
-            <h1 className="mt-0.5 truncate text-[22px] leading-tight">Locked</h1>
+            <h1 className="mt-0.5 truncate text-[22px] leading-tight">{t("lock.locked")}</h1>
           </div>
         </div>
 
@@ -151,10 +153,10 @@ export function LockGate({ children }: { children: React.ReactNode }) {
             title={
               <span className="flex items-center gap-2">
                 <Lock className="size-4 text-brand" aria-hidden="true" />
-                Enter your PIN
+                {t("lock.enterPin")}
               </span>
             }
-            description="Your books stay hidden until you unlock them on this device."
+            description={t("lock.blurb")}
           />
 
           <form
@@ -167,8 +169,8 @@ export function LockGate({ children }: { children: React.ReactNode }) {
             <PanelBody className="space-y-4">
               <Field
                 id="unlock-pin"
-                label="PIN"
-                hint="4 to 8 numbers."
+                label={t("lock.pinLabel")}
+                hint={t("lock.pinHint")}
                 error={error}
                 className="space-y-2"
               >
@@ -191,8 +193,8 @@ export function LockGate({ children }: { children: React.ReactNode }) {
               </Field>
 
               {throttled ? (
-                <Alert tone="negative" title="Too many tries">
-                  Sign out and back in if you&apos;ve forgotten your PIN.
+                <Alert tone="negative" title={t("lock.tooManyTries")}>
+                  {t("lock.tooManyTriesBody")}
                 </Alert>
               ) : null}
 
@@ -204,15 +206,14 @@ export function LockGate({ children }: { children: React.ReactNode }) {
                 loading={unlock.isPending}
                 disabled={pin.length < 4 || unlock.isPending || throttled}
               >
-                {unlock.isPending ? "Checking…" : "Unlock"}
+                {unlock.isPending ? t("lock.checking") : t("lock.unlock")}
               </Button>
             </PanelBody>
           </form>
         </Panel>
 
         <p className="mt-4 px-1 text-[12px] leading-relaxed text-muted-foreground">
-          Forgotten it? Sign out and sign back in with your email and password, then set a new PIN
-          under Tools.
+          {t("lock.forgotten")}
         </p>
       </div>
     </main>

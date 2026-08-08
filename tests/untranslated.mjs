@@ -35,6 +35,26 @@ const ALLOWED = new Map([
   ["src/lib/i18n/ur.ts", "a dictionary"],
   ["src/lib/i18n/zh.ts", "a dictionary"],
   ["src/lib/i18n/locales.ts", "language names are shown in their own script on purpose"],
+
+  /*
+   * The error screens. These render OUTSIDE <I18nProvider>: TanStack renders
+   * `errorComponent` and `notFoundComponent` in place of the root route's
+   * component, which is the thing that mounts the provider. `useI18n()` throws
+   * without a provider, so translating these would make the error boundary
+   * itself throw — a blank page instead of a page in the wrong language.
+   * Both files carry the full explanation inline.
+   */
+  ["src/routes/__root.tsx", "404 and error boundary render outside the i18n provider"],
+  ["src/lib/error-page.ts", "raw HTML from the Worker, before any React or locale exists"],
+
+  /*
+   * Unused shadcn scaffolding. Neither has a single importer anywhere in src/ —
+   * verified by grep, not assumed. Translating dead code would be busywork, and
+   * deleting it is a separate decision. If either ever gets mounted, take it out
+   * of this list first.
+   */
+  ["src/components/ui/pagination.tsx", "unused shadcn primitive, no importers"],
+  ["src/components/ui/sidebar.tsx", "unused shadcn primitive, no importers"],
 ]);
 
 /** Strings that look like prose rather than code. */
@@ -49,6 +69,9 @@ function looksLikeProse(text) {
   // Tailwind and CSS: long runs of hyphenated tokens, bracket utilities, vars.
   if (/^[a-z0-9:\-\s[\]().,/%_]+$/.test(s) && /(-|\[)/.test(s) && !/[.?!]/.test(s)) return false;
   if (/var\(--|rounded-|text-\[|flex|grid|px-|py-|mt-|gap-/.test(s)) return false;
+  // Source code that happens to look like a sentence. `Math.abs(amount -
+  // typical) / typical` was reported as untranslated prose for months.
+  if (/\b(Math|Number|Object|Array|JSON|Intl)\.|=>|\(\)|\w+\(\w/.test(s)) return false;
   // Word-per-word: prose has spaces between real words.
   const words = s.split(/\s+/).filter((w) => /^[A-Za-z''’.,!?—-]+$/.test(w));
   return words.length >= 2;
@@ -108,6 +131,18 @@ for (const f of findings) {
 console.log(`\n  ${total} string(s) across ${findings.length} file(s).`);
 console.log(`  Exempt: ${[...ALLOWED.keys()].length} file(s), each with a stated reason.\n`);
 
-// Reported, not enforced — while the gap is being closed, a hard failure here
-// would just get muted. Swap to a non-zero exit once this reaches zero.
-process.exit(0);
+/*
+ * ENFORCED, as of the pass that took this from 646 strings to zero.
+ *
+ * It used to exit 0 always, on the reasoning that a permanently-red check while
+ * a large gap was being closed would simply get muted. That gap is closed, so
+ * the check now bites: a new hard-coded string fails the build.
+ *
+ * If this fires on something that genuinely should not be translated, add it to
+ * ALLOWED with a real reason. "It's a lot of work" is not a reason. Every entry
+ * up there names something it would be actively WRONG to translate.
+ */
+if (total > 0) {
+  console.log("  New hard-coded English. Move it into src/lib/i18n/en.ts and use t().\n");
+}
+process.exit(total === 0 ? 0 : 1);

@@ -178,9 +178,11 @@ export async function setLockPin(
   userId: string,
   input: { pin: string; timeout_minutes: number },
 ) {
-  const { validatePin, randomSalt, hashPin } = await import("./pin");
-  const problem = validatePin(input.pin);
-  if (problem) throw new Error(problem);
+  const { validatePin, pinProblemCode, randomSalt, hashPin } = await import("./pin");
+  const check = validatePin(input.pin);
+  // A code, not a sentence: the server has no idea what language the reader
+  // uses, so the browser translates this before anyone sees it.
+  if (!check.ok) throw new Error(pinProblemCode(check.reason));
 
   const salt = randomSalt();
   const hash = await hashPin(input.pin, salt);

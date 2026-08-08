@@ -14,7 +14,7 @@ import { hi } from "./hi";
 import { gu } from "./gu";
 import { ur } from "./ur";
 import { zh } from "./zh";
-import { DEFAULT_LOCALE, LOCALES, detectLocale, isLocale, type Locale } from "./locales";
+import { DEFAULT_LOCALE, LOCALES, detectLocale, isShippedLocale, type Locale } from "./locales";
 import { makeTranslator, type PartialDictionary, type Translator } from "./translate";
 
 const DICTIONARIES: Record<Locale, PartialDictionary> = { en, es, hi, gu, ur, zh };
@@ -50,7 +50,11 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     } catch {
       saved = null;
     }
-    if (isLocale(saved)) {
+    // isShippedLocale rather than isLocale: a saved choice outlives a release.
+    // Someone who picked Urdu while it was offered still has "ur" here, and
+    // restoring it would hand them a page that's half English. They fall back
+    // to English until that dictionary is finished.
+    if (isShippedLocale(saved)) {
       setLocaleState(saved);
       return;
     }
@@ -147,4 +151,4 @@ export function useT(): Translator {
   return useI18n().t;
 }
 
-export { LOCALES, LOCALE_LIST, type Locale } from "./locales";
+export { LOCALES, LOCALE_LIST, ALL_LOCALES, isShippedLocale, type Locale } from "./locales";

@@ -1,3 +1,15 @@
+/**
+ * The last-resort error page, served by the Worker.
+ *
+ * Still in English on purpose. This is a raw HTML string returned from
+ * src/server.ts and src/start.ts when the request failed before any React ran,
+ * so there is no provider, no `t()`, and no locale to read — the user's saved
+ * choice lives in `localStorage`, which the server can't see. Localising it
+ * means passing a locale in from the request (Accept-Language) and giving the
+ * Worker its own copy of the dictionary; that's a separate change, and it
+ * shouldn't be smuggled in here, where a mistake takes down the page that
+ * exists to be shown when everything else is already broken.
+ */
 export function renderErrorPage(): string {
   return `<!doctype html>
 <html lang="en">
