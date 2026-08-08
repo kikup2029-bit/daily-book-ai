@@ -90,16 +90,25 @@ export type Feature =
 
 export type Plan = {
   id: PlanId;
+  /**
+   * An internal label, NOT display text.
+   *
+   * Used in server-side error messages, which have no reader whose language we
+   * know. Everything a customer actually reads about a plan — the name on the
+   * card, the tagline, the cadence, the bullets, the button — lives in the
+   * dictionary and is mapped in plan-copy.ts.
+   *
+   * The display prose used to live here as English strings, and four screens
+   * rendered them raw: the landing page, the billing page, the paywall and the
+   * post-signup offer. Every screen that asks for money asked in English, in
+   * every language. Keeping the words out of this file is what stops that
+   * coming back.
+   */
   name: string;
   /** Monthly price in cents. Cents, not dollars — floats and money don't mix. */
   priceCents: number;
-  /** Shown under the price. */
-  cadence: string;
-  tagline: string;
   features: Feature[];
-  /** Human-readable bullets for the pricing card, in display order. */
-  bullets: string[];
-  cta: string;
+
   /**
    * Which Stripe Price this maps to. Read from the environment at runtime, so
    * test and live mode can differ without a code change. Free has none.
@@ -156,16 +165,7 @@ export const PLANS: Record<PlanId, Plan> = {
     id: "free",
     name: "Free",
     priceCents: 0,
-    cadence: "forever",
-    tagline: "Your books stay yours, and you can still keep a daily record.",
     features: ["exports", "allLanguages"],
-    bullets: [
-      "Log money in and money out by hand",
-      "Today's totals, and this month's",
-      "CSV and PDF exports — always",
-      "All six languages",
-    ],
-    cta: "Continue on Free",
     stripePriceEnvVar: null,
     stripePriceFallback: null,
     featured: false,
@@ -176,10 +176,6 @@ export const PLANS: Record<PlanId, Plan> = {
     id: "pro",
     name: "Pro",
     priceCents: 999,
-    cadence: "per month",
-    // No price in the tagline: it would be a second copy of priceCents, free to
-    // drift out of step with the first. The card renders the price itself.
-    tagline: `Free for ${TRIAL_DAYS} days. Cancel any time before it ends.`,
     features: [
       "unlimitedEntries",
       "unlimitedInvoices",
@@ -196,44 +192,34 @@ export const PLANS: Record<PlanId, Plan> = {
       "billsCalendar",
       "dailyReminder",
     ],
-    // The first five are what the paywall panel shows, so the things a person
-    // most often hits a gate on come first.
-    bullets: [
-      "Search and correct every entry you've logged",
-      "Streaks, your week, busy days and where money went",
-      "Item margins, cash drawer and tax set-aside",
-      "Bills calendar, plus subscriptions it spots for you",
-      "Ask questions about your own numbers",
-      "Snap a receipt and it fills itself in",
-      "Unlimited invoices, budgets and savings goals",
-      "A daily reminder to write the day down",
-      "Share with a partner or housemate",
-      "Keeps working with no signal, syncs later",
-      "CSV and PDF exports for your accountant",
-      "All six languages",
-    ],
-    cta: `Start my ${TRIAL_DAYS} free days`,
+    // Order matters: plan-copy.ts's bullet list mirrors it, and the paywall
+    // shows only the first five — so the gates people hit most come first.
     stripePriceEnvVar: "STRIPE_PRICE_PRO_MONTHLY",
     /*
-     * The SANDBOX price — the safe default. It cannot move real money, so a
-     * misconfigured deploy fails loudly instead of charging someone.
+     * The LIVE price. The sandbox one is  price_1U1Z3hEQK9OJjO7XRE5aQEkZ
      *
-     * The LIVE price is  price_1U1r4MEMSZ3AoM69CiBJCtLO
+     * This used to hold the sandbox id, on the reasoning that a safe default
+     * fails loudly rather than charging someone. That reasoning was wrong once
+     * the account went live, and dangerously so.
      *
-     * Going live does NOT mean editing this line. Set the environment variable
-     * instead, which takes precedence:
+     * The fallback only gets used when STRIPE_PRICE_PRO_MONTHLY is unreadable —
+     * which on this project is not a hypothetical. Cloudflare hands bindings to
+     * the fetch handler, `process.env` is empty on a Worker without
+     * nodejs_compat, and chasing that cost most of a day. A sandbox price id
+     * sent with a live secret key is rejected outright by Stripe, so the
+     * "safe" default was in fact the one guaranteed to break checkout for every
+     * paying customer the moment the env var went missing again.
+     *
+     * The env var still wins when readable. This is the floor, and the floor
+     * should be the thing that works in production:
      *
      *   wrangler secret put STRIPE_PRICE_PRO_MONTHLY --name daily-book-ai
      *
-     * Keeping live mode in configuration rather than in code means the switch
-     * needs no commit, no build and no deploy — and reverting is one command if
-     * something looks wrong, instead of a code change under pressure.
-     *
-     * All three must move together: secret key, webhook secret, price. A test
-     * id with a live key is rejected by Stripe outright, which is the failure
-     * direction you want — it can't quietly charge the wrong amount.
+     * A Price id is not a secret. It names a product; it cannot charge anyone.
+     * All three still move together — secret key, webhook secret, price — and
+     * mixing modes is rejected by Stripe rather than silently charging wrong.
      */
-    stripePriceFallback: "price_1U1Z3hEQK9OJjO7XRE5aQEkZ",
+    stripePriceFallback: "price_1U1r4MEMSZ3AoM69CiBJCtLO",
     featured: true,
     limits: { invoicesPerMonth: null, entriesPerMonth: null, devices: null },
   },

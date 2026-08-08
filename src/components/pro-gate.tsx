@@ -27,7 +27,10 @@ import { Check, Lock } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Alert, Panel, PanelBody } from "@/components/ui/kit";
-import { useI18n } from "@/lib/i18n";
+import { LOCALE_LIST, useI18n } from "@/lib/i18n";
+// Same keys the pricing page and billing page use, so the three screens that
+// sell Pro describe it identically — and all of them in the reader's language.
+import { PLAN_COPY } from "@/lib/plan-copy";
 import { PLANS, TRIAL_DAYS, firstChargeDate, formatPrice, type Feature } from "@/lib/pricing";
 import { startCheckout } from "@/lib/subscriptions.functions";
 import { useHasFeature } from "@/lib/use-subscription";
@@ -210,10 +213,12 @@ function UpgradePanel({ title, usedTrial }: { title: string; usedTrial: boolean 
           </p>
 
           <ul className="mx-auto mt-6 max-w-xs space-y-2 text-left">
-            {PLANS.pro.bullets.slice(0, 5).map((bullet) => (
-              <li key={bullet} className="flex items-start gap-2.5 text-[13px]">
+            {PLAN_COPY.pro.bullets.slice(0, 5).map((bulletKey) => (
+              <li key={bulletKey} className="flex items-start gap-2.5 text-[13px]">
                 <Check className="mt-0.5 size-4 shrink-0 text-success" aria-hidden="true" />
-                <span className="text-muted-foreground">{bullet}</span>
+                <span className="text-muted-foreground">
+                  {t(bulletKey, { count: LOCALE_LIST.length })}
+                </span>
               </li>
             ))}
           </ul>

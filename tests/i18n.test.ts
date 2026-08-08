@@ -5,17 +5,35 @@ import { gu } from "../src/lib/i18n/gu.ts";
 import { ur } from "../src/lib/i18n/ur.ts";
 import { zh } from "../src/lib/i18n/zh.ts";
 import { LOCALES, LOCALE_LIST, detectLocale, isLocale } from "../src/lib/i18n/locales.ts";
-import { collectPaths, interpolate, makeTranslator, missingKeys } from "../src/lib/i18n/translate.ts";
+import {
+  collectPaths,
+  interpolate,
+  makeTranslator,
+  missingKeys,
+} from "../src/lib/i18n/translate.ts";
 
-let pass = 0, fail = 0;
-const ok = (c: boolean, l: string) => { if (c) pass++; else { fail++; console.log("FAIL: " + l); } };
+let pass = 0,
+  fail = 0;
+const ok = (c: boolean, l: string) => {
+  if (c) pass++;
+  else {
+    fail++;
+    console.log("FAIL: " + l);
+  }
+};
 const eq = (a: unknown, b: unknown, l: string) => {
   const same = JSON.stringify(a) === JSON.stringify(b);
   if (!same) console.log(`FAIL: ${l} — got ${JSON.stringify(a)}, want ${JSON.stringify(b)}`);
   same ? pass++ : fail++;
 };
 
-const ALL_LANGS = [["es", es], ["hi", hi], ["gu", gu], ["ur", ur], ["zh", zh]] as const;
+const ALL_LANGS = [
+  ["es", es],
+  ["hi", hi],
+  ["gu", gu],
+  ["ur", ur],
+  ["zh", zh],
+] as const;
 
 /*
  * Only SHIPPED languages have to be complete.
@@ -87,10 +105,12 @@ for (const [name, dict] of LANGS) {
 }
 
 function read(source: unknown, path: string): unknown {
-  return path.split(".").reduce<unknown>(
-    (n, k) => (n && typeof n === "object" ? (n as Record<string, unknown>)[k] : undefined),
-    source,
-  );
+  return path
+    .split(".")
+    .reduce<unknown>(
+      (n, k) => (n && typeof n === "object" ? (n as Record<string, unknown>)[k] : undefined),
+      source,
+    );
 }
 
 // --- placeholders must survive translation, or a name/amount vanishes on screen
@@ -111,8 +131,11 @@ for (const [name, dict] of LANGS) {
 // --- interpolation
 eq(interpolate("{count} entries", { count: 3 }), "3 entries", "substitutes a value");
 eq(interpolate("no placeholders"), "no placeholders", "leaves plain text alone");
-eq(interpolate("{missing} here", {}), "{missing} here",
-   "an unsupplied value stays visible rather than printing undefined");
+eq(
+  interpolate("{missing} here", {}),
+  "{missing} here",
+  "an unsupplied value stays visible rather than printing undefined",
+);
 eq(interpolate("{a} and {b}", { a: "x", b: "y" }), "x and y", "handles several");
 
 // --- plural selection
@@ -120,8 +143,10 @@ eq(interpolate("{a} and {b}", { a: "x", b: "y" }), "x and y", "handles several")
   const t = makeTranslator(es, en, "es", "es");
   ok(t("entries.count", { count: 1 }).includes("1"), "singular renders");
   ok(t("entries.count", { count: 5 }).includes("5"), "plural renders");
-  ok(t("entries.count", { count: 1 }) !== t("entries.count", { count: 5 }),
-     "Spanish singular and plural actually differ");
+  ok(
+    t("entries.count", { count: 1 }) !== t("entries.count", { count: 5 }),
+    "Spanish singular and plural actually differ",
+  );
 }
 {
   // Chinese supplies only _other; every count must still resolve.
@@ -144,10 +169,15 @@ eq(interpolate("{a} and {b}", { a: "x", b: "y" }), "x and y", "handles several")
 // --- locale metadata
 ok(LOCALES.ur.dir === "rtl", "Urdu is right-to-left");
 ok(LOCALES.ar === undefined, "Arabic isn't claimed — it was never translated");
-ok(Object.values(LOCALES).every((l) => l.native.length > 0), "every language names itself in its own script");
+ok(
+  Object.values(LOCALES).every((l) => l.native.length > 0),
+  "every language names itself in its own script",
+);
 ok(LOCALES.gu.native === "ગુજરાતી", "Gujarati is offered in Gujarati script");
-ok(LOCALES.hi.font !== null && LOCALES.gu.font !== null && LOCALES.zh.font !== null,
-   "non-Latin scripts each declare a font, or they render as empty boxes");
+ok(
+  LOCALES.hi.font !== null && LOCALES.gu.font !== null && LOCALES.zh.font !== null,
+  "non-Latin scripts each declare a font, or they render as empty boxes",
+);
 eq(detectLocale(["es-MX", "en"]), "es", "a regional tag matches its base language");
 eq(detectLocale(["fr-CA"]), "en", "an unsupported language falls back to English");
 eq(detectLocale([]), "en", "no preference falls back to English");

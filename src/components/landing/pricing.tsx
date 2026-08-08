@@ -22,7 +22,10 @@ import { Link } from "@tanstack/react-router";
 import { Check } from "lucide-react";
 
 import { LOCALE_LIST, useI18n } from "@/lib/i18n";
-import { PLAN_LIST, TRIAL_DAYS, formatPrice, type PlanId } from "@/lib/pricing";
+// Shared with the billing page, the paywall and the welcome offer, so the four
+// screens that sell the product cannot describe it differently.
+import { PLAN_COPY } from "@/lib/plan-copy";
+import { PLAN_LIST, TRIAL_DAYS, formatPrice } from "@/lib/pricing";
 import { Badge } from "@/components/ui/kit";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -35,43 +38,6 @@ import { Section, SectionHeading } from "@/components/landing/section";
  * Key *names*, not text, so this can safely be a module constant — nothing here
  * is resolved until `t` runs inside the component.
  */
-const PLAN_COPY: Record<
-  PlanId,
-  { name: string; tagline: string; cadence: string; cta: string; bullets: string[] }
-> = {
-  free: {
-    name: "landing.planFreeName",
-    tagline: "landing.planFreeTagline",
-    cadence: "landing.planFreeCadence",
-    cta: "landing.planFreeCta",
-    bullets: [
-      "landing.planFreeBulletLog",
-      "landing.planFreeBulletTotals",
-      "landing.planFreeBulletExports",
-      "landing.planFreeBulletLanguages",
-    ],
-  },
-  pro: {
-    name: "landing.planProName",
-    tagline: "landing.planProTagline",
-    cadence: "landing.planProCadence",
-    cta: "landing.planProCta",
-    bullets: [
-      "landing.planProBulletSearch",
-      "landing.planProBulletInsights",
-      "landing.planProBulletCashTools",
-      "landing.planProBulletBills",
-      "landing.planProBulletAsk",
-      "landing.planProBulletReceipts",
-      "landing.planProBulletInvoices",
-      "landing.planProBulletReminder",
-      "landing.planProBulletSharing",
-      "landing.planProBulletOffline",
-      "landing.planProBulletExports",
-      "landing.planProBulletLanguages",
-    ],
-  },
-};
 
 export function Pricing() {
   // Digit grouping and the decimal mark follow the reader's language; the

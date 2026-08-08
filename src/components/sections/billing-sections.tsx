@@ -31,8 +31,9 @@ import {
   PanelFooter,
   PanelHeader,
 } from "@/components/ui/kit";
-import { useI18n } from "@/lib/i18n";
-import { PLANS, PLAN_LIST, formatPrice, type Plan } from "@/lib/pricing";
+import { LOCALE_LIST, useI18n } from "@/lib/i18n";
+import { PLAN_COPY } from "@/lib/plan-copy";
+import { PLANS, PLAN_LIST, TRIAL_DAYS, formatPrice, type Plan } from "@/lib/pricing";
 import { getSubscription, openBillingPortal, startCheckout } from "@/lib/subscriptions.functions";
 import { useSubscription } from "@/lib/use-subscription";
 
@@ -298,12 +299,16 @@ function PlanCard({
   starting: boolean;
 }) {
   const { t } = useI18n();
+  // Keys, not the English prose on the plan object. This card asks for a card
+  // number; asking in a language the reader didn't choose is the last place
+  // that's acceptable.
+  const copy = PLAN_COPY[plan.id];
 
   return (
     <Panel className={plan.featured ? "border-brand-border" : undefined}>
       <PanelHeader
-        title={plan.name}
-        description={plan.tagline}
+        title={t(copy.name)}
+        description={t(copy.tagline, { count: TRIAL_DAYS })}
         action={
           current ? (
             <Badge>{t("billing.currentPlanBadge")}</Badge>
@@ -316,13 +321,13 @@ function PlanCard({
       />
       <PanelBody className="pt-1">
         <p className="figure text-[28px]">{formatPrice(plan.priceCents, locale)}</p>
-        <p className="mt-0.5 text-[13px] text-muted-foreground">{plan.cadence}</p>
+        <p className="mt-0.5 text-[13px] text-muted-foreground">{t(copy.cadence)}</p>
 
         <ul className="mt-4 space-y-2">
-          {plan.bullets.map((bullet) => (
-            <li key={bullet} className="flex items-start gap-2 text-[13px]">
+          {copy.bullets.map((bulletKey) => (
+            <li key={bulletKey} className="flex items-start gap-2 text-[13px]">
               <Check className="mt-0.5 size-4 shrink-0 text-success" aria-hidden="true" />
-              <span className="min-w-0">{bullet}</span>
+              <span className="min-w-0">{t(bulletKey, { count: LOCALE_LIST.length })}</span>
             </li>
           ))}
         </ul>
@@ -330,11 +335,11 @@ function PlanCard({
       <PanelFooter>
         {onStart ? (
           <Button variant="brand" loading={starting} onClick={onStart}>
-            {starting ? t("billing.openingStripe") : plan.cta}
+            {starting ? t("billing.openingStripe") : t(copy.cta, { count: TRIAL_DAYS })}
           </Button>
         ) : (
           <span className="text-[13px] text-muted-foreground">
-            {current ? t("billing.onThisPlan") : plan.cta}
+            {current ? t("billing.onThisPlan") : t(copy.cta, { count: TRIAL_DAYS })}
           </span>
         )}
       </PanelFooter>
